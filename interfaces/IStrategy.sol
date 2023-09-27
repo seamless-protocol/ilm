@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import { IOwnable } from "./IOwnable.sol";
+import { IOwnable2Step } from "./IOwnable2Step.sol";
 import { IPausable } from "./IPausable.sol";
 
 ///TODO: add auxiliary functions
@@ -12,7 +12,7 @@ import { IPausable } from "./IPausable.sol";
 /// @title IStrategy
 /// @notice interface for Integration Liquiity Market strategies
 /// @dev interface similar to IERC4626, with some additional functions for health management
-interface IStrategy is IERC4626, IPausable, IOwnable {
+interface IStrategy is IERC4626, IPausable, IOwnable2Step {
     /// @notice returns the amount of equity belonging to the strategy
     /// @return amount equity amount
     function equity() external returns (uint256 amount);
