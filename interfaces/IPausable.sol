@@ -13,7 +13,7 @@ interface IPausable {
      
     /// @notice returns paused state
     /// @param state true if paused, false if unpaused
-    function paused() external view returns (bool state) ;
+    function paused() external view returns (bool state);
 }
 
  
