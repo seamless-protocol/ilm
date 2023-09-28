@@ -12,7 +12,7 @@ import { IPausable } from "./IPausable.sol";
 /// @title IStrategy
 /// @notice interface for Integration Liquiity Market strategies
 /// @dev interface similar to IERC4626, with some additional functions for health management
-interface IStrategy is IERC4626, IPausable, IOwnable2Step {
+interface ILeverageStrategy is IERC4626, IPausable, IOwnable2Step {
     /// @notice returns the amount of equity belonging to the strategy
     /// @return amount equity amount
     function equity() external returns (uint256 amount);
