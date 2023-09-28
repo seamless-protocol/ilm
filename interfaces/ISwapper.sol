@@ -6,17 +6,27 @@ pragma solidity ^0.8.18;
 /// @notice interface for Swapper contract
 /// @dev Swapper contract functions as registry and router for Swapper Adapters
 interface ISwapper {
-    /// @notice returns the address of an adapter for a given swap path
-    /// @param from address of token to swap from
-    /// @param to address of token to swap to
-    /// @return adapter address of adapter
-    function getAdapter(address from, address to) external returns (address adapter);
+    /// @dev struc to encapsulate a single swap step for a given swap route
+    struct Step {
+        /// @dev from address of token to swap from
+        address from;
+        /// @dev to address of token to swap to
+        address to;
+        /// @dev address of swap adapter
+        address adapter;
+    }
 
-    /// @notice sets the adapter address for a given swap path
+    /// @notice returns the steps of a swap route
     /// @param from address of token to swap from
     /// @param to address of token to swap to
-    /// @param adapter address of adapter
-    function setAdapter(address from, address to, address adapter) external;
+    /// @return steps array of swap steps needed to end up with `to` token from `from` token
+    function getRoute(address from, address to) external returns (Step[] memory steps);
+
+    /// @notice sets the a steps of a swap route
+    /// @param from address of token to swap from
+    /// @param to address of token to swap to
+    /// @param steps  array of swap steps needed to end up with `to` token from `from` token
+    function setRoute(address from, address to, Step[] calldata steps) external;
 
     /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
     /// @param from address of token to swap from
