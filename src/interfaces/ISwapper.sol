@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 import { ISwapAdapter } from "./ISwapAdapter.sol";
 
 /// @title ISwapper
@@ -11,9 +13,9 @@ interface ISwapper {
     /// @dev struc to encapsulate a single swap step for a given swap route
     struct Step {
         /// @dev from address of token to swap from
-        address from;
+        IERC20 from;
         /// @dev to address of token to swap to
-        address to;
+        IERC20 to;
         /// @dev cast address of swap adapter
         ISwapAdapter adapter;
     }
