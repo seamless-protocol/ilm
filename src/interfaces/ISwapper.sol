@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
+import { ISwapAdapter } from "./ISwapAdapter.sol";
+
 /// @title ISwapper
 /// @notice interface for Swapper contract
 /// @dev Swapper contract functions as registry and router for Swapper Adapters
@@ -12,8 +14,8 @@ interface ISwapper {
         address from;
         /// @dev to address of token to swap to
         address to;
-        /// @dev address of swap adapter
-        address adapter;
+        /// @dev cast address of swap adapter
+        ISwapAdapter adapter;
     }
 
     /// @notice returns the steps of a swap route
