@@ -18,6 +18,7 @@ struct CollateralRatio {
 }
 
 /// @dev contains all data pertaining to the current position state of the strategy
+/// TODO: rename?
 struct Position {
     /// @dev wrapped adddress of collateralized asset of leverage strategy
     IERC20 collateralAsset;
