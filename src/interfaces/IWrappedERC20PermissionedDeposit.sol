@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.18;
 
-/// @title IWrapedERC20PermissionedDeposit
+/// @title IWrappedERC20PermissionedDeposit
 /// @notice interface for the Wrapper of ERC20 with permissioned deposit
 /// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token. 
 /// @dev Deposits are permissioned but withdrawals are open to any address.
-interface IWrapedERC20PermissionedDeposit {
+interface IWrappedERC20PermissionedDeposit {
     /// @notice retruns the underlying token address
     function underlying() external view returns (address);
 
