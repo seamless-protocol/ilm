@@ -6,6 +6,7 @@ import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import { IOwnable2Step } from "./IOwnable2Step.sol";
 import { IPausable } from "./IPausable.sol";
+import { CollateralRatio } from "../types/DataTypes.sol";
 
 ///TODO: add auxiliary functions
 
@@ -32,10 +33,6 @@ interface ILeverageStrategy is IERC4626, IPausable, IOwnable2Step {
     /// @param minRatio minimum collateral ratio value
     /// @param maxRatio maximum collateral ratio value
     function setCollateralRatioRange(uint256 minRatio, uint256 maxRatio) external;
-    
-    /// @notice returns the tarvet collateral ratio value of the strategy
-    /// @return ratio target collateral ratio value
-    function targeCollateralRatio() external returns (uint256 ratio);
 
     /// @notice returns the current collateral ratio value of the strategy
     /// @return ratio current collateral ratio value
@@ -46,4 +43,8 @@ interface ILeverageStrategy is IERC4626, IPausable, IOwnable2Step {
     /// within collateral ratio range
     /// @return ratio value of collateral ratio after strategy rebalances
     function rebalance() external returns (uint256 ratio);
+    
+    /// @notice returns min, max and target collateral ratio values
+    /// @return ratio struct containing min, max and target collateral ratio values
+    function collateralRatio() external view returns (CollateralRatio memory ratio);
 }
