@@ -13,12 +13,14 @@ library LeverageLogic {
     /// @param collateralRatio the collateral ratio information (min, max, target values)
     /// @param position the strategy position information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param swapper address of Swapper contract
-    function leverageUp(CollateralRatio memory collateralRatio, Position memory position, ISwapper swapper) external {}
+    /// @return ratio value of collateralRatio after rebalance
+    function leverageUp(CollateralRatio memory collateralRatio, Position memory position, ISwapper swapper) external returns (uint256 ratio) {}
 
     /// @notice performs all operations necessary to leverage the position of the strategy downwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param collateralRatio the collateral ratio information (min, max, target values)
     /// @param position the strategy position information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param swapper address of Swapper contract
-    function leverageDown(CollateralRatio memory collateralRatio, Position memory position, ISwapper swapper) external {}
+    /// @return ratio value of collateralRatio after rebalance
+    function leverageDown(CollateralRatio memory collateralRatio, Position memory position, ISwapper swapper) external returns (uint256 ratio) {}
 }

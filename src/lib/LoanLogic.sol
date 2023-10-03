@@ -7,7 +7,7 @@ import { Position } from "../types/DataTypes.sol";
 /// @title LoanLogic
 /// @notice Contains all logic required for managing the loan position 
 library LoanLogic {
-    /// @dev collateralizes an amount of underlying asset in AaveV3
+    /// @dev collateralizes an amount of underlying asset in AaveV3 via depositing assets into Aave lending pool
     /// @param position the strategy position information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param amount amount of collateralization asset to collateralize
     function collateralize(Position memory position, uint256 amount) external {}
