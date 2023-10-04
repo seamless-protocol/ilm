@@ -9,6 +9,31 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 /// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token. 
 /// @dev Deposits are permissioned but withdrawals are open to any address.
 interface IWrappedERC20PermissionedDeposit is IERC20 {
+
+    /// @notice Sender doesn't have a permission to deposit
+    /// @param sender sender address
+    error NotDepositor(address sender);
+
+    /// @notice Deposit/wrapping underlying token
+    /// @param account account doing the deposit
+    /// @param amount amount of tokens deposited
+    event Deposit(address account, uint256 amount);
+
+    /// @notice Withdraw/unwrapping underlying token
+    /// @param account account doing the withdraw
+    /// @param amount amount of withdrawn tokens
+    event Withdraw(address account, uint256 amount);
+
+    /// @notice Sets deposit permission
+    /// @param account account to set permission for
+    /// @param toSet flag to give/withdraw pemission
+    event SetDepositPermission(address account, bool toSet);
+
+    /// @notice Recovers surplus of underlying token
+    /// @param account account which is doing recovering action
+    /// @param amountSurplus surplus amount recovored
+    event RecoverUnderlyingSurplus(address account, uint256 amountSurplus);
+
     /// @notice retruns the underlying token address
     function underlying() external view returns (address);
 
