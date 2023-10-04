@@ -16,10 +16,11 @@
         "solidity"
     ],
     "scripts": {
-        "format": "prettier --write '**/*.{json,sol}'",
+        "format": "prettier --write '**/*.{js,ts,sol,json,md}'",
         "check-format": "prettier --check ."
     },
     "devDependencies": {
+        "lint-staged": "^14.0.1",
         "prettier": "^3.0.3",
         "prettier-plugin-solidity": "^1.1.3"
     }
