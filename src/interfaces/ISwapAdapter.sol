@@ -13,5 +13,10 @@ interface ISwapAdapter {
     /// @param fromAmount amount of from token to swap
     /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
-    function executeSwap(address from, address to, uint256 fromAmount, address payable beneficiary) external returns (uint256 toAmount);
+    function executeSwap(
+        address from,
+        address to,
+        uint256 fromAmount,
+        address payable beneficiary
+    ) external returns (uint256 toAmount);
 }

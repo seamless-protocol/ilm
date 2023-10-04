@@ -1,4 +1,4 @@
- // SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 
 pragma solidity ^0.8.18;
 
@@ -16,7 +16,7 @@ interface IOwnable2Step is IERC5313 {
     /// @notice Returns the address of the pending owner.
     /// @return nominatedOwner address of owner being nominated
     function pendingOwner() external view returns (address nominatedOwner);
-    
+
     /// @notice Starts the ownership transfer of the contract to a new account. Replaces the pending transfer if there is one.
     /// Can only be called by the current owner.
     /// @param newOwner address of owner being nominated as new owner
@@ -24,5 +24,4 @@ interface IOwnable2Step is IERC5313 {
 
     /// @notice The new owner accepts the ownership transfer.
     function acceptOwnership() external;
-
 }

@@ -43,7 +43,7 @@ interface ILeverageStrategy is IERC4626, IPausable, IOwnable2Step {
     /// within collateral ratio range
     /// @return ratio value of collateral ratio after strategy rebalances
     function rebalance() external returns (uint256 ratio);
-    
+
     /// @notice returns min, max and target collateral ratio values
     /// @return ratio struct containing min, max and target collateral ratio values
     function collateralRatio() external view returns (CollateralRatio memory ratio);
