@@ -2,6 +2,9 @@
 
 pragma solidity ^0.8.18;
 
+import { LoanLogic } from "./LoanLogic.sol";
+import { WadRayMath } from "./math/WadRayMath.sol";
+import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { StrategyAssets, LoanState } from "../types/DataTypes.sol";
 import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
@@ -9,12 +12,16 @@ import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
+    using WadRayMath for uint256;
+    
+    uint256 internal constant USD_DECIMALS = 1e8;
+    uint256 internal constant ONE = WadRayMath.WAD;
+
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param strategyAssets strategy assets (collateralized asset, borrowed asset)
-    /// @param loanState the strategy loan state information (current collateral, current debt, max borrow available, max withdraw available)
-    /// @param targetRatio ratio to which we want to achive with rebalance
-    /// @param oracle aave oracl
+    /// @param collateralRatio the collateral ratio information (min, max, target values)
+    /// @param loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt, maxLTV)
+    /// @param oracle aave oracle
     /// @param swapper address of Swapper contract
     /// @return ratio value of collateralRatio after rebalance
     function rebalanceUp(
@@ -27,10 +34,9 @@ library RebalanceLogic {
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param strategyAssets strategy assets (collateralized asset, borrowed asset)
-    /// @param loanState the strategy loan state information (current collateral, current debt, max borrow available, max withdraw available)
-    /// @param targetRatio ratio to which we want to achive with rebalance
-    /// @param oracle aave oracl
+    /// @param collateralRatio the collateral ratio information (min, max, target values)
+    /// @param loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt, maxLTV)
+    /// @param oracle aave oracle
     /// @param swapper address of Swapper contract
     /// @return ratio value of collateralRatio after rebalance
     function rebalanceDown(
