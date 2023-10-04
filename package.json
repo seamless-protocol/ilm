@@ -1,0 +1,26 @@
+{
+    "name": "seashell-ilm-contracts",
+    "version": "0.1.0",
+    "private": true,
+    "author": "SeaShell Labs",
+    "license": "UNLICENSED",
+    "description": "SeaShell ILM Smart Contracts",
+    "keywords": [
+        "blockchain",
+        "base",
+        "forge",
+        "foundry",
+        "SeaShell",
+        "Seamless",
+        "smart-contracts",
+        "solidity"
+    ],
+    "scripts": {
+        "format": "prettier --write '**/*.{json,sol}'",
+        "check-format": "prettier --check ."
+    },
+    "devDependencies": {
+        "prettier": "^3.0.3",
+        "prettier-plugin-solidity": "^1.1.3"
+    }
+}
