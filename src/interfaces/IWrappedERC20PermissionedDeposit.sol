@@ -2,11 +2,13 @@
 
 pragma solidity ^0.8.18;
 
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 /// @title IWrappedERC20PermissionedDeposit
 /// @notice interface for the Wrapper of ERC20 with permissioned deposit
 /// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token. 
 /// @dev Deposits are permissioned but withdrawals are open to any address.
-interface IWrappedERC20PermissionedDeposit {
+interface IWrappedERC20PermissionedDeposit is IERC20 {
     /// @notice retruns the underlying token address
     function underlying() external view returns (address);
 
