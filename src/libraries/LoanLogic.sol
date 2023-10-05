@@ -18,7 +18,7 @@ library LoanLogic {
     function withdraw(IERC20 asset, uint256 amount) external {}
 
     /// @dev borrows an amount of borrowed asset from AaveV3
-    /// @param asset address of borrowing aset
+    /// @param asset address of borrowing asset
     /// @param amount amount of asset to borrow
     function borrow(IERC20 asset, uint256 amount) external {}
 
@@ -27,7 +27,7 @@ library LoanLogic {
     /// @param amount amount of borrowing asset to repay
     function repay(IERC20 asset, uint256 amount) external {}
 
-    /// @dev returns the maximum value of avialble borrowing in USD for an account
+    /// @dev returns the maximum value of available borrowing in USD for an account
     /// @param account address of an acount
     /// @return uint256 available value to borrow in USD
     function maxBorrowAvailable(address account) external view returns(uint256) {}
