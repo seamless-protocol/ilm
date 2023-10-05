@@ -8,7 +8,7 @@ import { IWrappedERC20PermissionedDeposit} from "../interfaces/IWrappedERC20Perm
 
 contract WrappedCbETH is IWrappedERC20PermissionedDeposit, ERC20, Ownable2Step {
 
-    IERC20 private immutable _underlying;
+    IERC20 public immutable underlying;
     mapping(address => bool) depositor;
 
     modifier onlyDepositors {
@@ -23,22 +23,18 @@ contract WrappedCbETH is IWrappedERC20PermissionedDeposit, ERC20, Ownable2Step {
       string memory _symbol, 
       IERC20 _underlyingToken
     ) ERC20(_name, _symbol) Ownable() {
-      _underlying = _underlyingToken;
-    }
-
-    function underlying() external override view returns (address) {
-      return address(_underlying);
+      underlying = _underlyingToken;
     }
 
     function deposit(uint256 amount) external override onlyDepositors {
-      SafeERC20.safeTransferFrom(_underlying, msg.sender, address(this), amount);
+      SafeERC20.safeTransferFrom(underlying, msg.sender, address(this), amount);
       _mint(msg.sender, amount);
       emit Deposit(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) external override {
       _burn(msg.sender, amount);
-      SafeERC20.safeTransfer(_underlying, msg.sender, amount);
+      SafeERC20.safeTransfer(underlying, msg.sender, amount);
       emit Withdraw(msg.sender, amount);
     }
 
@@ -48,8 +44,8 @@ contract WrappedCbETH is IWrappedERC20PermissionedDeposit, ERC20, Ownable2Step {
     }
 
     function recover() external override onlyOwner {
-      uint256 amountSurplus = _underlying.balanceOf(address(this)) - totalSupply();
-      SafeERC20.safeTransfer(_underlying, msg.sender, amountSurplus);
+      uint256 amountSurplus = underlying.balanceOf(address(this)) - totalSupply();
+      SafeERC20.safeTransfer(underlying, msg.sender, amountSurplus);
       emit RecoverUnderlyingSurplus(msg.sender, amountSurplus);
     }
 }

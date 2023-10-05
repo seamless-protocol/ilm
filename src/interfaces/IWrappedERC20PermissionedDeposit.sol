@@ -35,7 +35,7 @@ interface IWrappedERC20PermissionedDeposit is IERC20 {
     event RecoverUnderlyingSurplus(address account, uint256 amountSurplus);
 
     /// @notice retruns the underlying token address
-    function underlying() external view returns (address);
+    function underlying() external view returns (IERC20);
 
     /// @notice deposits underlying tokens and mint the same amount of wrapped tokens
     /// @param amount amount of the tokens to wrap, in wei
