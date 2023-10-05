@@ -9,7 +9,7 @@ import { IWrappedERC20PermissionedDeposit} from "../interfaces/IWrappedERC20Perm
 contract WrappedCbETH is IWrappedERC20PermissionedDeposit, ERC20, Ownable2Step {
 
     IERC20 public immutable underlying;
-    mapping(address => bool) depositor;
+    mapping(address => bool) public depositor;
 
     modifier onlyDepositors {
       if (!depositor[msg.sender]) {
