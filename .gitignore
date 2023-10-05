@@ -16,3 +16,6 @@ out
 
 # mac OS
 **/.DS_Store
+
+# pnpm
+pnpm-lock.yaml
