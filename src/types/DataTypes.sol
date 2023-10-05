@@ -18,8 +18,7 @@ struct CollateralRatio {
 }
 
 /// @dev contains all data pertaining to the current position state of the strategy
-/// TODO: rename?
-struct Position {
+struct LoanState {
     /// @dev wrapped adddress of collateralized asset of leverage strategy
     IERC20 collateralAsset;
     /// @dev wrapped address of borrowed asset of leverage strategy
@@ -28,4 +27,6 @@ struct Position {
     uint256 collateral;
     /// @dev debt value in underlying (USD)
     uint256 debt;
+    /// @dev max loan-to-value ratio
+    uint256 maxLTV
 }
