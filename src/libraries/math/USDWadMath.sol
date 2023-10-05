@@ -99,7 +99,7 @@ library USDWadMath {
             }
         }
     }
-    
+
     /// @dev Converts USD up to Wad
     /// @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
     /// @param a USD

@@ -9,7 +9,7 @@ import { DataTypes } from "@aave/contracts/protocol/libraries/types/DataTypes.so
 import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { LoanState, LendingPool } from "../types/DataTypes.sol";
 
-import {LoanState} from "../types/DataTypes.sol";
+import { LoanState } from "../types/DataTypes.sol";
 
 /// @title LoanLogic
 /// @notice Contains all logic required for managing the loan position on the Seamless protocol
