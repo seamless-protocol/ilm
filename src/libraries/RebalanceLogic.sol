@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import { LoanLogic } from "./LoanLogic.sol";
-import { WadRayMath } from "./math/WadRayMath.sol";
+import { USDWadMath } from "./math/USDWadMath.sol";
 import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { StrategyAssets, LoanState } from "../types/DataTypes.sol";
@@ -12,10 +12,10 @@ import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
-    using WadRayMath for uint256;
+    using USDWadMath for uint256;
     
-    uint256 internal constant USD_DECIMALS = 1e8;
-    uint256 internal constant ONE = WadRayMath.WAD;
+    uint256 internal constant ONE_USD = 1e8;
+    uint256 internal constant ONE_TOKEN = USDWadMath.WAD;
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
