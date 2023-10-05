@@ -13,7 +13,8 @@ import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
 /// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
     using USDWadMath for uint256;
-    
+
+    /// @dev ONE in USD scale and in TOKEN scale
     uint256 internal constant ONE_USD = 1e8;
     uint256 internal constant ONE_TOKEN = USDWadMath.WAD;
 
