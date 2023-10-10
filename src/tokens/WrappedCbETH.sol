@@ -21,8 +21,9 @@ contract WrappedCbETH is IWrappedERC20PermissionedDeposit, ERC20, Ownable2Step {
     constructor(
       string memory _name, 
       string memory _symbol, 
-      IERC20 _underlyingToken
-    ) ERC20(_name, _symbol) Ownable() {
+      IERC20 _underlyingToken,
+      address _initialOwner
+    ) ERC20(_name, _symbol) Ownable(_initialOwner) {
       underlying = _underlyingToken;
     }
 
