@@ -15,8 +15,8 @@ contract WrappedCbETHTest is Test {
     function setUp() public {
         mockERC20 = new MockERC20("Mock", "M");
         wrappedCbETH = new WrappedCbETH("WrappedMock", "WM", IERC20(mockERC20), address(this));
-        
-        mockERC20.mint(address(alice), 100 ether);
+
+        deal(address(mockERC20), address(alice), 100 ether);
     }
 
     function testSetup() public {
