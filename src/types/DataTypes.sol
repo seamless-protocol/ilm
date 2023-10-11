@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-
 pragma solidity ^0.8.18;
+
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /// @title DataTypes
 /// @notice Contains all structs used in the Integrated Liquidity Market contract suite
