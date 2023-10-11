@@ -2,19 +2,17 @@
 
 pragma solidity 0.8.19;
 
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "forge-std/Test.sol";
-
 import { BorrowPoolMock } from "../mock/BorrowPoolMock.sol";
 import { ERC20Mock } from "../mock/ERC20Mock.sol";
 import { OracleMock } from "../mock/OracleMock.sol";
 import { SwapperMock } from "../mock/SwapperMock.sol";
+import { CollateralRatio } from "../../src/types/DataTypes.sol";
 
 abstract contract MockSetup is Test {
 
     /// @dev ERC20 mock contracts used as collateral/borrow assets
-    IERC20 public collateralAsset;
-    IERC20 public borrowAsset;
+    ERC20Mock public collateralAsset;
+    ERC20Mock public borrowAsset;
     /// @dev mock contract for oracle
     OracleMock public oracle;
     /// @dev mock contract for swapper
@@ -25,6 +23,10 @@ abstract contract MockSetup is Test {
     uint256 internal constant BASIS = 1e8;
     uint256 internal constant LTV = 8e7;
 
+    uint256 internal constant MINT_AMOUNT = 1000 ether;
+
+    CollateralRatio public collateralRatio;
+
     function setUp() public virtual {
         // deploy instances of mock ERC20 contracts as collateral/borrow assets
         collateralAsset = new ERC20Mock('Collateral Asset', 'CA');
@@ -33,10 +35,49 @@ abstract contract MockSetup is Test {
         // deploy mock oracle instance
         oracle = new OracleMock(address(collateralAsset), address(borrowAsset));
 
+        assert(
+             address(oracle.borrowAsset()) == address(borrowAsset)
+        );
+        assert(
+             address(oracle.collateralAsset()) == address(collateralAsset)
+        );
+
         // deploy mock swapper instance
         swapper = new SwapperMock(address(collateralAsset), address(borrowAsset));
 
+        assert(
+             address(swapper.borrowAsset()) == address(borrowAsset)
+        );
+        assert(
+             address(swapper.collateralAsset()) == address(collateralAsset)
+        );
+
         // deploy mock borrow pool instance
         borrowPool = new BorrowPoolMock(address(collateralAsset), address(borrowAsset), LTV);
+
+        assert(
+            address(borrowPool.borrowAsset()) == address(borrowAsset)
+        );
+        assert(
+             address(borrowPool.collateralAsset()) == address(collateralAsset)
+        );
+
+        // mint ample amount of collatera/borrow tokens to borrowPool and swapper
+        collateralAsset.mint(address(borrowPool), MINT_AMOUNT); 
+        borrowAsset.mint(address(borrowPool), MINT_AMOUNT);
+
+        assert(borrowAsset.balanceOf(address(borrowPool)) == MINT_AMOUNT);
+        assert(collateralAsset.balanceOf(address(borrowPool)) == MINT_AMOUNT);
+
+        collateralAsset.mint(address(swapper), MINT_AMOUNT);
+        borrowAsset.mint(address(swapper), MINT_AMOUNT);
+
+        assert(borrowAsset.balanceOf(address(swapper)) == MINT_AMOUNT);
+        assert(collateralAsset.balanceOf(address(swapper)) == MINT_AMOUNT);
+        
+        // 3x leverage using collateral ratio at 1.5
+        collateralRatio.target = 1.5e8;
+        collateralRatio.min = 1.0e8;
+        collateralRatio.max = 2.0e8;
     }
 }
