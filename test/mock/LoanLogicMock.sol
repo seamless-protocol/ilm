@@ -50,7 +50,7 @@ library LoanLogicMock {
     /// @return state loan state after borrow call
     function borrow(BorrowPoolMock borrowPool, uint256 amount) public returns (LoanState memory state) {
         borrowPool.borrow(address(this), amount);
-
+        
         state = LoanState({
             collateralAsset: borrowPool.collateralAsset(),
             borrowAsset: borrowPool.borrowAsset(),
@@ -92,5 +92,20 @@ library LoanLogicMock {
     /// @return uint256 available value to withdraw in USD
     function maxWithdrawAvailable(BorrowPoolMock borrowPool, address account) public view returns (uint256) {
         return borrowPool.collateral(account) - (borrowPool.debt(account) * borrowPool.BASIS() / borrowPool.maxLTV());
+    }
+
+    /// @dev returns the loan state of a given account for the borrow pool
+    /// @param borrowPool instance of borrowPool to check loan state from
+    /// @param account account which loantate corresponds to
+    /// @return state loan state of account in borrowPool
+    function loanState(BorrowPoolMock borrowPool, address account) public view returns (LoanState memory state) {
+        state = LoanState({
+            collateralAsset: borrowPool.collateralAsset(),
+            borrowAsset: borrowPool.borrowAsset(),
+            collateral: borrowPool.collateral(account),
+            debt: borrowPool.debt(account),
+            maxBorrowAmount: maxBorrowAvailable(borrowPool, account),
+            maxWithdrawAmount: maxWithdrawAvailable(borrowPool, account)
+        });
     }
 }
