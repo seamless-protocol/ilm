@@ -8,6 +8,8 @@ import { OracleMock } from "../mock/OracleMock.sol";
 import { SwapperMock } from "../mock/SwapperMock.sol";
 import { CollateralRatio } from "../../src/types/DataTypes.sol";
 
+import 'forge-std/Test.sol';
+
 abstract contract MockSetup is Test {
 
     /// @dev ERC20 mock contracts used as collateral/borrow assets
