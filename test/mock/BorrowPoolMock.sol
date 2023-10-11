@@ -68,10 +68,12 @@ contract BorrowPoolMock {
     /// @param account address of account borrowing
     /// @param borrowAmount amount being borrowed
     function _enforceLTV(address account, uint256 borrowAmount) internal view {
-        require(
-            ((debt[account] + borrowAmount) * BASIS) / collateral[account] <= maxLTV,
-            "LTV exceeded"
-        );
+        if (debt[account] != 0) {
+            require(
+                ((debt[account] + borrowAmount) * BASIS) / collateral[account] <= maxLTV,
+                "LTV exceeded"
+            );
+        }
     }
 
     /// @notice enforces that an account has enough collateral for a withdrawal
