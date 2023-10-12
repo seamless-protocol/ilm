@@ -24,7 +24,7 @@ library LoanLogic {
     /// @notice The interest rate mode of the debt
     uint256 public constant interestRateMode = uint256(DataTypes.InterestRateMode.VARIABLE);
 
-    /// @dev collateralizes an amount of underlying asset in AaveV3 via depositing assets into Aave lending pool
+    /// @notice collateralizes an amount of the given asset via depositing assets into Seamless lending pool
     /// @param asset address of collateral asset
     /// @param amount amount of asset to collateralize
     /// @return state loan state after supply call
@@ -34,7 +34,7 @@ library LoanLogic {
         state = getLoanState();
     }
 
-    /// @dev withdrawing collateral from the lending pool
+    /// @notice withdrawing collateral from the lending pool
     /// @param asset address of collateral asset
     /// @param amount amount of asset to withdraw
     /// @return state loan state after supply call
@@ -44,7 +44,7 @@ library LoanLogic {
         state = getLoanState();
     }
 
-    /// @dev borrows an amount of borrowed asset from AaveV3
+    /// @notice borrows an amount of borrowed asset from the lending pool
     /// @param asset address of borrowing asset
     /// @param amount amount of asset to borrow
     /// @return state loan state after supply call
@@ -54,7 +54,7 @@ library LoanLogic {
         state = getLoanState();
     }
 
-    /// @dev repays an amount of borrowed asset to AaveV3
+    /// @notice repays an amount of borrowed asset to the lending pool
     /// @param asset address of borrowing asset
     /// @param amount amount of borrowing asset to repay
     /// @return state loan state after supply call
@@ -64,7 +64,9 @@ library LoanLogic {
         state = getLoanState();
     }
 
-    /// 
+    /// @notice returns the current state of loan position on the Seamless Protocol lending pool
+    /// @notice all returned values are in USD value
+    /// @return state includes collateral, debt, maxBorrowAmount and maxWithdrawAmount
     function getLoanState() public view returns (LoanState memory state) {
         IPool pool = IPool(poolAddressProvider.getPool());
         

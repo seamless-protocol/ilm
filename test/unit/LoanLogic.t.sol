@@ -36,7 +36,9 @@ contract LoanLogicTest is Test, TestConstants {
     // maximum allowed absolute error on USD amounts. 
     // It's set to 1000 wei because of difference in Chainlink oracle decimals and USDbC decimals
     uint256 public USD_DELTA = 1000 wei;
-    
+
+    /// @dev set up testing on the fork of the base mainnet
+    /// @dev and get all needed parameters from already deplyed pool
     function setUp() public {
         string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
         uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
@@ -48,7 +50,6 @@ contract LoanLogicTest is Test, TestConstants {
         // getting reserve token addresses
         (address sWETHaddress , , ) = poolDataProvider.getReserveTokensAddresses(address(WETH));
         sWETH = IERC20(sWETHaddress);
-
         ( , , address debtUSDbCaddress) = poolDataProvider.getReserveTokensAddresses(address(USDbC));
         debtUSDbC = IERC20(debtUSDbCaddress);
 
@@ -57,6 +58,7 @@ contract LoanLogicTest is Test, TestConstants {
         WETH_price = priceOracle.getAssetPrice(address(WETH));
         USDbC_price = priceOracle.getAssetPrice(address(USDbC));
 
+        // fake minting some tokens to start with
         deal(address(WETH), address(this), 100 ether);
 
         // approve tokens for pool to use on supplying and repaying
@@ -64,6 +66,8 @@ contract LoanLogicTest is Test, TestConstants {
         USDbC.approve(poolAddressProvider.getPool(), 1000000 * ONE_USDbC);
     }
 
+    /// @dev test confirming that laon state is valid after withdrawing 
+    /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_supply() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
@@ -76,6 +80,8 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(sWETH.balanceOf(address(this)), supplyAmount);
     }
 
+    /// @dev test confirming that laon state is valid after withdrawing 
+    /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_withdraw() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
@@ -90,6 +96,8 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
     }
 
+    /// @dev test confirming that laon state is valid after borrowing 
+    /// @dev and that we get correct amount of debtUSDbC token
     function test_borrow() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
@@ -102,6 +110,8 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
     }
 
+    /// @dev test confirming that laon state is valid after repaying 
+    /// @dev and that we get correct amount of debtUSDbC token
     function test_repay() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
@@ -116,6 +126,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount - repayAmount, 1 wei);
     }
 
+    /// @dev test confirming that we can borrow `maxBorrowAmount` returned from loan state
     function test_borrow_maxBorrow() public {
       uint256 supplyAmount = 10 ether;
       LoanState memory loanState;
@@ -132,6 +143,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount, 1 wei);
     }
 
+    /// @dev test reverting when borrow 0.1% above `maxBorrowAmount` returned from loan state
     function test_borrow_maxBorrow_revertAboveMax() public {
       uint256 supplyAmount = 10 ether;
       LoanState memory loanState;
@@ -145,6 +157,7 @@ contract LoanLogicTest is Test, TestConstants {
       LoanLogic.borrow(USDbC, borrowAmountAboveMax);
     }
 
+    /// @dev test confirming that we can withdraw `maxWithdrawAmount` returned from loan state
     function test_withdraw_maxWithdraw() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
@@ -164,6 +177,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
     }
 
+    /// @dev test reverting when withdraw 0.1% above `maxWithdrawAmount` returned from loan state
     function test_withdraw_maxWithdraw_revertAboveMax() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
@@ -179,6 +193,7 @@ contract LoanLogicTest is Test, TestConstants {
       LoanLogic.withdraw(WETH, withdrawAmountAboveMax);
     }
 
+    /// @dev validates if the returned LoanState values correspond for the given asset amounts
     function _validateLoanState(
       LoanState memory loanState, 
       uint256 collateralWETHAmount, 
