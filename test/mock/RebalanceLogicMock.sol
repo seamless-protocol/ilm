@@ -46,7 +46,7 @@ library RebalanceLogicMock {
 
             // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust debtAmount if so
             if (
-                _collateralRatioUSD(loanState.collateral + _offsetUSDAmountUp(debtAmount, offsetFactor) , loanState.debt + debtAmount) <
+                _collateralRatioUSD(loanState.collateral + _offsetUSDAmountDown(debtAmount, offsetFactor) , loanState.debt + debtAmount) <
                 collateralRatio.target
             ) {
                 // calculate amount of debt needed to reach target collateral
@@ -105,16 +105,16 @@ library RebalanceLogicMock {
 
         do {
             // maximum amount of collateral to not jeopardize loan health
-            uint256 collateralAmount = loanState.maxWithdrawAmount.usdMul(ONE_USD - offsetFactor).usdDiv(ONE_USD);
+            uint256 collateralAmount = loanState.maxWithdrawAmount;
             
             // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
             // collateralAmount if so
             if (
-                _collateralRatioUSD(loanState.collateral - collateralAmount, loanState.debt - _offsetUSDAmountUp(collateralAmount, offsetFactor)) >
+                _collateralRatioUSD(loanState.collateral - collateralAmount, loanState.debt - _offsetUSDAmountDown(collateralAmount, offsetFactor)) >
                 collateralRatio.target
             ) {
                 collateralAmount = (collateralRatio.target.usdMul(loanState.debt) - loanState.collateral).usdDiv(
-                    collateralRatio.target.usdMul(ONE_USD - offsetFactor) - ONE_USD
+                    (ONE_USD - offsetFactor).usdMul(collateralRatio.target) - ONE_USD
                 );
             }
 
@@ -146,13 +146,6 @@ library RebalanceLogicMock {
     /// @param a amount to offset
     /// @param usdOffset offset as a number between 0 -  ONE_USD
     function _offsetUSDAmountDown(uint256 a, uint256 usdOffset) internal pure returns (uint256 amount) {
-        amount = (a.wadMul(usdOffset)).wadDiv(ONE_TOKEN);
-    }
-
-    /// @notice helper function to offset amounts by a USD percentage upnwards
-    /// @param a amount to offset
-    /// @param usdOffset offset as a number between 0 -  ONE_USD
-    function _offsetUSDAmountUp(uint256 a, uint256 usdOffset) internal pure returns (uint256 amount) {
         amount = a * (ONE_USD - usdOffset) / ONE_USD;
     }
 

@@ -13,7 +13,7 @@ contract SwapperMock is ISwapper {
     address public immutable collateralAsset;
     address public immutable borrowAsset;
     uint256 public constant borrowToCollateralOffset = 2.5e7; // 25% assuming basis is 1e8
-    uint256 public constant collateralToBorrowOffset = 2e7; // 20% assuming basis is 1e8
+    uint256 public constant collateralToBorrowOffset = 2.5e7; // 25% assuming basis is 1e8
     uint256 public constant BASIS = 1e8;
     IOracleMock public oracle;
 
