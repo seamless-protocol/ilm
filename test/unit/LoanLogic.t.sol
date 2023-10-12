@@ -14,6 +14,7 @@ import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LoanState, LendingPool } from "../../src/types/DataTypes.sol";
 import { TestConstants } from "../config/TestConstants.sol";
+import "forge-std/console.sol";
 
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
