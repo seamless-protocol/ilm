@@ -101,7 +101,7 @@ library RebalanceLogicMock {
         uint256 collateralUSDPrice = oracle.getAssetPrice(address(loanState.collateralAsset));
 
         // get offset caused by DEX fees + slippage
-        uint256 offsetFactor = swapper.offsetFactor(address(loanState.borrowAsset), address(loanState.collateralAsset));
+        uint256 offsetFactor = swapper.offsetFactor(address(loanState.collateralAsset), address(loanState.borrowAsset));
 
         do {
             // maximum amount of collateral to not jeopardize loan health
@@ -114,7 +114,7 @@ library RebalanceLogicMock {
                 collateralRatio.target
             ) {
                 collateralAmount = (collateralRatio.target.usdMul(loanState.debt) - loanState.collateral).usdDiv(
-                    (ONE_USD - offsetFactor).usdMul(collateralRatio.target) - ONE_USD
+                    collateralRatio.target.usdMul(ONE_USD - offsetFactor) - ONE_USD
                 );
             }
 
