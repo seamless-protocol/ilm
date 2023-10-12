@@ -34,7 +34,7 @@ library RebalanceLogicMock {
     ) external returns (uint256 ratio) {
         // current collateral ratio
         ratio = _collateralRatioUSD(loanState.collateral, loanState.debt);
-
+    
         uint256 debtPriceInUSD = oracle.getAssetPrice(address(loanState.borrowAsset));
 
         // get offset caused by DEX fees + slippage
@@ -46,27 +46,17 @@ library RebalanceLogicMock {
 
             // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust debtAmount if so
             if (
-                _collateralRatioUSD(loanState.collateral + debtAmount, loanState.debt + debtAmount) <
+                _collateralRatioUSD(loanState.collateral + _offsetUSDAmountUp(debtAmount, offsetFactor) , loanState.debt + debtAmount) <
                 collateralRatio.target
             ) {
                 // calculate amount of debt needed to reach target collateral
                 // offSetFactor < collateralRatio.target by default/design
                 debtAmount = (loanState.collateral - collateralRatio.target.usdMul(loanState.debt)).usdDiv(
-                    collateralRatio.target - offsetFactor
+                    collateralRatio.target - (ONE_USD - offsetFactor)
                 );
+            } 
 
-                // TODO: verify whether this is needed
-                // calculate amount of debt needed accounting for DEX fees
-                uint256 upOffsetDebtAmount = _offsetUSDAmountUp(debtAmount, offsetFactor);
-
-                // if the debt amount accounting for DEX fees is less than the maxBorrowAmount available,
-                // set debtAmount equal to it
-                if (upOffsetDebtAmount < loanState.maxBorrowAmount) {
-                    debtAmount = upOffsetDebtAmount;
-                }
-            }
-
-            // convert debtAmount from USD to an borrowAsset amount
+            // convert debtAmount from USD to a borrowAsset amount
             uint256 debtAmountAsset = _convertUSDToAsset(debtAmount, debtPriceInUSD);
 
             // borrow assets from AaveV3 pool
@@ -85,7 +75,7 @@ library RebalanceLogicMock {
 
             // collateralize assets in AaveV3 pool
             loanState = LoanLogicMock.supply(borrowPool, collateralAmountAsset);
-
+            
             // update collateral ratio value
             ratio = _collateralRatioUSD(loanState.collateral, loanState.debt);
         } while (ratio > collateralRatio.target);
@@ -115,18 +105,16 @@ library RebalanceLogicMock {
 
         do {
             // maximum amount of collateral to not jeopardize loan health
-            uint256 collateralAmount = loanState.maxWithdrawAmount;
-
+            uint256 collateralAmount = loanState.maxWithdrawAmount.usdMul(ONE_USD - offsetFactor).usdDiv(ONE_USD);
+            
             // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
             // collateralAmount if so
             if (
-                _collateralRatioUSD(loanState.collateral - collateralAmount, loanState.debt - collateralAmount) >
+                _collateralRatioUSD(loanState.collateral - collateralAmount, loanState.debt - _offsetUSDAmountUp(collateralAmount, offsetFactor)) >
                 collateralRatio.target
             ) {
-                /// CHECK EDGE CASES:
-                /// negative values in numerator & denominator
                 collateralAmount = (collateralRatio.target.usdMul(loanState.debt) - loanState.collateral).usdDiv(
-                    _offsetUSDAmountDown(collateralRatio.target, offsetFactor) - ONE_USD
+                    collateralRatio.target.usdMul(ONE_USD - offsetFactor) - ONE_USD
                 );
             }
 
@@ -134,7 +122,7 @@ library RebalanceLogicMock {
 
             // withdraw collateral tokens from Aave pool
             LoanLogicMock.withdraw(borrowPool, collateralAmountAsset);
-
+            
             // approve swapper contract to swap asset
             loanState.collateralAsset.approve(address(swapper), collateralAmountAsset);
 
@@ -165,7 +153,7 @@ library RebalanceLogicMock {
     /// @param a amount to offset
     /// @param usdOffset offset as a number between 0 -  ONE_USD
     function _offsetUSDAmountUp(uint256 a, uint256 usdOffset) internal pure returns (uint256 amount) {
-        amount = (a.usdMul(ONE_USD)).usdDiv(usdOffset);
+        amount = a * (ONE_USD - usdOffset) / ONE_USD;
     }
 
     /// @notice helper function to calculate collateral ratio
@@ -173,7 +161,7 @@ library RebalanceLogicMock {
     /// @param debtUSD debt valut in USD
     /// @return ratio collateral ratio value
     function _collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD) internal pure returns (uint256 ratio) {
-        ratio = collateralUSD.usdDiv(debtUSD);
+        ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : 0;
     }
 
     /// @notice converts a asset amount to its usd value
@@ -189,6 +177,6 @@ library RebalanceLogicMock {
     /// @param priceInUSD price of asset in USD
     /// @return assetAmount amount of asset after conversion
     function _convertUSDToAsset(uint256 usdAmount, uint256 priceInUSD) internal pure returns (uint256 assetAmount) {
-        assetAmount = USDWadMath.usdToWad((usdAmount.usdDiv(priceInUSD)));
+        assetAmount = (usdAmount / priceInUSD);
     }
 }
