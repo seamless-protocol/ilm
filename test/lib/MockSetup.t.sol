@@ -25,7 +25,7 @@ abstract contract MockSetup is Test {
     uint256 internal constant BASIS = 1e8;
     uint256 internal constant LTV = 8e7;
 
-    uint256 internal constant MINT_AMOUNT = 1000 ether;
+    uint256 internal constant MINT_AMOUNT = 100000 ether;
 
     CollateralRatio public collateralRatio;
 
@@ -45,7 +45,7 @@ abstract contract MockSetup is Test {
         );
 
         // deploy mock swapper instance
-        swapper = new SwapperMock(address(collateralAsset), address(borrowAsset));
+        swapper = new SwapperMock(address(collateralAsset), address(borrowAsset), address(oracle));
 
         assert(
              address(swapper.borrowAsset()) == address(borrowAsset)
@@ -55,7 +55,7 @@ abstract contract MockSetup is Test {
         );
 
         // deploy mock borrow pool instance
-        borrowPool = new BorrowPoolMock(address(collateralAsset), address(borrowAsset), LTV);
+        borrowPool = new BorrowPoolMock(address(collateralAsset), address(borrowAsset), LTV, address(oracle));
 
         assert(
             address(borrowPool.borrowAsset()) == address(borrowAsset)
