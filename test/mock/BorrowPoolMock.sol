@@ -4,6 +4,8 @@ pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+import { IOracleMock } from "./IOracleMock.sol";
+
 /// @title BorrowPoolMock
 /// @dev BorrowPool mock contract mimicking Aave at a very high level
 contract BorrowPoolMock {
@@ -20,10 +22,13 @@ contract BorrowPoolMock {
     /// @notice BASIS used for basis-point (percentage) calculations
     uint256 public constant BASIS = 1e8;
 
-    constructor(address _collateralAsset, address _borrowAsset, uint256 _maxLTV) {
+    IOracleMock public oracle;
+
+    constructor(address _collateralAsset, address _borrowAsset, uint256 _maxLTV, address _oracleMock) {
         collateralAsset = IERC20(_collateralAsset);
         borrowAsset = IERC20(_borrowAsset);
         maxLTV = _maxLTV;
+        oracle = IOracleMock(_oracleMock);
     }
 
     /// @notice borrows an amount of borrowAsset for an account
@@ -32,7 +37,7 @@ contract BorrowPoolMock {
     function borrow(address account, uint256 amount) public {
         _enforceLTV(account, amount);
         borrowAsset.transfer(account, amount);
-        debt[account] += amount;
+        debt[account] += amount * oracle.getAssetPrice(address(borrowAsset));
     }
     
     /// @notice supplies an amount of collateralAsset for an account
@@ -40,19 +45,21 @@ contract BorrowPoolMock {
     /// @param amount amount being supplied
     function supply(address account, uint256 amount) public {
         IERC20(borrowAsset).transfer(account, amount);
-        collateral[account] += amount;
+        collateral[account] += amount * oracle.getAssetPrice(address(collateralAsset));
     }
 
     /// @notice repays an amount of debt for an account
     /// @param account address of account repaying
     /// @param amount amount being repaid
     function repay(address account, uint256 amount) public {
-        if(debt[account] > amount) {
-            amount -= (amount - debt[account]);
+
+        if(debt[account] < amount * oracle.getAssetPrice(address(borrowAsset))) {
+            amount = debt[account] / oracle.getAssetPrice(address(borrowAsset));
         }
 
         borrowAsset.transferFrom(account, address(this), amount);
-        debt[account] -= amount;
+
+        debt[account] -= amount * oracle.getAssetPrice(address(borrowAsset));
     }
 
     /// @notice withdraws an amount of collateralAsset for an account
@@ -61,7 +68,32 @@ contract BorrowPoolMock {
     function withdraw(address account, uint256 amount) public {
         _enforceSufficientCollateral(account, amount);
         collateralAsset.transfer(account, amount);
-        collateral[account] -= amount;
+        collateral[account] -= amount * oracle.getAssetPrice(address(collateralAsset));
+    }
+
+    /// @notice calculate the maximum amount of value which can be borrowed, in USD for
+    /// an account
+    /// @param account address of account
+    /// @return USD maximum borrow amount
+    function maxBorrowAvailable(address account) public view returns (uint256) {
+        if (collateral[account] * maxLTV / BASIS > debt[account]) {
+            return ((collateral[account] * maxLTV / BASIS) - debt[account]);
+        } else {
+            return 0;
+        }
+        
+    }
+
+    /// @notice calculate the maximum amount of value which can be withdrawn, in USD for
+    /// an account
+    /// @param account address of account
+    /// @return USD maximum withdraw amount
+    function maxWithdrawAvailable(address account) public view returns (uint256) {
+        if (collateral[account] > (debt[account] * BASIS / maxLTV)) {
+            return collateral[account] - (debt[account] *  BASIS / maxLTV);
+        } else {
+            return 0;
+        }
     }
     
     /// @notice enforces that the LTV is not exceeded when borrowing
