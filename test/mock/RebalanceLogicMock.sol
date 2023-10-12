@@ -5,7 +5,7 @@ pragma solidity ^0.8.18;
 import { BorrowPoolMock } from "./BorrowPoolMock.sol";
 import { LoanLogicMock } from "./LoanLogicMock.sol";
 import { USDWadMath } from "../../src/libraries/math/USDWadMath.sol";
-import { IOracleMock} from "./IOracleMock.sol";
+import { IOracleMock } from "./IOracleMock.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { CollateralRatio, LoanState } from "../../src/types/DataTypes.sol";
 
@@ -34,7 +34,7 @@ library RebalanceLogicMock {
     ) external returns (uint256 ratio) {
         // current collateral ratio
         ratio = _collateralRatioUSD(loanState.collateral, loanState.debt);
-    
+
         uint256 debtPriceInUSD = oracle.getAssetPrice(address(loanState.borrowAsset));
 
         // get offset caused by DEX fees + slippage
@@ -46,15 +46,17 @@ library RebalanceLogicMock {
 
             // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust debtAmount if so
             if (
-                _collateralRatioUSD(loanState.collateral + _offsetUSDAmountDown(debtAmount, offsetFactor) , loanState.debt + debtAmount) <
-                collateralRatio.target
+                _collateralRatioUSD(
+                    loanState.collateral + _offsetUSDAmountDown(debtAmount, offsetFactor),
+                    loanState.debt + debtAmount
+                ) < collateralRatio.target
             ) {
                 // calculate amount of debt needed to reach target collateral
                 // offSetFactor < collateralRatio.target by default/design
                 debtAmount = (loanState.collateral - collateralRatio.target.usdMul(loanState.debt)).usdDiv(
                     collateralRatio.target - (ONE_USD - offsetFactor)
                 );
-            } 
+            }
 
             // convert debtAmount from USD to a borrowAsset amount
             uint256 debtAmountAsset = _convertUSDToAsset(debtAmount, debtPriceInUSD);
@@ -75,7 +77,7 @@ library RebalanceLogicMock {
 
             // collateralize assets in AaveV3 pool
             loanState = LoanLogicMock.supply(borrowPool, collateralAmountAsset);
-            
+
             // update collateral ratio value
             ratio = _collateralRatioUSD(loanState.collateral, loanState.debt);
         } while (ratio > collateralRatio.target);
@@ -106,12 +108,14 @@ library RebalanceLogicMock {
         do {
             // maximum amount of collateral to not jeopardize loan health
             uint256 collateralAmount = loanState.maxWithdrawAmount;
-            
+
             // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
             // collateralAmount if so
             if (
-                _collateralRatioUSD(loanState.collateral - collateralAmount, loanState.debt - _offsetUSDAmountDown(collateralAmount, offsetFactor)) >
-                collateralRatio.target
+                _collateralRatioUSD(
+                    loanState.collateral - collateralAmount,
+                    loanState.debt - _offsetUSDAmountDown(collateralAmount, offsetFactor)
+                ) > collateralRatio.target
             ) {
                 collateralAmount = (collateralRatio.target.usdMul(loanState.debt) - loanState.collateral).usdDiv(
                     collateralRatio.target.usdMul(ONE_USD - offsetFactor) - ONE_USD
@@ -122,7 +126,7 @@ library RebalanceLogicMock {
 
             // withdraw collateral tokens from Aave pool
             LoanLogicMock.withdraw(borrowPool, collateralAmountAsset);
-            
+
             // approve swapper contract to swap asset
             loanState.collateralAsset.approve(address(swapper), collateralAmountAsset);
 
@@ -146,7 +150,7 @@ library RebalanceLogicMock {
     /// @param a amount to offset
     /// @param usdOffset offset as a number between 0 -  ONE_USD
     function _offsetUSDAmountDown(uint256 a, uint256 usdOffset) internal pure returns (uint256 amount) {
-        amount = a * (ONE_USD - usdOffset) / ONE_USD;
+        amount = (a * (ONE_USD - usdOffset)) / ONE_USD;
     }
 
     /// @notice helper function to calculate collateral ratio

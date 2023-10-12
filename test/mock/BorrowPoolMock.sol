@@ -39,7 +39,7 @@ contract BorrowPoolMock {
         borrowAsset.transfer(account, amount);
         debt[account] += amount * oracle.getAssetPrice(address(borrowAsset));
     }
-    
+
     /// @notice supplies an amount of collateralAsset for an account
     /// @param account address of account supplying
     /// @param amount amount being supplied
@@ -52,8 +52,7 @@ contract BorrowPoolMock {
     /// @param account address of account repaying
     /// @param amount amount being repaid
     function repay(address account, uint256 amount) public {
-
-        if(debt[account] < amount * oracle.getAssetPrice(address(borrowAsset))) {
+        if (debt[account] < amount * oracle.getAssetPrice(address(borrowAsset))) {
             amount = debt[account] / oracle.getAssetPrice(address(borrowAsset));
         }
 
@@ -76,12 +75,11 @@ contract BorrowPoolMock {
     /// @param account address of account
     /// @return USD maximum borrow amount
     function maxBorrowAvailable(address account) public view returns (uint256) {
-        if (collateral[account] * maxLTV / BASIS > debt[account]) {
-            return ((collateral[account] * maxLTV / BASIS) - debt[account]);
+        if ((collateral[account] * maxLTV) / BASIS > debt[account]) {
+            return (((collateral[account] * maxLTV) / BASIS) - debt[account]);
         } else {
             return 0;
         }
-        
     }
 
     /// @notice calculate the maximum amount of value which can be withdrawn, in USD for
@@ -89,22 +87,19 @@ contract BorrowPoolMock {
     /// @param account address of account
     /// @return USD maximum withdraw amount
     function maxWithdrawAvailable(address account) public view returns (uint256) {
-        if (collateral[account] > (debt[account] * BASIS / maxLTV)) {
-            return collateral[account] - (debt[account] *  BASIS / maxLTV);
+        if (collateral[account] > ((debt[account] * BASIS) / maxLTV)) {
+            return collateral[account] - ((debt[account] * BASIS) / maxLTV);
         } else {
             return 0;
         }
     }
-    
+
     /// @notice enforces that the LTV is not exceeded when borrowing
     /// @param account address of account borrowing
     /// @param borrowAmount amount being borrowed
     function _enforceLTV(address account, uint256 borrowAmount) internal view {
         if (debt[account] != 0) {
-            require(
-                ((debt[account] + borrowAmount) * BASIS) / collateral[account] <= maxLTV,
-                "LTV exceeded"
-            );
+            require(((debt[account] + borrowAmount) * BASIS) / collateral[account] <= maxLTV, "LTV exceeded");
         }
     }
 
@@ -112,9 +107,6 @@ contract BorrowPoolMock {
     /// @param account address of account withdrawing
     /// @param withdrawAmount amount being withdrawn
     function _enforceSufficientCollateral(address account, uint256 withdrawAmount) internal view {
-        require(
-            collateral[account] >= withdrawAmount,
-            "Insufficient collateral"
-        );
+        require(collateral[account] >= withdrawAmount, "Insufficient collateral");
     }
 }

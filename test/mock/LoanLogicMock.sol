@@ -82,7 +82,7 @@ library LoanLogicMock {
     /// @param borrowPool pool to borrow from
     /// @param account address of an acount
     /// @return uint256 available value to borrow in USD
-    function maxBorrowAvailable(BorrowPoolMock borrowPool, address account)  public view returns (uint256) {
+    function maxBorrowAvailable(BorrowPoolMock borrowPool, address account) public view returns (uint256) {
         return borrowPool.maxBorrowAvailable(account);
     }
 

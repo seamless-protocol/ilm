@@ -17,7 +17,7 @@ contract SwapperMock is ISwapper {
     uint256 public constant BASIS = 1e8;
     IOracleMock public oracle;
 
-    constructor(address _collateralAsset, address _borrowAsset, address _oracleMock)  {
+    constructor(address _collateralAsset, address _borrowAsset, address _oracleMock) {
         collateralAsset = _collateralAsset;
         borrowAsset = _borrowAsset;
         oracle = IOracleMock(_oracleMock);
@@ -25,12 +25,12 @@ contract SwapperMock is ISwapper {
 
     /// @inheritdoc ISwapper
     function offsetFactor(address _from, address _to) public view returns (uint256 offset) {
-       if( _from == collateralAsset && _to == borrowAsset ) {
-           offset = collateralToBorrowOffset;
-       } else {
-           offset = borrowToCollateralOffset;
-       }
-    } 
+        if (_from == collateralAsset && _to == borrowAsset) {
+            offset = collateralToBorrowOffset;
+        } else {
+            offset = borrowToCollateralOffset;
+        }
+    }
 
     /// @inheritdoc ISwapper
     function swap(
@@ -39,15 +39,15 @@ contract SwapperMock is ISwapper {
         uint256 _fromAmount,
         address payable _beneficiary
     ) external returns (uint256 _toAmount) {
-        IERC20(_from).transferFrom(_beneficiary, address(this),  _fromAmount);
-        
+        IERC20(_from).transferFrom(_beneficiary, address(this), _fromAmount);
+
         uint256 fromPriceUSD = oracle.getAssetPrice(_from);
         uint256 toPriceUSD = oracle.getAssetPrice(_to);
 
-        _toAmount = _fromAmount * fromPriceUSD / toPriceUSD;
+        _toAmount = (_fromAmount * fromPriceUSD) / toPriceUSD;
 
-        /// mock account for the offset of DEX swaps 
-        _toAmount -= _toAmount * offsetFactor(_from, _to) / BASIS;
+        /// mock account for the offset of DEX swaps
+        _toAmount -= (_toAmount * offsetFactor(_from, _to)) / BASIS;
 
         IERC20(_to).transfer(_beneficiary, _toAmount);
     }
@@ -55,7 +55,7 @@ contract SwapperMock is ISwapper {
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
     function getRoute(address _from, address _to) external returns (Step[] memory steps) {}
-    
+
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
     function setRoute(address from, address to, Step[] calldata steps) external {}

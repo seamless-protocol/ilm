@@ -12,7 +12,7 @@ contract OracleMock is IOracleMock {
     uint256 public constant borrowPrice = 1e8;
     uint256 public constant collateralPrice = 2000 * 1e8;
 
-    constructor(address _collateralAsset, address _borrowAsset)  {
+    constructor(address _collateralAsset, address _borrowAsset) {
         collateralAsset = _collateralAsset;
         borrowAsset = _borrowAsset;
     }
