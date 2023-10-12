@@ -30,6 +30,10 @@ contract LoanLogicTest is Test, TestConstants {
 
     uint256 public WETH_price;
     uint256 public USDbC_price;
+
+    // maximum allowed absolute error on USD amounts. 
+    // It's set to 1000 wei because of difference in Chainlink oracle decimals and USDbC decimals
+    uint256 public USD_DELTA = 1000 wei;
     
     function setUp() public {
         string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
@@ -58,7 +62,7 @@ contract LoanLogicTest is Test, TestConstants {
         USDbC.approve(poolAddressProvider.getPool(), 1000000 * ONE_USDbC);
     }
 
-    function test_Supply() public {
+    function test_supply() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
 
@@ -70,7 +74,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(sWETH.balanceOf(address(this)), supplyAmount);
     }
 
-    function test_Withdraw() public {
+    function test_withdraw() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
       uint256 withdrawAmount = 5 ether;
@@ -84,7 +88,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
     }
 
-    function test_Borrow() public {
+    function test_borrow() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
       LoanLogic.supply(WETH, supplyAmount);
@@ -96,7 +100,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
     }
 
-    function test_Repay() public {
+    function test_repay() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
       uint256 repayAmount = 500 * ONE_USDbC;
@@ -110,6 +114,38 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount - repayAmount, 1 wei);
     }
 
+    function test_borrow_maxBorrow() public {
+      uint256 supplyAmount = 10 ether;
+      LoanState memory loanState;
+      loanState = LoanLogic.supply(WETH, supplyAmount);
+
+      // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
+      uint256 borrowAmount = Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
+      loanState = LoanLogic.borrow(USDbC, borrowAmount);
+      assertApproxEqAbs(loanState.maxBorrowAmount, 0, USD_DELTA);
+
+      _validateLoanState(loanState, supplyAmount, borrowAmount);
+      assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount, 1 wei);
+    }
+
+    function test_withdraw_maxWithdraw() public {
+      uint256 wethAmountBefore = WETH.balanceOf(address(this));
+      uint256 supplyAmount = 10 ether;
+      uint256 borrowAmount = 1000 * ONE_USDbC;
+      LoanLogic.supply(WETH, supplyAmount);
+      LoanState memory loanState;
+      loanState = LoanLogic.borrow(USDbC, borrowAmount);
+      
+      // converting loanState.maxWithdrawAmount (USD) amount to the WETH asset amount
+      uint256 withdrawAmount = Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
+      loanState = LoanLogic.withdraw(WETH, withdrawAmount);
+      assertApproxEqAbs(loanState.maxBorrowAmount, 0, USD_DELTA);
+
+      _validateLoanState(loanState, supplyAmount - withdrawAmount, borrowAmount);
+      assertApproxEqAbs(WETH.balanceOf(address(this)), wethAmountBefore - supplyAmount + withdrawAmount, 1 wei);
+      assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
+    }
+
     function _validateLoanState(
       LoanState memory loanState, 
       uint256 collateralWETHAmount, 
@@ -121,16 +157,14 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(loanState.collateral, collateralUSD, 1 wei);
 
       uint256 debtUSD = Math.mulDiv(debtUSDbCAmount, USDbC_price, ONE_USDbC);
-      // we allow for absolute error of 1000 wei because prices have 8 decimals, 
-      // while USDbC has 6 decimals, and there is a loss of precision
-      assertApproxEqAbs(loanState.debt, debtUSD, 1000 wei);
+      assertApproxEqAbs(loanState.debt, debtUSD, USD_DELTA);
 
       uint256 maxBorrowUSD = PercentageMath.percentMul(collateralUSD, ltvWETH);
       uint256 maxAvailableBorrow = maxBorrowUSD - debtUSD;
-      assertApproxEqAbs(loanState.maxBorrowAmount, maxAvailableBorrow, 1000 wei);
+      assertApproxEqAbs(loanState.maxBorrowAmount, maxAvailableBorrow, USD_DELTA);
 
       uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, ltvWETH);
       uint256 maxAvailableWithdraw = collateralUSD - minCollateralUSD;
-      assertApproxEqAbs(loanState.maxWithdrawAmount, maxAvailableWithdraw, 1000 wei);
+      assertApproxEqAbs(loanState.maxWithdrawAmount, maxAvailableWithdraw, USD_DELTA);
     }
 }
