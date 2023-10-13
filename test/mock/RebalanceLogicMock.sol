@@ -109,6 +109,11 @@ library RebalanceLogicMock {
             // maximum amount of collateral to not jeopardize loan health
             uint256 collateralAmount = loanState.maxWithdrawAmount;
 
+            // handle cases where debt is less than maxWithdrawAmount possible
+            if(loanState.debt < loanState.maxWithdrawAmount) {
+                collateralAmount = loanState.debt;
+            }
+
             // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
             // collateralAmount if so
             if (
