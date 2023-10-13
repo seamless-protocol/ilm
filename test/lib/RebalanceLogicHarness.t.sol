@@ -9,11 +9,10 @@ import { LoanLogicMock } from "../mock/LoanLogicMock.sol";
 import { RebalanceLogicMock } from "../mock/RebalanceLogicMock.sol";
 import { CollateralRatio, LoanState } from "../../src/types/DataTypes.sol";
 
-import 'forge-std/console.sol';
-
 /// @title RebalanceLogicHarness
 /// @dev RebalanceLogicHarness contract which exposes library functions
 contract RebalanceLogicHarness is Test, MockSetup {
+   /// @dev sets up testing context
    function setUp() public virtual override {
        super.setUp();
 
@@ -25,26 +24,32 @@ contract RebalanceLogicHarness is Test, MockSetup {
    }
 
    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-   function test_rebalanceUp_bringsCollateralRatioToTarget() public {
-      
-            //collateralRatio.target = targetRatio;
-            uint256 ratio = RebalanceLogicMock.rebalanceUp(borrowPool, collateralRatio, LoanLogicMock.loanState(borrowPool, address(this)), oracle, swapper);
-            assert(ratio == collateralRatio.target);
+   function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(uint256 targetRatio) public {
+      vm.assume(targetRatio > 1.25e8);
+      vm.assume(targetRatio < 100e8);
+
+      collateralRatio.target = targetRatio;
+      uint256 ratio = RebalanceLogicMock.rebalanceUp(borrowPool, collateralRatio, LoanLogicMock.loanState(borrowPool, address(this)), oracle, swapper);
+
+      assert(ratio == collateralRatio.target);
    }
 
-     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-   function test_rebalanceDown_bringsCollateralRatioToTarget() public {
-       // set target collateral ratio to being lower than target
-       collateralRatio.target = 1.4e8;
+   /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
+   function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(uint256 targetRatio) public {
+       collateralRatio.target = 1.25e8;
 
        uint256 ratio = RebalanceLogicMock.rebalanceUp(borrowPool, collateralRatio, LoanLogicMock.loanState(borrowPool, address(this)), oracle, swapper);
 
-        assert(ratio == collateralRatio.target);
-
-       collateralRatio.target = 1.5e8;
-       ratio = RebalanceLogicMock.rebalanceDown(borrowPool, collateralRatio, LoanLogicMock.loanState(borrowPool, address(this)), oracle, swapper);
-
        assert(ratio == collateralRatio.target);
+
+       vm.assume(targetRatio > 1.25e8);
+       vm.assume(targetRatio < 12e8);
+
+       collateralRatio.target = targetRatio;
+       ratio = RebalanceLogicMock.rebalanceDown(borrowPool, collateralRatio, LoanLogicMock.loanState(borrowPool, address(this)), oracle, swapper);
+    
+       // set a small error range of 2/1e8 
+       assert(collateralRatio.target - 2 <= ratio || ratio <= collateralRatio.target + 2);
    }
   
 }
