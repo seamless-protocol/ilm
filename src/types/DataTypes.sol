@@ -21,14 +21,12 @@ struct CollateralRatio {
     uint256 maxForDepositRebalance;
 }
 
-/// @dev contains all data related to the strategy configuration
-struct StrategyConfiguration {
+/// @dev contains assets addresses that strategy is using
+struct StrategyAssets {
     /// @dev wrapped adddress of collateralized asset of leverage strategy
     IERC20 collateralAsset;
     /// @dev wrapped address of borrowed asset of leverage strategy
     IERC20 borrowedAsset;
-    /// @dev parameters related to the collateral ratio
-    CollateralRatio collateralRatio;
 }
 
 /// @dev contains all data pertaining to the current position state of the strategy
