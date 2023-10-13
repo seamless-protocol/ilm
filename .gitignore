@@ -13,3 +13,9 @@ deployed-contracts.json
 # Foundry files
 cache_forge
 out
+
+# mac OS
+**/.DS_Store
+
+# pnpm
+pnpm-lock.yaml
