@@ -9,20 +9,30 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /// @dev contains all data relating to the collateral ratio
 struct CollateralRatio {
-    /// @dev mininimum value of the collateral ratio
-    uint256 min;
-    /// @dev maximum value of the collateral ratio
-    uint256 max;
     /// @dev target (ideal) value of the collateral ratio
     uint256 target;
+    /// @dev mininimum value of the collateral ratio below which strategy will rebalance
+    uint256 minForRebalance;
+    /// @dev maximum value of the collateral ratio above which strategy will rebalance
+    uint256 maxForRebalance;
+    /// @dev minimum value of the collateral ratio, above which rebalance for withdrawing action is not needed
+    uint256 minForWithdrawRebalance;
+    /// @dev maximum value of the collateral ratio, below which rebalance for depositing action is not needed
+    uint256 maxForDepositRebalance;
 }
 
-/// @dev contains all data pertaining to the current position state of the strategy
-struct LoanState {
+/// @dev contains all data related to the strategy configuration
+struct StrategyConfiguration {
     /// @dev wrapped adddress of collateralized asset of leverage strategy
     IERC20 collateralAsset;
     /// @dev wrapped address of borrowed asset of leverage strategy
     IERC20 borrowedAsset;
+    /// @dev parameters related to the collateral ratio
+    CollateralRatio collateralRatio;
+}
+
+/// @dev contains all data pertaining to the current position state of the strategy
+struct LoanState {
     /// @dev collateral value in underlying (USD)
     uint256 collateral;
     /// @dev debt value in underlying (USD)
