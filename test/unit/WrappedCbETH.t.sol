@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { WrappedCbETH, IWrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedCbETH.sol";
-import { MockERC20 } from "../mocks/MockERC20.sol";
+import { MockERC20 } from "../mock/MockERC20.sol";
 
 /// @title WrappedCbETHTest
 /// @notice Unit tests for the WrappedCbETH contract
