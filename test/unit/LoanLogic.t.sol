@@ -37,7 +37,7 @@ contract LoanLogicTest is Test, TestConstants {
     uint256 public USD_DELTA = 1000 wei;
 
     /// @dev set up testing on the fork of the base mainnet
-    /// @dev and get all needed parameters from already deplyed pool
+    /// @dev and get all needed parameters from already deployed pool
     function setUp() public {
         string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
         uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
