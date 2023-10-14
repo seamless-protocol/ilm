@@ -39,11 +39,7 @@ contract LoanLogicTest is Test, TestConstants {
     uint256 public USD_DELTA = 1000 wei;
 
     /// @dev set up testing on the fork of the base mainnet
-<<<<<<< HEAD
     /// @dev and get all needed parameters from already deployed pool
-=======
-    /// @dev and get all needed parameters from already deplyed pool
->>>>>>> 714646b (chore: natspec)
     function setUp() public {
         string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
         uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
@@ -77,11 +73,7 @@ contract LoanLogicTest is Test, TestConstants {
         USDbC.approve(poolAddressProvider.getPool(), 1000000 * ONE_USDbC);
     }
 
-<<<<<<< HEAD
     /// @dev test confirming that loan state is valid after withdrawing 
-=======
-    /// @dev test confirming that laon state is valid after withdrawing 
->>>>>>> 714646b (chore: natspec)
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_supply() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
@@ -95,11 +87,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(sWETH.balanceOf(address(this)), supplyAmount);
     }
 
-<<<<<<< HEAD
     /// @dev test confirming that loan state is valid after withdrawing 
-=======
-    /// @dev test confirming that laon state is valid after withdrawing 
->>>>>>> 714646b (chore: natspec)
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_withdraw() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
@@ -115,11 +103,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
     }
 
-<<<<<<< HEAD
     /// @dev test confirming that loan state is valid after borrowing 
-=======
-    /// @dev test confirming that laon state is valid after borrowing 
->>>>>>> 714646b (chore: natspec)
     /// @dev and that we get correct amount of debtUSDbC token
     function test_borrow() public {
       uint256 supplyAmount = 10 ether;
@@ -133,11 +117,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
     }
 
-<<<<<<< HEAD
     /// @dev test confirming that loan state is valid after repaying 
-=======
-    /// @dev test confirming that laon state is valid after repaying 
->>>>>>> 714646b (chore: natspec)
     /// @dev and that we get correct amount of debtUSDbC token
     function test_repay() public {
       uint256 supplyAmount = 10 ether;
@@ -174,11 +154,7 @@ contract LoanLogicTest is Test, TestConstants {
     }
 
     /// @dev test reverting when borrow 0.1% above `maxBorrowAmount` returned from loan state
-<<<<<<< HEAD
     function test_borrow_revertsWhen_borrowingAboveMaxBorrow() public {
-=======
-    function test_borrow_maxBorrow_revertAboveMax() public {
->>>>>>> 714646b (chore: natspec)
       uint256 supplyAmount = 10 ether;
       LoanState memory loanState;
       loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
@@ -231,7 +207,6 @@ contract LoanLogicTest is Test, TestConstants {
       LoanLogic.withdraw(lendingPool, WETH, withdrawAmountAboveMax);
     }
 
-<<<<<<< HEAD
     /// @dev fuzz test borrow, should revert if borrowing more then maxBorrowAmount
     function testFuzz_borrow(uint256 borrowAmount) public {
       vm.assume(borrowAmount > 0);
@@ -284,8 +259,6 @@ contract LoanLogicTest is Test, TestConstants {
       }
     }
 
-=======
->>>>>>> 714646b (chore: natspec)
     /// @dev validates if the returned LoanState values correspond for the given asset amounts
     function _validateLoanState(
       LoanState memory loanState, 
