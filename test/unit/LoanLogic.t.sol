@@ -65,7 +65,7 @@ contract LoanLogicTest is Test, TestConstants {
         USDbC.approve(poolAddressProvider.getPool(), 1000000 * ONE_USDbC);
     }
 
-    /// @dev test confirming that laon state is valid after withdrawing 
+    /// @dev test confirming that loan state is valid after withdrawing 
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_supply() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
@@ -143,7 +143,7 @@ contract LoanLogicTest is Test, TestConstants {
     }
 
     /// @dev test reverting when borrow 0.1% above `maxBorrowAmount` returned from loan state
-    function test_borrow_maxBorrow_revertAboveMax() public {
+    function test_borrow_revertsWhen_borrowingAboveMaxBorrow() public {
       uint256 supplyAmount = 10 ether;
       LoanState memory loanState;
       loanState = LoanLogic.supply(WETH, supplyAmount);
@@ -199,7 +199,7 @@ contract LoanLogicTest is Test, TestConstants {
       uint256 debtUSDbCAmount
     ) internal {
       // we should get value with same number of decimals as price
-      // so we deviding by the decimals of the asset
+      // so we divide by the decimals of the asset
       uint256 collateralUSD = Math.mulDiv(collateralWETHAmount, WETH_price, 1 ether);
       assertApproxEqAbs(loanState.collateral, collateralUSD, 1 wei);
 
