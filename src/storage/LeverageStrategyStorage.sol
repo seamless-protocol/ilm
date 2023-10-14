@@ -2,11 +2,13 @@
 
 pragma solidity ^0.8.18;
 
-import { CollateralRatio } from "../types/DataTypes.sol";
+import { CollateralRatio, StrategyAssets } from "../types/DataTypes.sol";
 
 library LeverageStrategyStorage {
     /// @dev struct containing all state for the LeverageStrategy contract
     struct Layout {
+        /// @dev struct encapsulating collateral and borrow asset addresses
+        StrategyAssets strategyAssets;
         /// @dev struct encapsulating min/max bounds and target values for the collateral ratio
         /// TODO: decide on whether to be 1e8 or 1e18 or 1e27
         CollateralRatio collateralRatio;
