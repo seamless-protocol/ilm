@@ -34,7 +34,7 @@ library LoanLogic {
         state = getLoanState();
     }
 
-    /// @notice withdrawing collateral from the lending pool
+    /// @notice withdraws collateral from the lending pool
     /// @param asset address of collateral asset
     /// @param amount amount of asset to withdraw
     /// @return state loan state after supply call
