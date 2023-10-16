@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "Pre-commit hook running..."
+
+forge fmt
