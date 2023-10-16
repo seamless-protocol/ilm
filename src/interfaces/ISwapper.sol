@@ -41,9 +41,11 @@ interface ISwapper {
     /// @param fromAmount amount of from token to swap
     /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
-    function swap(address from,
+    function swap(
+        address from,
         address to,
         uint256 fromAmount,
+
         
         address payable beneficiary
     ) external returns (uint256 toAmount);
