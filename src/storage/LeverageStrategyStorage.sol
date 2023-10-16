@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.18;
 
+import { ILendingPoolAdapter } from "../interfaces/ILendingPoolAdapter.sol";
 import { CollateralRatio, StrategyAssets } from "../types/DataTypes.sol";
 
 library LeverageStrategyStorage {
@@ -9,6 +10,8 @@ library LeverageStrategyStorage {
     struct Layout {
         /// @dev struct encapsulating collateral and borrow asset addresses
         StrategyAssets strategyAssets;
+        /// @dev lending pool adapter used to supply collateral and borrow assets
+        ILendingPoolAdapter lendingPool;
         /// @dev struct encapsulating min/max bounds and target values for the collateral ratio
         /// TODO: decide on whether to be 1e8 or 1e18 or 1e27
         CollateralRatio collateralRatio;
