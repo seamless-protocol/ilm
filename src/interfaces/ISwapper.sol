@@ -45,7 +45,6 @@ interface ISwapper {
         address to,
         uint256 fromAmount,
 
-        
         address payable beneficiary
     ) external returns (uint256 toAmount);
 }
