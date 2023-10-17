@@ -14,26 +14,15 @@ import { LoanState, LendingPool } from "../types/DataTypes.sol";
 /// @dev when calling pool functions, `onBehalfOf` is set to `address(this)` which, in most cases,
 /// @dev represents the strategy vault contract.
 library LoanLogic {
-
-    // /// @notice address of the Seamless protocol pool address provider
-    // /// @dev docs reference: https://docs.seamlessprotocol.com/technical/smart-contracts
-    // IPoolAddressesProvider public constant poolAddressProvider = IPoolAddressesProvider(0x0E02EB705be325407707662C6f6d3466E939f3a0);
-    
-    // // TODO: check if we would always want variable rate mode
-    // // TODO: check if we want to write just `2` instead of importing aave `DataTypes` because of this
-    // /// @notice The interest rate mode of the debt
-    // uint256 public constant interestRateMode = uint256(DataTypes.InterestRateMode.VARIABLE);
-    
     /// @dev used for availableBorrowsBase and maxWithdrawAmount to decrease them by 0.01%
     /// @dev because precision issues on converting to asset amounts can revert borrow/withdraw on lending pool
-    uint256 public constant MAX_AMOUNT_PERCENT = 99_90;
+    uint256 public constant MAX_AMOUNT_PERCENT = 99_99;
 
     /// @notice collateralizes an amount of the given asset via depositing assets into Seamless lending pool
     /// @param asset address of collateral asset
     /// @param amount amount of asset to collateralize
     /// @return state loan state after supply call
     function supply(LendingPool memory lendingPool, IERC20 asset, uint256 amount) external returns(LoanState memory state) {
-        // IPool pool = IPool(poolAddressProvider.getPool());
         lendingPool.pool.supply(address(asset), amount, address(this), 0);
         return getLoanState(lendingPool);
     }

@@ -12,16 +12,18 @@ import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
-import { LoanState } from "../../src/types/DataTypes.sol";
+import { LoanState, LendingPool } from "../../src/types/DataTypes.sol";
 import { TestConstants } from "../config/TestConstants.sol";
 
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
 contract LoanLogicTest is Test, TestConstants {
-    IPoolAddressesProvider public constant poolAddressProvider = LoanLogic.poolAddressProvider;
+    IPoolAddressesProvider public constant poolAddressProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
     IPriceOracleGetter public priceOracle;
+
+    LendingPool lendingPool;
 
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
@@ -33,7 +35,7 @@ contract LoanLogicTest is Test, TestConstants {
     uint256 public USDbC_price;
 
     // maximum allowed absolute error on USD amounts. 
-    // It's set to 1000 wei because of difference in Chainlink oracle decimals and USDbC decimals
+    // it's set to 1000 wei because of difference in Chainlink oracle decimals and USDbC decimals
     uint256 public USD_DELTA = 1000 wei;
 
     /// @dev set up testing on the fork of the base mainnet
@@ -42,6 +44,12 @@ contract LoanLogicTest is Test, TestConstants {
         string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
         uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
         vm.selectFork(mainnetFork);
+
+        lendingPool = LendingPool({
+          pool: IPool(poolAddressProvider.getPool()),
+          // variable interest rate mode is 2
+          interestRateMode: 2
+        });
 
         poolDataProvider = IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
         (, ltvWETH, , , , , , , , ) = poolDataProvider.getReserveConfigurationData(address(WETH));
@@ -72,7 +80,7 @@ contract LoanLogicTest is Test, TestConstants {
       uint256 supplyAmount = 10 ether;
 
       LoanState memory loanState;
-      loanState = LoanLogic.supply(WETH, supplyAmount);
+      loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
       _validateLoanState(loanState, supplyAmount, 0);
       assertEq(WETH.balanceOf(address(this)), wethAmountBefore - supplyAmount);
@@ -85,10 +93,10 @@ contract LoanLogicTest is Test, TestConstants {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
       uint256 withdrawAmount = 5 ether;
-      LoanLogic.supply(WETH, supplyAmount);
+      LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
       LoanState memory loanState;
-      loanState = LoanLogic.withdraw(WETH, withdrawAmount);
+      loanState = LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
 
       _validateLoanState(loanState, supplyAmount - withdrawAmount, 0);
       assertApproxEqAbs(WETH.balanceOf(address(this)), wethAmountBefore - supplyAmount + withdrawAmount, 1 wei);
@@ -100,10 +108,10 @@ contract LoanLogicTest is Test, TestConstants {
     function test_borrow() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
-      LoanLogic.supply(WETH, supplyAmount);
+      LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
       LoanState memory loanState;
-      loanState = LoanLogic.borrow(USDbC, borrowAmount);
+      loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
       _validateLoanState(loanState, supplyAmount, borrowAmount);
       assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
@@ -115,11 +123,11 @@ contract LoanLogicTest is Test, TestConstants {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
       uint256 repayAmount = 500 * ONE_USDbC;
-      LoanLogic.supply(WETH, supplyAmount);
-      LoanLogic.borrow(USDbC, borrowAmount);
+      LoanLogic.supply(lendingPool, WETH, supplyAmount);
+      LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
       LoanState memory loanState;
-      loanState = LoanLogic.repay(USDbC, repayAmount);
+      loanState = LoanLogic.repay(lendingPool, USDbC, repayAmount);
 
       _validateLoanState(loanState, supplyAmount, borrowAmount - repayAmount);
       assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount - repayAmount, 1 wei);
@@ -129,14 +137,17 @@ contract LoanLogicTest is Test, TestConstants {
     function test_borrow_maxBorrow() public {
       uint256 supplyAmount = 10 ether;
       LoanState memory loanState;
-      loanState = LoanLogic.supply(WETH, supplyAmount);
+      loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
+
+      uint256 initialMaxBorrowUSD = loanState.maxBorrowAmount;
 
       // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
-      // substrcting USD_DELTA because of precision issues
-      uint256 borrowAmount = Math.mulDiv(loanState.maxBorrowAmount - USD_DELTA, ONE_USDbC, USDbC_price);
+      uint256 borrowAmount = Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
+      loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-      loanState = LoanLogic.borrow(USDbC, borrowAmount);
-      assertApproxEqAbs(loanState.maxBorrowAmount, 0, 2*USD_DELTA);
+      // getting 0.01% of initial maxBorrowUSD, because we left that as a saftey for precision issues
+      uint256 maxBorrowLeft = PercentageMath.percentMul(initialMaxBorrowUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT);
+      assertApproxEqAbs(loanState.maxBorrowAmount, 0, maxBorrowLeft + USD_DELTA);
 
       _validateLoanState(loanState, supplyAmount, borrowAmount);
       assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount, 1 wei);
@@ -146,14 +157,14 @@ contract LoanLogicTest is Test, TestConstants {
     function test_borrow_revertsWhen_borrowingAboveMaxBorrow() public {
       uint256 supplyAmount = 10 ether;
       LoanState memory loanState;
-      loanState = LoanLogic.supply(WETH, supplyAmount);
+      loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
       uint256 borrowAmount = Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
       // calculating 0.1% above max value
       uint256 borrowAmountAboveMax = borrowAmount + PercentageMath.percentMul(borrowAmount, 10);
 
       vm.expectRevert(bytes(Errors.COLLATERAL_CANNOT_COVER_NEW_BORROW));
-      LoanLogic.borrow(USDbC, borrowAmountAboveMax);
+      LoanLogic.borrow(lendingPool, USDbC, borrowAmountAboveMax);
     }
 
     /// @dev test confirming that we can withdraw `maxWithdrawAmount` returned from loan state
@@ -161,15 +172,19 @@ contract LoanLogicTest is Test, TestConstants {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
-      LoanLogic.supply(WETH, supplyAmount);
+      LoanLogic.supply(lendingPool, WETH, supplyAmount);
       LoanState memory loanState;
-      loanState = LoanLogic.borrow(USDbC, borrowAmount);
+      loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
+
+      uint256 initialMaxWothdrawUSD = loanState.maxWithdrawAmount;
       
       // converting loanState.maxWithdrawAmount (USD) amount to the WETH asset amount
-      // substrcting USD_DELTA because of precision issues
-      uint256 withdrawAmount = Math.mulDiv(loanState.maxWithdrawAmount - USD_DELTA, 1 ether, WETH_price);
-      loanState = LoanLogic.withdraw(WETH, withdrawAmount);
-      assertApproxEqAbs(loanState.maxBorrowAmount, 0, USD_DELTA);
+      uint256 withdrawAmount = Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
+      loanState = LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
+
+      // getting 0.01% of initial maxWithdrawUSD, because we left that as a saftey for precision issues
+      uint256 maxWithdrawLeft = PercentageMath.percentMul(initialMaxWothdrawUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT);
+      assertApproxEqAbs(loanState.maxBorrowAmount, 0, maxWithdrawLeft + USD_DELTA);
 
       _validateLoanState(loanState, supplyAmount - withdrawAmount, borrowAmount);
       assertApproxEqAbs(WETH.balanceOf(address(this)), wethAmountBefore - supplyAmount + withdrawAmount, 1 wei);
@@ -180,16 +195,16 @@ contract LoanLogicTest is Test, TestConstants {
     function test_withdraw_maxWithdraw_revertAboveMax() public {
       uint256 supplyAmount = 10 ether;
       uint256 borrowAmount = 1000 * ONE_USDbC;
-      LoanLogic.supply(WETH, supplyAmount);
+      LoanLogic.supply(lendingPool, WETH, supplyAmount);
       LoanState memory loanState;
-      loanState = LoanLogic.borrow(USDbC, borrowAmount);
+      loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
       
       uint256 withdrawAmount = Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
       // calculating 0.1% above max value
       uint256 withdrawAmountAboveMax = withdrawAmount + PercentageMath.percentMul(withdrawAmount, 10);
 
       vm.expectRevert();
-      LoanLogic.withdraw(WETH, withdrawAmountAboveMax);
+      LoanLogic.withdraw(lendingPool, WETH, withdrawAmountAboveMax);
     }
 
     /// @dev validates if the returned LoanState values correspond for the given asset amounts
@@ -208,10 +223,12 @@ contract LoanLogicTest is Test, TestConstants {
 
       uint256 maxBorrowUSD = PercentageMath.percentMul(collateralUSD, ltvWETH);
       uint256 maxAvailableBorrow = maxBorrowUSD - debtUSD;
+      maxAvailableBorrow = PercentageMath.percentMul(maxAvailableBorrow, LoanLogic.MAX_AMOUNT_PERCENT);
       assertApproxEqAbs(loanState.maxBorrowAmount, maxAvailableBorrow, USD_DELTA);
 
       uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, ltvWETH);
       uint256 maxAvailableWithdraw = collateralUSD - minCollateralUSD;
+      maxAvailableWithdraw = PercentageMath.percentMul(maxAvailableWithdraw, LoanLogic.MAX_AMOUNT_PERCENT);
       assertApproxEqAbs(loanState.maxWithdrawAmount, maxAvailableWithdraw, USD_DELTA);
     }
 }
