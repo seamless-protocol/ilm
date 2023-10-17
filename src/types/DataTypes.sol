@@ -3,6 +3,7 @@
 pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 
 /// @title DataTypes
 /// @notice Contains all structs used in the Integrated Liquidity Market contract suite
@@ -27,6 +28,14 @@ struct StrategyAssets {
     IERC20 collateralAsset;
     /// @dev wrapped address of borrowed asset of leverage strategy
     IERC20 borrowedAsset;
+}
+
+/// @dev conatins address of the lending pool and configuration
+struct LendingPool {
+    /// @dev address of the lending pool
+    IPool pool;
+    /// @dev interest rate mode used on loan
+    uint256 interestRateMode;
 }
 
 /// @dev contains all data pertaining to the current position state of the strategy
