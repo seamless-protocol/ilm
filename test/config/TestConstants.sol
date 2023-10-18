@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
+/// @title TestConstants
+/// @notice configuration and constants used in tests
 abstract contract TestConstants {
   string public constant BASE_MAINNET_RPC_URL = "BASE_MAINNET_RPC_URL";
 
