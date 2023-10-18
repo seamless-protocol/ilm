@@ -87,7 +87,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(sWETH.balanceOf(address(this)), supplyAmount);
     }
 
-    /// @dev test confirming that laon state is valid after withdrawing 
+    /// @dev test confirming that loan state is valid after withdrawing 
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_withdraw() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
@@ -103,7 +103,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
     }
 
-    /// @dev test confirming that laon state is valid after borrowing 
+    /// @dev test confirming that loan state is valid after borrowing 
     /// @dev and that we get correct amount of debtUSDbC token
     function test_borrow() public {
       uint256 supplyAmount = 10 ether;
@@ -117,7 +117,7 @@ contract LoanLogicTest is Test, TestConstants {
       assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
     }
 
-    /// @dev test confirming that laon state is valid after repaying 
+    /// @dev test confirming that loan state is valid after repaying 
     /// @dev and that we get correct amount of debtUSDbC token
     function test_repay() public {
       uint256 supplyAmount = 10 ether;
