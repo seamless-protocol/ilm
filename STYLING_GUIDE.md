@@ -37,11 +37,11 @@ When developing using the Foundry testing kit we follow the [recommended best pr
 - Name return variables
 
 - Add `_` prefix for function parameters, and internal function names:
-`function _someFunc(uint256 _uintParam) internal returns (address depositor);`
+    - `function _someFunc(uint256 _uintParam) internal returns (address depositor);`
 
 - Nit: Use the same “voice” (active or passive) across comments
 
-- Test function naming as 
+- Test function naming as :
   - `test_FuncName_Effect`: `test_deposit_emitsDepositEvent()`
 - Fuzz testing as:
   - `testFuzz_FuncName_Effect`: `testFuzz_setFeeBP_setNewFeeValue(uint32 feeBP)`
