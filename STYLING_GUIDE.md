@@ -60,4 +60,4 @@ When using Foundry, we opt for triple slash as opposed to asterisk commenting. F
 
 ## Additional Material:
 - [Simple Security Toolkit](https://github.com/nascentxyz/simple-security-toolkit)
-- [Solcurity](https://github.com/transmissions11
+- [Solcurity](https://github.com/transmissions11)
