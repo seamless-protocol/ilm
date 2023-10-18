@@ -3,6 +3,7 @@
 pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { LendingPool, LoanState } from "../types/DataTypes.sol";
 
 /// @title LoanLogic
 /// @notice Contains all logic required for managing the loan position 
@@ -36,4 +37,9 @@ library LoanLogic {
     /// @param account address of an acount
     /// @return uint256 available value to withdraw in USD
     function maxWithdrawAvailable(address account) external view returns(uint256) {}
+
+    /// @notice returns the current state of loan position on the Seamless Protocol lending pool
+    /// @notice all returned values are in USD value
+    /// @return state loan state after supply call
+    function getLoanState(LendingPool memory lendingPool) internal view returns(LoanState memory state) {}
 }
