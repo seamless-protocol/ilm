@@ -51,8 +51,7 @@ contract WrappedCbETHTest is Test {
     }
 
     /// @dev test confirming that permissioned user can deposit and receive correct amount of wrapped token
-    function test_deposit() 
-    public {
+    function test_deposit() public {
       wrappedCbETH.setDepositPermission(alice, true);
 
       uint256 amountUnderlyingBefore = mockERC20.balanceOf(alice);
