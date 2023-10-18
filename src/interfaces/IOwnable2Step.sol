@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import { IERC5313 } from "@openzeppelin/contracts/interfaces/IERC5313.sol";
+import {IERC5313} from "@openzeppelin/contracts/interfaces/IERC5313.sol";
 
 /// @title IOwnableStep
 /// @notice interface to surface functions relating to Ownable2Step functionality

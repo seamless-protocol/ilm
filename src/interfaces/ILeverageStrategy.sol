@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.18;
 
-import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
-import { IOwnable2Step } from "./IOwnable2Step.sol";
-import { IPausable } from "./IPausable.sol";
-import { CollateralRatio } from "../types/DataTypes.sol";
+import {IOwnable2Step} from "./IOwnable2Step.sol";
+import {IPausable} from "./IPausable.sol";
+import {CollateralRatio} from "../types/DataTypes.sol";
 
 ///TODO: add auxiliary functions
 
@@ -47,8 +47,5 @@ interface ILeverageStrategy is IERC4626, IPausable, IOwnable2Step {
 
     /// @notice returns min, max and target collateral ratio values
     /// @return ratio struct containing min, max and target collateral ratio values
-    function collateralRatio()
-        external
-        view
-        returns (CollateralRatio memory ratio);
+    function collateralRatio() external view returns (CollateralRatio memory ratio);
 }
