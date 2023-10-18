@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.19;
+pragma solidity ^0.8.18;
 
 import { BorrowPoolMock } from "../mock/BorrowPoolMock.sol";
 import { ERC20Mock } from "../mock/ERC20Mock.sol";
