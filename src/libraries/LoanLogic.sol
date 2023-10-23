@@ -19,6 +19,7 @@ library LoanLogic {
     uint256 public constant MAX_AMOUNT_PERCENT = 99_99;
 
     /// @notice collateralizes an amount of the given asset via depositing assets into Seamless lending pool
+    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @param asset address of collateral asset
     /// @param amount amount of asset to collateralize
     /// @return state loan state after supply call
@@ -28,6 +29,7 @@ library LoanLogic {
     }
 
     /// @notice withdraws collateral from the lending pool
+    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @param asset address of collateral asset
     /// @param amount amount of asset to withdraw
     /// @return state loan state after supply call
@@ -37,6 +39,7 @@ library LoanLogic {
     }
 
     /// @notice borrows an amount of borrowed asset from the lending pool
+    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @param asset address of borrowing asset
     /// @param amount amount of asset to borrow
      /// @return state loan state after supply call
@@ -46,6 +49,7 @@ library LoanLogic {
     }
 
     /// @notice repays an amount of borrowed asset to the lending pool
+    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @param asset address of borrowing asset
     /// @param amount amount of borrowing asset to repay
     /// @return state loan state after supply call
@@ -54,8 +58,9 @@ library LoanLogic {
         return getLoanState(lendingPool);
     }
 
-    /// @notice returns the current state of loan position on the Seamless Protocol lending pool
+    /// @notice returns the current state of loan position on the Seamless Protocol lending pool for the caller's account
     /// @notice all returned values are in USD value
+    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)  
     /// @return state loan state after supply call
     function getLoanState(LendingPool memory lendingPool) internal view returns(LoanState memory state) {        
         (
