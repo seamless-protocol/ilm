@@ -24,11 +24,12 @@ When developing using the Foundry testing kit we follow the [recommended best pr
   - `emit ProtocolFeeBPSet(_newValueBP);`
 
 - Ordering imports should go from “closest” to “furthest” conceptually, in alphabetical order if they are in the same “distance”. For example:
-  ```solidity
+  ```
   import { ERC20 } from "@openzeppeling/contracts/ERC20.sol";
   import { IERC20 } from "@openzeppeling/contracts/IERC20.sol";
   import { ContractA } from "./ContractA.sol";
   import { ContractB } from "../oneLevelUp/ContractB.sol";
+  ```
 
 - Err on the side of commenting more rather than less! Code is written once and read 1000 times! A simple one-liner above some `if` clause can increase readability/comprehension tremendously!
 
