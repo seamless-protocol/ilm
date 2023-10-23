@@ -25,9 +25,9 @@ struct CollateralRatio {
 /// @dev contains assets addresses that strategy is using
 struct StrategyAssets {
     /// @dev wrapped adddress of collateralized asset of leverage strategy
-    IERC20 collateralAsset;
+    IERC20 collateral;
     /// @dev wrapped address of borrowed asset of leverage strategy
-    IERC20 borrowedAsset;
+    IERC20 debt;
 }
 
 /// @dev conatins address of the lending pool and configuration
@@ -41,9 +41,9 @@ struct LendingPool {
 /// @dev contains all data pertaining to the current position state of the strategy
 struct LoanState {
     /// @dev collateral value in underlying (USD)
-    uint256 collateral;
+    uint256 collateralUSD;
     /// @dev debt value in underlying (USD)
-    uint256 debt;
+    uint256 debtUSD;
     /// @dev max amount of borrowedAsset borrowable based on maxLTV
     uint256 maxBorrowAmount;
     /// @dev max amount of collateralAsset which can be withdrawn based on maxLTV to
