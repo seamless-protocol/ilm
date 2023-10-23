@@ -17,7 +17,7 @@ library LeverageStrategyStorage {
     }
 
     bytes32 internal constant STORAGE_SLOT =
-        keccak256('seamless.contracts.storage.LeverageStrategy');
+        keccak256("seamless.contracts.storage.LeverageStrategy");
 
     function layout() internal pure returns (Layout storage l) {
         bytes32 slot = STORAGE_SLOT;

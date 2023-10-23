@@ -3,11 +3,11 @@
 pragma solidity ^0.8.18;
 
 import { ISwapper } from "../interfaces/ISwapper.sol";
-import { StrategyAssets, LoanState} from "../types/DataTypes.sol";
+import { StrategyAssets, LoanState } from "../types/DataTypes.sol";
 import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
 
 /// @title RebalanceLogic
-/// @notice Contains all logic required for rebalancing 
+/// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
@@ -18,12 +18,12 @@ library RebalanceLogic {
     /// @param swapper address of Swapper contract
     /// @return ratio value of collateralRatio after rebalance
     function rebalanceUp(
-        StrategyAssets memory strategyAssets, 
-        LoanState memory loanState, 
+        StrategyAssets memory strategyAssets,
+        LoanState memory loanState,
         uint256 targetRatio,
         IPriceOracleGetter oracle,
         ISwapper swapper
-    ) external returns (uint256 ratio) {}
+    ) external returns (uint256 ratio) { }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
@@ -35,9 +35,9 @@ library RebalanceLogic {
     /// @return ratio value of collateralRatio after rebalance
     function rebalanceDown(
         StrategyAssets memory strategyAssets,
-        LoanState memory loanState, 
+        LoanState memory loanState,
         uint256 targetRatio,
         IPriceOracleGetter oracle,
         ISwapper swapper
-    ) external returns (uint256 ratio) {}
+    ) external returns (uint256 ratio) { }
 }

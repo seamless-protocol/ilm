@@ -42,7 +42,7 @@ library LoanLogic {
     /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @param asset address of borrowing asset
     /// @param amount amount of asset to borrow
-     /// @return state loan state after supply call
+    /// @return state loan state after supply call
     function borrow(LendingPool memory lendingPool, IERC20 asset, uint256 amount) external returns(LoanState memory state) {
         lendingPool.pool.borrow(address(asset), amount, lendingPool.interestRateMode, 0, address(this));
         return getLoanState(lendingPool);
