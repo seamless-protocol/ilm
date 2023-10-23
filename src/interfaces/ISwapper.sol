@@ -24,13 +24,16 @@ interface ISwapper {
     /// @param from address of token to swap from
     /// @param to address of token to swap to
     /// @return steps array of swap steps needed to end up with `to` token from `from` token
-    function getRoute(address from, address to) external returns (Step[] memory steps);
+    function getRoute(address from, address to)
+        external
+        returns (Step[] memory steps);
 
     /// @notice sets the a steps of a swap route
     /// @param from address of token to swap from
     /// @param to address of token to swap to
     /// @param steps  array of swap steps needed to end up with `to` token from `from` token
-    function setRoute(address from, address to, Step[] calldata steps) external;
+    function setRoute(address from, address to, Step[] calldata steps)
+        external;
 
     /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
     /// @param from address of token to swap from
@@ -38,5 +41,10 @@ interface ISwapper {
     /// @param fromAmount amount of from token to swap
     /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
-    function swap(address from, address to, uint256 fromAmount, address payable beneficiary) external returns (uint256 toAmount);
+    function swap(
+        address from,
+        address to,
+        uint256 fromAmount,
+        address payable beneficiary
+    ) external returns (uint256 toAmount);
 }

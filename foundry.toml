@@ -3,4 +3,9 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+[fmt]
+line_length = 80
+bracket_spacing = true
+numer_underscore = "thousands"
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
