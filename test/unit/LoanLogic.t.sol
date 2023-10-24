@@ -268,10 +268,10 @@ contract LoanLogicTest is Test, TestConstants {
       // we should get value with same number of decimals as price
       // so we divide by the decimals of the asset
       uint256 collateralUSD = Math.mulDiv(collateralWETHAmount, WETH_price, 1 ether);
-      assertApproxEqAbs(loanState.collateral, collateralUSD, 1 wei);
+      assertApproxEqAbs(loanState.collateralUSD, collateralUSD, 1 wei);
 
       uint256 debtUSD = Math.mulDiv(debtUSDbCAmount, USDbC_price, ONE_USDbC);
-      assertApproxEqAbs(loanState.debt, debtUSD, USD_DELTA);
+      assertApproxEqAbs(loanState.debtUSD, debtUSD, USD_DELTA);
 
       uint256 maxBorrowUSD = PercentageMath.percentMul(collateralUSD, ltvWETH);
       uint256 maxAvailableBorrow = maxBorrowUSD - debtUSD;

@@ -2,84 +2,96 @@
 
 pragma solidity ^0.8.18;
 
-import { BorrowPoolMock } from "../mock/BorrowPoolMock.sol";
-import { ERC20Mock } from "../mock/ERC20Mock.sol";
-import { OracleMock } from "../mock/OracleMock.sol";
+import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPoolDataProvider } from "@aave/contracts/interfaces/IPoolDataProvider.sol";
+import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
+import { TestConstants } from "../config/TestConstants.sol";
+
 import { SwapperMock } from "../mock/SwapperMock.sol";
 import { CollateralRatio } from "../../src/types/DataTypes.sol";
 
+import { LendingPool, LoanState, StrategyAssets } from "../../src/types/DataTypes.sol";
+
+
 import 'forge-std/Test.sol';
 
-abstract contract MockSetup is Test {
+abstract contract MockSetup is Test, TestConstants {
+    IPriceOracleGetter public oracle;
+     IPoolAddressesProvider public constant poolAddressProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
+    IPoolDataProvider public poolDataProvider;
+    IPriceOracleGetter public priceOracle;
+         
+         LendingPool lendingPool;
 
-    /// @dev ERC20 mock contracts used as collateral/borrow assets
-    ERC20Mock public collateralAsset;
-    ERC20Mock public borrowAsset;
-    /// @dev mock contract for oracle
-    OracleMock public oracle;
+    StrategyAssets public assets;
+
     /// @dev mock contract for swapper
     SwapperMock public swapper;
-    /// @dev mock contract for borrowing/lending pool
-    BorrowPoolMock public borrowPool;
+     
+         IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
+    IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
+
+         uint256 public WETH_price;
+    uint256 public USDbC_price;
+         uint256 public ltvWETH;
 
     uint256 internal constant BASIS = 1e8;
     uint256 internal constant LTV = 8e7;
 
     uint256 internal constant MINT_AMOUNT = 100000 ether;
 
-    CollateralRatio public collateralRatio;
+    uint256 targetCR;
 
     function setUp() public virtual {
-        // deploy instances of mock ERC20 contracts as collateral/borrow assets
-        collateralAsset = new ERC20Mock('Collateral Asset', 'CA');
-        borrowAsset = new ERC20Mock('Borrow Asset', 'BA');
+        string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
+        uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
+        vm.selectFork(mainnetFork);
 
-        // deploy mock oracle instance
-        oracle = new OracleMock(address(collateralAsset), address(borrowAsset));
+          lendingPool = LendingPool({
+          pool: IPool(poolAddressProvider.getPool()),
+          // variable interest rate mode is 2
+          interestRateMode: 2
+        });
 
-        assert(
-             address(oracle.borrowAsset()) == address(borrowAsset)
-        );
-        assert(
-             address(oracle.collateralAsset()) == address(collateralAsset)
-        );
+        assets.collateral = WETH;
+        assets.debt = USDbC;
+
+          poolDataProvider = IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
+        (, ltvWETH, , , , , , , , ) = poolDataProvider.getReserveConfigurationData(address(WETH));
+
+        // getting token prices
+        oracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
+        WETH_price = oracle.getAssetPrice(address(WETH));
+        USDbC_price = oracle.getAssetPrice(address(USDbC));
 
         // deploy mock swapper instance
-        swapper = new SwapperMock(address(collateralAsset), address(borrowAsset), address(oracle));
+        swapper = new SwapperMock(address(assets.collateral), address(assets.debt), address(oracle));
 
         assert(
-             address(swapper.borrowAsset()) == address(borrowAsset)
+             address(swapper.borrowAsset()) == address(USDbC)
         );
         assert(
-             address(swapper.collateralAsset()) == address(collateralAsset)
+             address(swapper.collateralAsset()) == address(WETH)
         );
 
-        // deploy mock borrow pool instance
-        borrowPool = new BorrowPoolMock(address(collateralAsset), address(borrowAsset), LTV, address(oracle));
+        // fake minting some tokens to start with
+        deal(address(WETH), address(this), MINT_AMOUNT);
+        deal(address(USDbC), address(this), MINT_AMOUNT);
 
-        assert(
-            address(borrowPool.borrowAsset()) == address(borrowAsset)
-        );
-        assert(
-             address(borrowPool.collateralAsset()) == address(collateralAsset)
-        );
+        // approve tokens for pool to use on supplying and repaying
+        WETH.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
+        USDbC.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
 
-        // mint ample amount of collatera/borrow tokens to borrowPool and swapper
-        collateralAsset.mint(address(borrowPool), MINT_AMOUNT); 
-        borrowAsset.mint(address(borrowPool), MINT_AMOUNT);
+         deal(address(WETH), address(swapper), MINT_AMOUNT);
+        deal(address(USDbC), address(swapper), MINT_AMOUNT);
 
-        assert(borrowAsset.balanceOf(address(borrowPool)) == MINT_AMOUNT);
-        assert(collateralAsset.balanceOf(address(borrowPool)) == MINT_AMOUNT);
-
-        collateralAsset.mint(address(swapper), MINT_AMOUNT);
-        borrowAsset.mint(address(swapper), MINT_AMOUNT);
-
-        assert(borrowAsset.balanceOf(address(swapper)) == MINT_AMOUNT);
-        assert(collateralAsset.balanceOf(address(swapper)) == MINT_AMOUNT);
+        assert(USDbC.balanceOf(address(swapper)) == MINT_AMOUNT);
+        assert(WETH.balanceOf(address(swapper)) == MINT_AMOUNT);
         
         // 3x leverage using collateral ratio at 1.5
-        collateralRatio.target = 1.5e8;
-        collateralRatio.min = 1.0e8;
-        collateralRatio.max = 2.0e8;
+        targetCR = 1.5e8;
     }
 }

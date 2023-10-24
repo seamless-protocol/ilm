@@ -82,8 +82,8 @@ library LoanLogic {
         maxWithdrawAmount = PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);
 
         return LoanState({
-            collateral: totalCollateralBase,
-            debt: totalDebtBase,
+            collateralUSD: totalCollateralBase,
+            debtUSD: totalDebtBase,
             maxBorrowAmount: availableBorrowsBase,
             maxWithdrawAmount: maxWithdrawAmount
         });

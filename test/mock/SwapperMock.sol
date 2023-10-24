@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.18;
 
+import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
-import { IOracleMock } from "./IOracleMock.sol";
 
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
@@ -15,12 +15,12 @@ contract SwapperMock is ISwapper {
     uint256 public constant borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public constant collateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public constant BASIS = 1e8;
-    IOracleMock public oracle;
+    IPriceOracleGetter public oracle;
 
-    constructor(address _collateralAsset, address _borrowAsset, address _oracleMock) {
+    constructor(address _collateralAsset, address _borrowAsset, address _oracle) {
         collateralAsset = _collateralAsset;
         borrowAsset = _borrowAsset;
-        oracle = IOracleMock(_oracleMock);
+        oracle = IPriceOracleGetter(_oracle);
     }
 
     /// @inheritdoc ISwapper
