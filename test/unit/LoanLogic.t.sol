@@ -2,23 +2,23 @@
 
 pragma solidity ^0.8.18;
 
-import { Test } from "forge-std/Test.sol";
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPoolDataProvider } from "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IPool } from "@aave/contracts/interfaces/IPool.sol";
-import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
+import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+
+import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
-import { LoanState, LendingPool } from "../../src/types/DataTypes.sol";
-import { TestConstants } from "../config/TestConstants.sol";
+import { LendingPool, LoanState } from "../../src/types/DataTypes.sol";
 
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
-contract LoanLogicTest is Test, TestConstants {
+contract LoanLogicTest is BaseForkTest {
     IPoolAddressesProvider public constant poolAddressProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
     IPriceOracleGetter public priceOracle;
@@ -41,10 +41,6 @@ contract LoanLogicTest is Test, TestConstants {
     /// @dev set up testing on the fork of the base mainnet
     /// @dev and get all needed parameters from already deployed pool
     function setUp() public {
-        string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
-        uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
-        vm.selectFork(mainnetFork);
-
         lendingPool = LendingPool({
           pool: IPool(poolAddressProvider.getPool()),
           // variable interest rate mode is 2
