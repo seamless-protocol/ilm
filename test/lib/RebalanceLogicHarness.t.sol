@@ -2,16 +2,14 @@
 
 pragma solidity ^0.8.18;
 
-import "forge-std/Test.sol";
-
-import { MockSetup } from "./MockSetup.t.sol";
+import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
-import { CollateralRatio, LoanState } from "../../src/types/DataTypes.sol";
+import { LoanState } from "../../src/types/DataTypes.sol";
 
 /// @title RebalanceLogicHarness
-/// @dev RebalanceLogicHarness contract which exposes library functions
-contract RebalanceLogicHarness is Test, MockSetup {
+/// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
+contract RebalanceLogicHarness is RebalanceLogicContext {
    /// @dev sets up testing context
    function setUp() public virtual override {
        super.setUp();

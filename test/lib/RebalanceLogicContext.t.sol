@@ -2,59 +2,46 @@
 
 pragma solidity ^0.8.18;
 
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPoolDataProvider } from "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import { TestConstants } from "../config/TestConstants.sol";
-
+import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { SwapperMock } from "../mock/SwapperMock.sol";
-import { CollateralRatio } from "../../src/types/DataTypes.sol";
+import { CollateralRatio, LendingPool, LoanState, StrategyAssets } from "../../src/types/DataTypes.sol";
 
-import { LendingPool, LoanState, StrategyAssets } from "../../src/types/DataTypes.sol";
-
-
-import 'forge-std/Test.sol';
-
-abstract contract MockSetup is Test, TestConstants {
+/// @title RebalanceLogicContext contract
+/// @dev Setup for the context in which the RebalanceLogic library is tested.
+abstract contract RebalanceLogicContext is BaseForkTest {
+    /// contracts needed for setting up and testing RebalanceLogic
+    IPoolAddressesProvider public constant poolAddressProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPriceOracleGetter public oracle;
-     IPoolAddressesProvider public constant poolAddressProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
-    IPriceOracleGetter public priceOracle;
-         
-         LendingPool lendingPool;
-
+    LendingPool lendingPool;
     StrategyAssets public assets;
-
-    /// @dev mock contract for swapper
     SwapperMock public swapper;
-     
-         IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
+    IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
 
-         uint256 public WETH_price;
-    uint256 public USDbC_price;
-         uint256 public ltvWETH;
+     /// values required for setting up and testing RebalanceLogic
+     uint256 public WETH_price;
+     uint256 public USDbC_price;
+     uint256 public ltvWETH;
 
     uint256 internal constant BASIS = 1e8;
-    uint256 internal constant LTV = 8e7;
 
     uint256 internal constant MINT_AMOUNT = 100000 ether;
 
     uint256 targetCR;
 
     function setUp() public virtual {
-        string memory mainnetRpcUrl = vm.envString(BASE_MAINNET_RPC_URL);
-        uint256 mainnetFork = vm.createFork(mainnetRpcUrl);
-        vm.selectFork(mainnetFork);
-
-          lendingPool = LendingPool({
-          pool: IPool(poolAddressProvider.getPool()),
-          // variable interest rate mode is 2
-          interestRateMode: 2
-        });
+        lendingPool = LendingPool({
+             pool: IPool(poolAddressProvider.getPool()),
+             // variable interest rate mode is 2
+             interestRateMode: 2
+         });
 
         assets.collateral = WETH;
         assets.debt = USDbC;
