@@ -5,6 +5,8 @@ pragma solidity ^0.8.18;
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IERC20Metadata } from
+    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 
@@ -47,19 +49,27 @@ contract SwapperMock is ISwapper {
         address _to,
         uint256 _fromAmount,
         address payable _beneficiary
-    ) external returns (uint256 _toAmount) {
+    ) external returns (uint256 toAmount) {
         IERC20(_from).transferFrom(_beneficiary, address(this), _fromAmount);
 
         uint256 fromPriceUSD = oracle.getAssetPrice(_from);
         uint256 toPriceUSD = oracle.getAssetPrice(_to);
 
-        // WIP
-        _toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD) * 10 ** 12;
+        uint8 fromDecimals = IERC20Metadata(_from).decimals();
+        uint8 toDecimals = IERC20Metadata(_to).decimals();
+
+        if (fromDecimals < toDecimals) {
+            toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD)
+                * 10 ** (toDecimals - fromDecimals);
+        } else {
+            toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD)
+                / 10 ** (fromDecimals - toDecimals);
+        }
 
         /// mock account for the offset of DEX swaps
-        _toAmount -= (_toAmount * offsetFactor(_from, _to)) / BASIS;
+        toAmount -= (toAmount * offsetFactor(_from, _to)) / BASIS;
 
-        IERC20(_to).transfer(_beneficiary, _toAmount);
+        IERC20(_to).transfer(_beneficiary, toAmount);
     }
 
     /// @inheritdoc ISwapper
