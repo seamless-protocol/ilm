@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.18;
 
-import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
@@ -17,14 +18,22 @@ contract SwapperMock is ISwapper {
     uint256 public constant BASIS = 1e8;
     IPriceOracleGetter public oracle;
 
-    constructor(address _collateralAsset, address _borrowAsset, address _oracle) {
+    constructor(
+        address _collateralAsset,
+        address _borrowAsset,
+        address _oracle
+    ) {
         collateralAsset = _collateralAsset;
         borrowAsset = _borrowAsset;
         oracle = IPriceOracleGetter(_oracle);
     }
 
     /// @inheritdoc ISwapper
-    function offsetFactor(address _from, address _to) public view returns (uint256 offset) {
+    function offsetFactor(address _from, address _to)
+        public
+        view
+        returns (uint256 offset)
+    {
         if (_from == collateralAsset && _to == borrowAsset) {
             offset = collateralToBorrowOffset;
         } else {
@@ -55,9 +64,14 @@ contract SwapperMock is ISwapper {
 
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
-    function getRoute(address _from, address _to) external returns (Step[] memory steps) {}
+    function getRoute(address _from, address _to)
+        external
+        returns (Step[] memory steps)
+    { }
 
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
-    function setRoute(address from, address to, Step[] calldata steps) external {}
+    function setRoute(address from, address to, Step[] calldata steps)
+        external
+    { }
 }

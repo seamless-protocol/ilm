@@ -28,9 +28,9 @@ library USDWadMath {
     function wadMul(uint256 a, uint256 b) internal pure returns (uint256 c) {
         // to avoid overflow, a <= (type(uint256).max - HALF_WAD) / b
         assembly {
-            if iszero(or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_WAD), b))))) {
-                revert(0, 0)
-            }
+            if iszero(
+                or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_WAD), b))))
+            ) { revert(0, 0) }
 
             c := div(add(mul(a, b), HALF_WAD), WAD)
         }
@@ -44,9 +44,9 @@ library USDWadMath {
     function usdMul(uint256 a, uint256 b) internal pure returns (uint256 c) {
         // to avoid overflow, a <= (type(uint256).max - HALF_USD) / b
         assembly {
-            if iszero(or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_USD), b))))) {
-                revert(0, 0)
-            }
+            if iszero(
+                or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_USD), b))))
+            ) { revert(0, 0) }
 
             c := div(add(mul(a, b), HALF_USD), USD)
         }
@@ -62,9 +62,10 @@ library USDWadMath {
     function wadDiv(uint256 a, uint256 b) internal pure returns (uint256 c) {
         // to avoid overflow, a <= (type(uint256).max - halfB) / WAD
         assembly {
-            if or(iszero(b), iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), WAD))))) {
-                revert(0, 0)
-            }
+            if or(
+                iszero(b),
+                iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), WAD))))
+            ) { revert(0, 0) }
 
             c := div(add(mul(a, WAD), div(b, 2)), b)
         }
@@ -78,9 +79,10 @@ library USDWadMath {
     function usdDiv(uint256 a, uint256 b) internal pure returns (uint256 c) {
         // to avoid overflow, a <= (type(uint256).max - halfB) / USD
         assembly {
-            if or(iszero(b), iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), USD))))) {
-                revert(0, 0)
-            }
+            if or(
+                iszero(b),
+                iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), USD))))
+            ) { revert(0, 0) }
 
             c := div(add(mul(a, USD), div(b, 2)), b)
         }
@@ -94,9 +96,7 @@ library USDWadMath {
         assembly {
             b := div(a, USD_WAD_RATIO)
             let remainder := mod(a, USD_WAD_RATIO)
-            if iszero(lt(remainder, div(USD_WAD_RATIO, 2))) {
-                b := add(b, 1)
-            }
+            if iszero(lt(remainder, div(USD_WAD_RATIO, 2))) { b := add(b, 1) }
         }
     }
 
@@ -109,9 +109,7 @@ library USDWadMath {
         assembly {
             b := mul(a, USD_WAD_RATIO)
 
-            if iszero(eq(div(b, USD_WAD_RATIO), a)) {
-                revert(0, 0)
-            }
+            if iszero(eq(div(b, USD_WAD_RATIO), a)) { revert(0, 0) }
         }
     }
 }
