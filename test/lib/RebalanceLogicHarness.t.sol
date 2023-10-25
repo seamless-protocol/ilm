@@ -62,32 +62,33 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     }
 
-    // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-    // function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(uint256 targetRatio) public {
-    //    vm.assume(targetRatio > 1.25e8);
-    //    vm.assume(targetRatio < 100e8);
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
+    function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(uint256 targetRatio) public {
+       // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
+       vm.assume(targetRatio > 1.34e8);
+       vm.assume(targetRatio < 50e8);
 
-    //    targetCR = targetRatio;
-    //    uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+       targetCR = targetRatio;
+       uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
 
-    //    assert(ratio == targetCR);
-    // }
+       assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+    }
 
     // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     // function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(uint256 targetRatio) public {
-    //     targetCR = 1.25e8;
+    //      // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
+    //     targetCR = 1.34e8;
 
     //     uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets, LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
 
-    //     assert(ratio == targetCR);
+    //     assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
 
-    //     vm.assume(targetRatio > 1.25e8);
-    //     vm.assume(targetRatio < 12e8);
+    //     vm.assume(targetRatio > 1.35e8);
+    //     vm.assume(targetRatio < 5e8);
 
     //     targetCR = targetRatio;
     //     ratio = RebalanceLogic.rebalanceDown(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
 
-    //     // set a small error range of 2/1e8
-    //     assert(targetCR - 2 <= ratio || ratio <= targetCR + 2);
+    //      assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     // }
 }

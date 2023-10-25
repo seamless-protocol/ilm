@@ -43,7 +43,8 @@ library RebalanceLogic {
         ISwapper _swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
-        ratio = _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        ratio =
+            _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
         uint256 debtPriceUSD = _oracle.getAssetPrice(address(_assets.debt));
         uint8 debtDecimals = IERC20Metadata(address(_assets.debt)).decimals();
@@ -69,7 +70,8 @@ library RebalanceLogic {
                 // ONE_USD - offSetFactor < _targetCR by default/design
                 // equation used: B = C - (tCR * D) / (tCR - (1 - O))
                 borrowAmountUSD = (
-                    _loanState.collateralUSD - _targetCR.usdMul(_loanState.debtUSD)
+                    _loanState.collateralUSD
+                        - _targetCR.usdMul(_loanState.debtUSD)
                 ).usdDiv(_targetCR - (ONE_USD - offsetFactor));
             }
 
@@ -92,12 +94,14 @@ library RebalanceLogic {
             );
 
             // collateralize _assets in AaveV3 _pool
-            _loanState =
-                LoanLogic.supply(_pool, _assets.collateral, collateralAmountAsset);
+            _loanState = LoanLogic.supply(
+                _pool, _assets.collateral, collateralAmountAsset
+            );
 
             // update collateral ratio value
-            ratio =
-                _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+            ratio = _collateralRatioUSD(
+                _loanState.collateralUSD, _loanState.debtUSD
+            );
         } while (ratio > _targetCR);
     }
 
@@ -119,7 +123,8 @@ library RebalanceLogic {
         ISwapper _swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
-        ratio = _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        ratio =
+            _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
         uint256 collateralPriceUSD =
             _oracle.getAssetPrice(address(_assets.collateral));
@@ -151,7 +156,8 @@ library RebalanceLogic {
                 ) > _targetCR
             ) {
                 collateralAmountUSD = (
-                    _targetCR.usdMul(_loanState.debtUSD) - _loanState.collateralUSD
+                    _targetCR.usdMul(_loanState.debtUSD)
+                        - _loanState.collateralUSD
                 ).usdDiv(_targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
             }
 
@@ -177,8 +183,9 @@ library RebalanceLogic {
             _loanState = LoanLogic.repay(_pool, _assets.debt, borrowAmountAsset);
 
             // update collateral ratio value
-            ratio =
-                _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+            ratio = _collateralRatioUSD(
+                _loanState.collateralUSD, _loanState.debtUSD
+            );
         } while (ratio < _targetCR);
     }
 
