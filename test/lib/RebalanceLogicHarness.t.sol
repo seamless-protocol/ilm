@@ -63,15 +63,24 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-    function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(uint256 targetRatio) public {
-       // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-       vm.assume(targetRatio > 1.34e8);
-       vm.assume(targetRatio < 50e8);
+    function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(
+        uint256 targetRatio
+    ) public {
+        // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
+        vm.assume(targetRatio > 1.34e8);
+        vm.assume(targetRatio < 50e8);
 
-       targetCR = targetRatio;
-       uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+        targetCR = targetRatio;
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            lendingPool,
+            assets,
+            LoanLogic.getLoanState(lendingPool),
+            targetCR,
+            oracle,
+            swapper
+        );
 
-       assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     }
 
     // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
