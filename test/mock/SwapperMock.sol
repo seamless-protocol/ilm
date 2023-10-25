@@ -44,7 +44,8 @@ contract SwapperMock is ISwapper {
         uint256 fromPriceUSD = oracle.getAssetPrice(_from);
         uint256 toPriceUSD = oracle.getAssetPrice(_to);
 
-        _toAmount = (_fromAmount * fromPriceUSD) / toPriceUSD;
+        // WIP
+        _toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD) * 10 ** 12;
 
         /// mock account for the offset of DEX swaps
         _toAmount -= (_toAmount * offsetFactor(_from, _to)) / BASIS;

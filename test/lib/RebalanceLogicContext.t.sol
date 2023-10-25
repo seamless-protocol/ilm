@@ -32,10 +32,11 @@ abstract contract RebalanceLogicContext is BaseForkTest {
 
     uint256 internal constant BASIS = 1e8;
 
-    uint256 internal constant MINT_AMOUNT = 100000 ether;
+    uint256 internal constant MINT_AMOUNT = 1 ether;
 
     uint256 targetCR;
-
+    
+    /// @dev sets up auxiliary contracts and context for RebalanceLogic tests
     function setUp() public virtual {
         lendingPool = LendingPool({
              pool: IPool(poolAddressProvider.getPool()),
@@ -46,7 +47,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         assets.collateral = WETH;
         assets.debt = USDbC;
 
-          poolDataProvider = IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
+        poolDataProvider = IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
         (, ltvWETH, , , , , , , , ) = poolDataProvider.getReserveConfigurationData(address(WETH));
 
         // getting token prices
@@ -72,7 +73,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         WETH.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
         USDbC.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
 
-         deal(address(WETH), address(swapper), MINT_AMOUNT);
+        deal(address(WETH), address(swapper), MINT_AMOUNT);
         deal(address(USDbC), address(swapper), MINT_AMOUNT);
 
         assert(USDbC.balanceOf(address(swapper)) == MINT_AMOUNT);
@@ -80,5 +81,6 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         
         // 3x leverage using collateral ratio at 1.5
         targetCR = 1.5e8;
+        console.log('setup successful');
     }
 }

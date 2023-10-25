@@ -6,21 +6,20 @@ import { LoanLogic } from "./LoanLogic.sol";
 import { USDWadMath } from "./math/USDWadMath.sol";
 import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
-<<<<<<< HEAD
-import { StrategyAssets, LoanState } from "../types/DataTypes.sol";
-import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
-=======
 import { LendingPool, LoanState, StrategyAssets } from "../types/DataTypes.sol";
->>>>>>> 0e0c886 (build: remove unrequired mocks, replace previous namings | WIP)
 
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
     using USDWadMath for uint256;
 
-    /// @dev ONE in USD scale and in TOKEN scale
+    /// @dev ONE in USD scale and in WAD scale
     uint256 internal constant ONE_USD = 1e8;
-    uint256 internal constant ONE_TOKEN = USDWadMath.WAD;
+    uint256 internal constant ONE_WAD = USDWadMath.WAD;
+    
+    /// @dev decimals of USD prices as per oracle, and WAD decimals
+    uint8 internal constant USD_DECIMALS = 8;
+    uint8 internal constant WAD_DECIMALS = 18;
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
@@ -35,20 +34,20 @@ library RebalanceLogic {
         LendingPool memory pool,
         StrategyAssets memory assets,
         LoanState memory loanState,
-        uint256 targetRatio,
+        uint256 targetCR,
         IPriceOracleGetter oracle,
         ISwapper swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
         ratio = _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
-
+        
         uint256 debtPriceInUSD = oracle.getAssetPrice(address(assets.debt));
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor = swapper.offsetFactor(address(assets.debt), address(assets.collateral));
 
         do {
-            // debt needed to reach max LTV
+            // debt to reach max LTV
             uint256 debtAmount = loanState.maxBorrowAmount;
 
             // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust debtAmount if so
@@ -66,7 +65,7 @@ library RebalanceLogic {
             }
 
             // convert debtAmount from USD to a borrowAsset amount
-            uint256 debtAmountAsset = _convertUSDToAsset(debtAmount, debtPriceInUSD);
+            uint256 debtAmountAsset = _convertUSDToAsset(debtAmount, debtPriceInUSD, 6);
 
             // borrow assets from AaveV3 pool
             LoanLogic.borrow(pool, assets.debt, debtAmountAsset);
@@ -137,7 +136,7 @@ library RebalanceLogic {
                 );
             }
 
-            uint256 collateralAmountAsset = _convertUSDToAsset(collateralAmount, collateralUSDPrice);
+            uint256 collateralAmountAsset = _convertUSDToAsset(collateralAmount, collateralUSDPrice, 6);
 
             // withdraw collateral tokens from Aave pool
             LoanLogic.withdraw(pool, assets.collateral, collateralAmountAsset);
@@ -180,15 +179,21 @@ library RebalanceLogic {
     /// @param assetAmount amount of asset
     /// @param priceInUSD price of asset in USD
     /// @return usdAmount amount of USD after conversion
-    function _convertAssetToUSD(uint256 assetAmount, uint256 priceInUSD) internal pure returns (uint256 usdAmount) {
-        usdAmount = USDWadMath.wadToUSD(((USDWadMath.usdToWad(priceInUSD)).wadMul(assetAmount)));
+    function _convertAssetToUSD(uint256 assetAmount, uint256 priceInUSD, uint256 assetDecimals) internal pure returns (uint256 usdAmount) {
+        usdAmount = assetAmount * priceInUSD / assetDecimals;       
     }
 
     /// @notice converts a USD amount to its token value
     /// @param usdAmount amount of USD
     /// @param priceInUSD price of asset in USD
     /// @return assetAmount amount of asset after conversion
-    function _convertUSDToAsset(uint256 usdAmount, uint256 priceInUSD) internal pure returns (uint256 assetAmount) {
-        assetAmount = (usdAmount / priceInUSD);
+    function _convertUSDToAsset(uint256 usdAmount, uint256 priceInUSD, uint256 assetDecimals) internal view returns (uint256 assetAmount) {
+        if ( USD_DECIMALS > assetDecimals ) {
+            assetAmount = usdAmount.usdDiv(priceInUSD) / 10 ** (USD_DECIMALS - assetDecimals);
+        } else {
+             assetAmount = usdAmount.usdDiv(priceInUSD) * 10 ** (assetDecimals - USD_DECIMALS);
+        }
+
+        //assetAmount = usdAmount.usdDiv(priceInUSD);
     }
 }

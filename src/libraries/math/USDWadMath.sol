@@ -14,7 +14,7 @@ library USDWadMath {
     uint256 internal constant HALF_WAD = 0.5e18;
 
     uint256 internal constant USD = 1e8;
-    uint256 internal constant HALF_USD = 1e4;
+    uint256 internal constant HALF_USD = 0.5e8;
 
     uint256 internal constant USD_WAD_RATIO = 1e10;
 

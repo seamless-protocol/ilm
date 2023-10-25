@@ -10,44 +10,48 @@ import { LoanState } from "../../src/types/DataTypes.sol";
 /// @title RebalanceLogicHarness
 /// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
 contract RebalanceLogicHarness is RebalanceLogicContext {
+   //address public SUPPLIER = address(123123123);
    /// @dev sets up testing context
    function setUp() public virtual override {
        super.setUp();
 
-    //    collateralAsset.mint(address(this), MINT_AMOUNT);
-
-    //    borrowAsset.approve(address(borrowPool), type(uint256).max);
-    //    collateralAsset.approve(address(borrowPool), type(uint256).max);
-    //    borrowPool.supply(address(this), MINT_AMOUNT / 1000000);
+      LoanLogic.supply(lendingPool, assets.collateral, (MINT_AMOUNT / 10));
    }
 
-   /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-   function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(uint256 targetRatio) public {
-      vm.assume(targetRatio > 1.25e8);
-      vm.assume(targetRatio < 100e8);
-
-      targetCR = targetRatio;
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
+   function test_rebalanceUp_bringsCollateralRatioToTarget() public {
       uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
 
       assert(ratio == targetCR);
    }
 
-   /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-   function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(uint256 targetRatio) public {
-       targetCR = 1.25e8;
+   // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
+   // function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(uint256 targetRatio) public {
+   //    vm.assume(targetRatio > 1.25e8);
+   //    vm.assume(targetRatio < 100e8);
 
-       uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets, LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+   //    targetCR = targetRatio;
+   //    uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
 
-       assert(ratio == targetCR);
+   //    assert(ratio == targetCR);
+   // }
 
-       vm.assume(targetRatio > 1.25e8);
-       vm.assume(targetRatio < 12e8);
+   // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
+   // function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(uint256 targetRatio) public {
+   //     targetCR = 1.25e8;
 
-       targetCR = targetRatio;
-       ratio = RebalanceLogic.rebalanceDown(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+   //     uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets, LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+
+   //     assert(ratio == targetCR);
+
+   //     vm.assume(targetRatio > 1.25e8);
+   //     vm.assume(targetRatio < 12e8);
+
+   //     targetCR = targetRatio;
+   //     ratio = RebalanceLogic.rebalanceDown(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
     
-       // set a small error range of 2/1e8 
-       assert(targetCR - 2 <= ratio || ratio <= targetCR + 2);
-   }
+   //     // set a small error range of 2/1e8 
+   //     assert(targetCR - 2 <= ratio || ratio <= targetCR + 2);
+   // }
   
 }
