@@ -12,7 +12,6 @@ import { USDWadMath } from "./math/USDWadMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { LendingPool, LoanState, StrategyAssets } from "../types/DataTypes.sol";
 
-
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
@@ -22,164 +21,165 @@ library RebalanceLogic {
     uint256 internal constant ONE_USD = 1e8;
     uint256 internal constant ONE_WAD = USDWadMath.WAD;
 
-    /// @dev decimals of USD prices as per oracle, and WAD decimals
+    /// @dev decimals of USD prices as per _oracle, and WAD decimals
     uint8 internal constant USD_DECIMALS = 8;
     uint8 internal constant WAD_DECIMALS = 18;
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param pool lending pool data
-    /// @param assets addresses of collateral and borrow assets
-    /// @param loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param targetCR target value of collateral ratio to reach
-    /// @param oracle aave oracle
-    /// @param swapper address of Swapper contract
+    /// @param _pool lending pool data
+    /// @param _assets addresses of collateral and borrow assets
+    /// @param _loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param _targetCR target value of collateral ratio to reach
+    /// @param _oracle aave oracle
+    /// @param _swapper address of swapper contract
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceUp(
-        LendingPool memory pool,
-        StrategyAssets memory assets,
-        LoanState memory loanState,
-        uint256 targetCR,
-        IPriceOracleGetter oracle,
-        ISwapper swapper
+        LendingPool memory _pool,
+        StrategyAssets memory _assets,
+        LoanState memory _loanState,
+        uint256 _targetCR,
+        IPriceOracleGetter _oracle,
+        ISwapper _swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
-        ratio = _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
+        ratio = _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
-        uint256 debtPriceUSD = oracle.getAssetPrice(address(assets.debt));
-        uint8 debtDecimals = IERC20Metadata(address(assets.debt)).decimals();
+        uint256 debtPriceUSD = _oracle.getAssetPrice(address(_assets.debt));
+        uint8 debtDecimals = IERC20Metadata(address(_assets.debt)).decimals();
 
         // get offset caused by DEX fees + slippage
-        uint256 offsetFactor = swapper.offsetFactor(
-            address(assets.debt), address(assets.collateral)
+        uint256 offsetFactor = _swapper.offsetFactor(
+            address(_assets.debt), address(_assets.collateral)
         );
 
         do {
-            // debt to reach max LTV
-            uint256 debtAmount = loanState.maxBorrowAmount;
+            // debt to reach max LTV in USD
+            uint256 borrowAmountUSD = _loanState.maxBorrowAmount;
 
-            // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust debtAmount if so
+            // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust borrowAmountUSD if so
             if (
                 _collateralRatioUSD(
-                    loanState.collateralUSD
-                        + _offsetUSDAmountDown(debtAmount, offsetFactor),
-                    loanState.debtUSD + debtAmount
-                ) < targetCR
+                    _loanState.collateralUSD
+                        + _offsetUSDAmountDown(borrowAmountUSD, offsetFactor),
+                    _loanState.debtUSD + borrowAmountUSD
+                ) < _targetCR
             ) {
                 // calculate amount of debt needed to reach target collateral
-                // offSetFactor < targetCR by default/design
-                debtAmount = (
-                    loanState.collateralUSD - targetCR.usdMul(loanState.debtUSD)
-                ).usdDiv(targetCR - (ONE_USD - offsetFactor));
+                // ONE_USD - offSetFactor < _targetCR by default/design
+                // equation used: B = C - (tCR * D) / (tCR - (1 - O))
+                borrowAmountUSD = (
+                    _loanState.collateralUSD - _targetCR.usdMul(_loanState.debtUSD)
+                ).usdDiv(_targetCR - (ONE_USD - offsetFactor));
             }
 
-            // convert debtAmount from USD to a borrowAsset amount
-            uint256 debtAmountAsset =
-                _convertUSDToAsset(debtAmount, debtPriceUSD, debtDecimals);
+            // convert borrowAmount from USD to a borrowAsset amount
+            uint256 borrowAmountAsset =
+                _convertUSDToAsset(borrowAmountUSD, debtPriceUSD, debtDecimals);
 
-            // borrow assets from AaveV3 pool
-            LoanLogic.borrow(pool, assets.debt, debtAmountAsset);
+            // borrow _assets from AaveV3 _pool
+            LoanLogic.borrow(_pool, _assets.debt, borrowAmountAsset);
 
-            // approve swapper contract to swap asset
-            assets.debt.approve(address(swapper), debtAmountAsset);
+            // approve _swapper contract to swap asset
+            _assets.debt.approve(address(_swapper), borrowAmountAsset);
 
             // exchange debtAmountAsset of debt tokens for collateral tokens
-            uint256 collateralAmountAsset = swapper.swap(
-                address(assets.debt),
-                address(assets.collateral),
-                debtAmountAsset,
+            uint256 collateralAmountAsset = _swapper.swap(
+                address(_assets.debt),
+                address(_assets.collateral),
+                borrowAmountAsset,
                 payable(address(this))
             );
 
-            // collateralize assets in AaveV3 pool
-            loanState =
-                LoanLogic.supply(pool, assets.collateral, collateralAmountAsset);
+            // collateralize _assets in AaveV3 _pool
+            _loanState =
+                LoanLogic.supply(_pool, _assets.collateral, collateralAmountAsset);
 
             // update collateral ratio value
             ratio =
-                _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
-        } while (ratio > targetCR);
+                _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        } while (ratio > _targetCR);
     }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param pool lending pool data
-    /// @param assets addresses of collateral and borrow assets
-    /// @param loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param targetCR target value of collateral ratio to reach
-    /// @param oracle aave oracle
-    /// @param swapper address of Swapper contract
+    /// @param _pool lending pool data
+    /// @param _assets addresses of collateral and borrow assets
+    /// @param _loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param _targetCR target value of collateral ratio to reach
+    /// @param _oracle aave oracle
+    /// @param _swapper address of swapper contract
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceDown(
-        LendingPool memory pool,
-        StrategyAssets memory assets,
-        LoanState memory loanState,
-        uint256 targetCR,
-        IPriceOracleGetter oracle,
-        ISwapper swapper
+        LendingPool memory _pool,
+        StrategyAssets memory _assets,
+        LoanState memory _loanState,
+        uint256 _targetCR,
+        IPriceOracleGetter _oracle,
+        ISwapper _swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
-        ratio = _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
+        ratio = _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
         uint256 collateralPriceUSD =
-            oracle.getAssetPrice(address(assets.collateral));
+            _oracle.getAssetPrice(address(_assets.collateral));
 
         uint8 collateralDecimals =
-            IERC20Metadata(address(assets.collateral)).decimals();
+            IERC20Metadata(address(_assets.collateral)).decimals();
 
         // get offset caused by DEX fees + slippage
-        uint256 offsetFactor = swapper.offsetFactor(
-            address(assets.collateral), address(assets.debt)
+        uint256 offsetFactor = _swapper.offsetFactor(
+            address(_assets.collateral), address(_assets.debt)
         );
 
         do {
-            // maximum amount of collateral to not jeopardize loan health
-            uint256 collateralAmount = loanState.maxWithdrawAmount;
+            // maximum amount of collateral to not jeopardize loan health in USD
+            uint256 collateralAmountUSD = _loanState.maxWithdrawAmount;
 
             // handle cases where debt is less than maxWithdrawAmount possible
-            if (loanState.debtUSD < loanState.maxWithdrawAmount) {
-                collateralAmount = loanState.debtUSD;
+            if (_loanState.debtUSD < _loanState.maxWithdrawAmount) {
+                collateralAmountUSD = _loanState.debtUSD;
             }
 
             // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
             // collateralAmount if so
             if (
                 _collateralRatioUSD(
-                    loanState.collateralUSD - collateralAmount,
-                    loanState.debtUSD
-                        - _offsetUSDAmountDown(collateralAmount, offsetFactor)
-                ) > targetCR
+                    _loanState.collateralUSD - collateralAmountUSD,
+                    _loanState.debtUSD
+                        - _offsetUSDAmountDown(collateralAmountUSD, offsetFactor)
+                ) > _targetCR
             ) {
-                collateralAmount = (
-                    targetCR.usdMul(loanState.debtUSD) - loanState.collateralUSD
-                ).usdDiv(targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
+                collateralAmountUSD = (
+                    _targetCR.usdMul(_loanState.debtUSD) - _loanState.collateralUSD
+                ).usdDiv(_targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
             }
 
             uint256 collateralAmountAsset = _convertUSDToAsset(
-                collateralAmount, collateralPriceUSD, collateralDecimals
+                collateralAmountUSD, collateralPriceUSD, collateralDecimals
             );
 
-            // withdraw collateral tokens from Aave pool
-            LoanLogic.withdraw(pool, assets.collateral, collateralAmountAsset);
+            // withdraw collateral tokens from Aave _pool
+            LoanLogic.withdraw(_pool, _assets.collateral, collateralAmountAsset);
 
-            // approve swapper contract to swap asset
-            assets.collateral.approve(address(swapper), collateralAmountAsset);
+            // approve _swapper contract to swap asset
+            _assets.collateral.approve(address(_swapper), collateralAmountAsset);
 
-            // exchange collateralAmount of collateral tokens for debt tokens
-            uint256 debtAmount = swapper.swap(
-                address(assets.collateral),
-                address(assets.debt),
+            // exchange collateralAmount of collateral tokens for borrow tokens
+            uint256 borrowAmountAsset = _swapper.swap(
+                address(_assets.collateral),
+                address(_assets.debt),
                 collateralAmountAsset,
                 payable(address(this))
             );
 
-            // repay debt to AaveV3 pool
-            loanState = LoanLogic.repay(pool, assets.debt, debtAmount);
+            // repay debt to AaveV3 _pool
+            _loanState = LoanLogic.repay(_pool, _assets.debt, borrowAmountAsset);
 
             // update collateral ratio value
             ratio =
-                _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
-        } while (ratio < targetCR);
+                _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        } while (ratio < _targetCR);
     }
 
     /// @notice helper function to offset amounts by a USD percentage downwards
@@ -225,7 +225,7 @@ library RebalanceLogic {
         uint256 usdAmount,
         uint256 priceInUSD,
         uint256 assetDecimals
-    ) internal view returns (uint256 assetAmount) {
+    ) internal pure returns (uint256 assetAmount) {
         if (USD_DECIMALS > assetDecimals) {
             assetAmount = usdAmount.usdDiv(priceInUSD)
                 / 10 ** (USD_DECIMALS - assetDecimals);
