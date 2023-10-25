@@ -81,6 +81,5 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         
         // 3x leverage using collateral ratio at 1.5
         targetCR = 1.5e8;
-        console.log('setup successful');
     }
 }

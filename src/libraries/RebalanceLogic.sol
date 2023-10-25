@@ -41,7 +41,7 @@ library RebalanceLogic {
         // current collateral ratio
         ratio = _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
         
-        uint256 debtPriceInUSD = oracle.getAssetPrice(address(assets.debt));
+        uint256 debtPriceUSD = oracle.getAssetPrice(address(assets.debt));
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor = swapper.offsetFactor(address(assets.debt), address(assets.collateral));
@@ -65,7 +65,7 @@ library RebalanceLogic {
             }
 
             // convert debtAmount from USD to a borrowAsset amount
-            uint256 debtAmountAsset = _convertUSDToAsset(debtAmount, debtPriceInUSD, 6);
+            uint256 debtAmountAsset = _convertUSDToAsset(debtAmount, debtPriceUSD, 6);
 
             // borrow assets from AaveV3 pool
             LoanLogic.borrow(pool, assets.debt, debtAmountAsset);
@@ -109,7 +109,7 @@ library RebalanceLogic {
         // current collateral ratio
         ratio = _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
 
-        uint256 collateralUSDPrice = oracle.getAssetPrice(address(assets.collateral));
+        uint256 collateralPriceUSD = oracle.getAssetPrice(address(assets.collateral));
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor = swapper.offsetFactor(address(assets.collateral), address(assets.debt));
@@ -136,7 +136,7 @@ library RebalanceLogic {
                 );
             }
 
-            uint256 collateralAmountAsset = _convertUSDToAsset(collateralAmount, collateralUSDPrice, 6);
+            uint256 collateralAmountAsset = _convertUSDToAsset(collateralAmount, collateralPriceUSD, 6);
 
             // withdraw collateral tokens from Aave pool
             LoanLogic.withdraw(pool, assets.collateral, collateralAmountAsset);
