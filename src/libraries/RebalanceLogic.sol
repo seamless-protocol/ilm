@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.18;
 
-import { LoanLogic } from "./LoanLogic.sol";
-import { USDWadMath } from "./math/USDWadMath.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import { LoanLogic } from "./LoanLogic.sol";
+import { USDWadMath } from "./math/USDWadMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { LendingPool, LoanState, StrategyAssets } from "../types/DataTypes.sol";
 
@@ -43,6 +45,7 @@ library RebalanceLogic {
         ratio = _collateralRatioUSD(loanState.collateralUSD, loanState.debtUSD);
 
         uint256 debtPriceUSD = oracle.getAssetPrice(address(assets.debt));
+        uint8 debtDecimals = IERC20Metadata(address(assets.debt)).decimals();
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor = swapper.offsetFactor(
@@ -70,7 +73,7 @@ library RebalanceLogic {
 
             // convert debtAmount from USD to a borrowAsset amount
             uint256 debtAmountAsset =
-                _convertUSDToAsset(debtAmount, debtPriceUSD, 6);
+                _convertUSDToAsset(debtAmount, debtPriceUSD, debtDecimals);
 
             // borrow assets from AaveV3 pool
             LoanLogic.borrow(pool, assets.debt, debtAmountAsset);
@@ -118,6 +121,8 @@ library RebalanceLogic {
 
         uint256 collateralPriceUSD =
             oracle.getAssetPrice(address(assets.collateral));
+        
+        uint8 collateralDecimals = IERC20Metadata(address(assets.collateral)).decimals();
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor = swapper.offsetFactor(
@@ -148,7 +153,7 @@ library RebalanceLogic {
             }
 
             uint256 collateralAmountAsset =
-                _convertUSDToAsset(collateralAmount, collateralPriceUSD, 6);
+                _convertUSDToAsset(collateralAmount, collateralPriceUSD, collateralDecimals);
 
             // withdraw collateral tokens from Aave pool
             LoanLogic.withdraw(pool, assets.collateral, collateralAmountAsset);
