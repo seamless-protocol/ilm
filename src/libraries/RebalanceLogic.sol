@@ -4,12 +4,14 @@ pragma solidity ^0.8.18;
 
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20Metadata } from
+    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { LoanLogic } from "./LoanLogic.sol";
 import { USDWadMath } from "./math/USDWadMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { LendingPool, LoanState, StrategyAssets } from "../types/DataTypes.sol";
+
 
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
@@ -121,8 +123,9 @@ library RebalanceLogic {
 
         uint256 collateralPriceUSD =
             oracle.getAssetPrice(address(assets.collateral));
-        
-        uint8 collateralDecimals = IERC20Metadata(address(assets.collateral)).decimals();
+
+        uint8 collateralDecimals =
+            IERC20Metadata(address(assets.collateral)).decimals();
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor = swapper.offsetFactor(
@@ -152,8 +155,9 @@ library RebalanceLogic {
                 ).usdDiv(targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
             }
 
-            uint256 collateralAmountAsset =
-                _convertUSDToAsset(collateralAmount, collateralPriceUSD, collateralDecimals);
+            uint256 collateralAmountAsset = _convertUSDToAsset(
+                collateralAmount, collateralPriceUSD, collateralDecimals
+            );
 
             // withdraw collateral tokens from Aave pool
             LoanLogic.withdraw(pool, assets.collateral, collateralAmountAsset);
@@ -210,7 +214,7 @@ library RebalanceLogic {
         uint256 priceInUSD,
         uint256 assetDecimals
     ) internal pure returns (uint256 usdAmount) {
-        usdAmount = assetAmount * priceInUSD / assetDecimals;
+        usdAmount = assetAmount * priceInUSD / (10 ** assetDecimals);
     }
 
     /// @notice converts a USD amount to its token value
@@ -229,7 +233,5 @@ library RebalanceLogic {
             assetAmount = usdAmount.usdDiv(priceInUSD)
                 * 10 ** (assetDecimals - USD_DECIMALS);
         }
-
-        //assetAmount = usdAmount.usdDiv(priceInUSD);
     }
 }

@@ -29,7 +29,37 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             swapper
         );
 
-        assert(ratio == targetCR);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+    }
+
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
+    function test_rebalanceDown_bringsCollateralRatioToTarget() public {
+        // with 0.75 LTV, we have a min CR of 1.33e8
+        // given by CR_min = 1 / LTV
+        targetCR = 1.35e8;
+
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            lendingPool,
+            assets,
+            LoanLogic.getLoanState(lendingPool),
+            targetCR,
+            oracle,
+            swapper
+        );
+
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+
+        targetCR = 3.5e8;
+        ratio = RebalanceLogic.rebalanceDown(
+            lendingPool,
+            assets,
+            LoanLogic.getLoanState(lendingPool),
+            targetCR,
+            oracle,
+            swapper
+        );
+
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     }
 
     // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
