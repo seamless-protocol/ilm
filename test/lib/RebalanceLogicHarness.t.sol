@@ -87,23 +87,40 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     }
 
-    // /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    // function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(uint256 targetRatio) public {
-    //      // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-    //     targetCR = 1.34e8;
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
+    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(
+        uint256 targetRatio
+    ) public {
+        // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
+        targetCR = 1.34e8;
 
-    //     uint256 ratio = RebalanceLogic.rebalanceUp(lendingPool, assets, LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
-    //     assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
+        );
 
-    //     vm.assume(targetRatio > 1.35e8);
-    //     vm.assume(targetRatio < 5e8);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
 
-    //     targetCR = targetRatio;
-    //     ratio = RebalanceLogic.rebalanceDown(lendingPool, assets,  LoanLogic.getLoanState(lendingPool), targetCR, oracle, swapper);
+        vm.assume(targetRatio > 1.35e8);
+        vm.assume(targetRatio < 5e8);
 
-    //      assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
-    // }
+        targetCR = targetRatio;
+
+        state = LoanLogic.getLoanState(lendingPool);
+        currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        ratio = RebalanceLogic.rebalanceDown(
+            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
+        );
+
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+    }
 
     /// @dev ensures that calculating the collateral ratio gives the expected value, for a range
     /// of inputs

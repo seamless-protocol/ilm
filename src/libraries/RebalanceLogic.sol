@@ -102,6 +102,10 @@ library RebalanceLogic {
             uint256 borrowAmountAsset =
                 convertUSDToAsset(borrowAmountUSD, debtPriceUSD, debtDecimals);
 
+            if (borrowAmountAsset == 0) {
+                break;
+            }
+
             // borrow _assets from AaveV3 _pool
             LoanLogic.borrow(_pool, _assets.debt, borrowAmountAsset);
 
@@ -187,6 +191,10 @@ library RebalanceLogic {
             uint256 collateralAmountAsset = convertUSDToAsset(
                 collateralAmountUSD, collateralPriceUSD, collateralDecimals
             );
+
+            if (collateralAmountAsset == 0) {
+                break;
+            }
 
             // withdraw collateral tokens from Aave _pool
             LoanLogic.withdraw(_pool, _assets.collateral, collateralAmountAsset);
