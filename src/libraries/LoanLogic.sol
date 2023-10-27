@@ -3,10 +3,13 @@
 pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPoolAddressesProvider } from
+    "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
-import { DataTypes } from "@aave/contracts/protocol/libraries/types/DataTypes.sol";
-import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
+import { DataTypes } from
+    "@aave/contracts/protocol/libraries/types/DataTypes.sol";
+import { PercentageMath } from
+    "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { LoanState, LendingPool } from "../types/DataTypes.sol";
 
 /// @title LoanLogic
@@ -23,7 +26,11 @@ library LoanLogic {
     /// @param asset address of collateral asset
     /// @param amount amount of asset to collateralize
     /// @return state loan state after supply call
-    function supply(LendingPool memory lendingPool, IERC20 asset, uint256 amount) external returns(LoanState memory state) {
+    function supply(
+        LendingPool memory lendingPool,
+        IERC20 asset,
+        uint256 amount
+    ) external returns (LoanState memory state) {
         lendingPool.pool.supply(address(asset), amount, address(this), 0);
         return getLoanState(lendingPool);
     }
@@ -33,7 +40,11 @@ library LoanLogic {
     /// @param asset address of collateral asset
     /// @param amount amount of asset to withdraw
     /// @return state loan state after supply call
-    function withdraw(LendingPool memory lendingPool, IERC20 asset, uint256 amount) external returns(LoanState memory state) {
+    function withdraw(
+        LendingPool memory lendingPool,
+        IERC20 asset,
+        uint256 amount
+    ) external returns (LoanState memory state) {
         lendingPool.pool.withdraw(address(asset), amount, address(this));
         return getLoanState(lendingPool);
     }
@@ -43,8 +54,18 @@ library LoanLogic {
     /// @param asset address of borrowing asset
     /// @param amount amount of asset to borrow
     /// @return state loan state after supply call
-    function borrow(LendingPool memory lendingPool, IERC20 asset, uint256 amount) external returns(LoanState memory state) {
-        lendingPool.pool.borrow(address(asset), amount, lendingPool.interestRateMode, 0, address(this));
+    function borrow(
+        LendingPool memory lendingPool,
+        IERC20 asset,
+        uint256 amount
+    ) external returns (LoanState memory state) {
+        lendingPool.pool.borrow(
+            address(asset),
+            amount,
+            lendingPool.interestRateMode,
+            0,
+            address(this)
+        );
         return getLoanState(lendingPool);
     }
 
@@ -53,8 +74,13 @@ library LoanLogic {
     /// @param asset address of borrowing asset
     /// @param amount amount of borrowing asset to repay
     /// @return state loan state after supply call
-    function repay(LendingPool memory lendingPool, IERC20 asset, uint256 amount) external returns(LoanState memory state) {
-        lendingPool.pool.repay(address(asset), amount, lendingPool.interestRateMode, address(this));
+    function repay(LendingPool memory lendingPool, IERC20 asset, uint256 amount)
+        external
+        returns (LoanState memory state)
+    {
+        lendingPool.pool.repay(
+            address(asset), amount, lendingPool.interestRateMode, address(this)
+        );
         return getLoanState(lendingPool);
     }
 
@@ -62,28 +88,34 @@ library LoanLogic {
     /// @notice all returned values are in USD value
     /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)  
     /// @return state loan state after supply call
-    function getLoanState(LendingPool memory lendingPool) internal view returns(LoanState memory state) {        
+    function getLoanState(LendingPool memory lendingPool)
+        internal
+        view
+        returns (LoanState memory state)
+    {
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase,
             uint256 availableBorrowsBase,
-            /* currentLiquidationThreshold */,
+            /* currentLiquidationThreshold */
+            ,
             uint256 ltv,
             /* healthFactor */
         ) = lendingPool.pool.getUserAccountData(address(this));
 
-        uint256 maxWithdrawAmount = 
+        uint256 maxWithdrawAmount =
             totalCollateralBase - PercentageMath.percentDiv(totalDebtBase, ltv);
 
-
-        availableBorrowsBase = PercentageMath.percentMul(availableBorrowsBase, MAX_AMOUNT_PERCENT);
-        maxWithdrawAmount = PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);
+        availableBorrowsBase =
+            PercentageMath.percentMul(availableBorrowsBase, MAX_AMOUNT_PERCENT);
+        maxWithdrawAmount =
+            PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);
 
         return LoanState({
-            collateral: totalCollateralBase,
-            debt: totalDebtBase,
+            collateralUSD: totalCollateralBase,
+            debtUSD: totalDebtBase,
             maxBorrowAmount: availableBorrowsBase,
             maxWithdrawAmount: maxWithdrawAmount
         });
-    }   
+    }
 }
