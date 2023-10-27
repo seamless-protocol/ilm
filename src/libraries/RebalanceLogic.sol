@@ -246,10 +246,10 @@ library RebalanceLogic {
     ) public pure returns (uint256 assetAmount) {
         if (USD_DECIMALS > assetDecimals) {
             assetAmount = usdAmount.usdDiv(priceInUSD)
-                / 10 ** (USD_DECIMALS - assetDecimals);
+                / (10 ** (USD_DECIMALS - assetDecimals));
         } else {
             assetAmount = usdAmount.usdDiv(priceInUSD)
-                * 10 ** (assetDecimals - USD_DECIMALS);
+                * (10 ** (assetDecimals - USD_DECIMALS));
         }
     }
 
@@ -260,13 +260,12 @@ library RebalanceLogic {
         public
         pure
         returns (uint256 amount)
-    {   
+    {
         // prevent overflows
         if (a <= type(uint256).max / (ONE_USD - usdOffset)) {
             amount = (a * (ONE_USD - usdOffset)) / ONE_USD;
         } else {
             amount = (a / ONE_USD) * (ONE_USD - usdOffset);
         }
-       
     }
 }

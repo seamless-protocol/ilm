@@ -105,17 +105,24 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
     //      assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     // }
 
-    function testFuzz_collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD) public {
-        /// assume that collateral is always larger than debt because otherwise 
+    /// @dev ensures that calculating the collateral ratio gives the expected value, for a range
+    /// of inputs
+    function testFuzz_collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
+        public
+    {
+        /// assume that collateral is always larger than debt because otherwise
         /// position would have been liquidated
         vm.assume(collateralUSD > debtUSD);
-        
+
         uint256 ratio;
 
-        if(debtUSD == 0) {
+        if (debtUSD == 0) {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
             assertEq(ratio, 0);
-        } else if (collateralUSD <= (type(uint256).max - debtUSD / 2) / USDWadMath.USD && debtUSD != 0) {
+        } else if (
+            collateralUSD <= (type(uint256).max - debtUSD / 2) / USDWadMath.USD
+                && debtUSD != 0
+        ) {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
             assertEq(ratio, collateralUSD.usdDiv(debtUSD));
         } else {
@@ -124,47 +131,75 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         }
     }
 
-    function testFuzz_convertAssetToUSD(uint256 assetAmount, uint256 priceInUSD, uint256 assetDecimals) public {
+    /// @dev ensures that converting assets amounts to USD amounts results in the expected value,
+    /// for a range of inputs
+    function testFuzz_convertAssetToUSD(
+        uint256 assetAmount,
+        uint256 priceInUSD,
+        uint256 assetDecimals
+    ) public {
         vm.assume(assetDecimals <= 18); // assume no tokens with more than 18 decimals would be used as assets
         vm.assume(priceInUSD <= 250000 * 10 ** 8); // assume no token has a price larger than 250000 USD
         vm.assume(assetAmount <= 5 * 10 ** 60); // assume no astronomical value of assets will need to be converted
-        
-        uint256 usdAmount = RebalanceLogic.convertAssetToUSD(assetAmount, priceInUSD, assetDecimals);
-        
-        assertEq(
-            usdAmount, assetAmount * priceInUSD / (10 ** assetDecimals)
+
+        uint256 usdAmount = RebalanceLogic.convertAssetToUSD(
+            assetAmount, priceInUSD, assetDecimals
         );
+
+        assertEq(usdAmount, assetAmount * priceInUSD / (10 ** assetDecimals));
     }
 
-    function testFuzz_convertUSDtoAsset(uint256 usdAmount, uint256 priceInUSD, uint256 assetDecimals) public {
-        vm.assume(assetDecimals <= 18 && assetDecimals > 4); // assume no tokens with more than 18 decimals would be used as assets
-        vm.assume(priceInUSD <= 250000 * 10 ** 8 && priceInUSD > 1e3); // assume no token has a price larger than 250000 USD
-        vm.assume(usdAmount <= 5 * 10 ** 60 && usdAmount > 1e3); // assume no astronomical value of USD to be converted
+    /// @dev ensures that converting USD amounts to asset amounts results in the expected value,
+    /// for a range of inputs
+    function testFuzz_convertUSDtoAsset(
+        uint256 usdAmount,
+        uint256 priceInUSD,
+        uint256 assetDecimals
+    ) public {
+        vm.assume(assetDecimals <= 18 && assetDecimals != 0); // assume no tokens with more than 18 decimals would be used as assets
+        vm.assume(priceInUSD <= 250000 * 10 ** 8 && priceInUSD != 0); // assume no token has a price larger than 250000 USD
+        vm.assume(usdAmount <= 5 * 10 ** 60 && usdAmount != 0); // assume no astronomical value of USD to be converted
 
-        uint256 assetAmount = RebalanceLogic.convertUSDToAsset(usdAmount, priceInUSD, assetDecimals);
+        uint256 assetAmount = RebalanceLogic.convertUSDToAsset(
+            usdAmount, priceInUSD, assetDecimals
+        );
 
-        if (USDWadMath.USD > assetDecimals) {
-            assertEq(assetAmount, usdAmount.usdDiv(priceInUSD) / 10 ** (USDWadMath.USD - assetDecimals));
+        uint8 USD_DECIMALS = 8;
+
+        if (USD_DECIMALS > assetDecimals) {
+            assertEq(
+                assetAmount,
+                usdAmount.usdDiv(priceInUSD)
+                    / 10 ** (USD_DECIMALS - assetDecimals)
+            );
         } else {
-            assertEq(assetAmount, usdAmount.usdDiv(priceInUSD) * 10 ** (assetDecimals - USDWadMath.USD));
+            assertEq(
+                assetAmount,
+                usdAmount.usdDiv(priceInUSD)
+                    * 10 ** (assetDecimals - USD_DECIMALS)
+            );
         }
     }
 
-    function testFuzz_offsetUSDAmountDown(uint256 a, uint256 usdOffset) public {
+    /// @dev ensures that offsetting a USD value down results in the expected value,
+    /// for a range of inputs
+    function testFuzz_offsetUSDAmountDown(uint256 a, uint256 usdOffset)
+        public
+    {
         vm.assume(usdOffset <= USDWadMath.USD);
+        vm.assume(usdOffset != USDWadMath.USD);
 
         uint256 amount = RebalanceLogic.offsetUSDAmountDown(a, usdOffset);
-        
+
+        // ensure overflows are accounted for
         if (a <= type(uint256).max / (USDWadMath.USD - usdOffset)) {
             assertEq(
-            amount, (a * (USDWadMath.USD - usdOffset) / USDWadMath.USD)
-        );
+                amount, (a * (USDWadMath.USD - usdOffset) / USDWadMath.USD)
+            );
         } else {
             assertEq(
-            amount, (a / USDWadMath.USD) * (USDWadMath.USD - usdOffset)
-        );
+                amount, (a / USDWadMath.USD) * (USDWadMath.USD - usdOffset)
+            );
         }
     }
-
-   
 }
