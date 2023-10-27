@@ -33,14 +33,18 @@ library RebalanceLogic {
         IPriceOracleGetter _oracle,
         ISwapper _swapper
     ) external returns (uint256 ratio) {
-         // current collateral ratio
+        // current collateral ratio
         ratio =
             _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
-        if(ratio > target) {
-            rebalanceUp(_pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper);
+        if (ratio > target) {
+            rebalanceUp(
+                _pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper
+            );
         } else {
-            rebalanceDown(_pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper);
+            rebalanceDown(
+                _pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper
+            );
         }
     }
 

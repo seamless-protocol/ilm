@@ -92,7 +92,7 @@ contract LoanLogicTest is BaseForkTest {
         assertEq(sWETH.balanceOf(address(this)), supplyAmount);
     }
 
-    /// @dev test confirming that loan state is valid after withdrawing 
+    /// @dev test confirming that loan state is valid after withdrawing
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_withdraw() public {
         uint256 wethAmountBefore = WETH.balanceOf(address(this));
@@ -114,7 +114,7 @@ contract LoanLogicTest is BaseForkTest {
         );
     }
 
-    /// @dev test confirming that loan state is valid after borrowing 
+    /// @dev test confirming that loan state is valid after borrowing
     /// @dev and that we get correct amount of debtUSDbC token
     function test_borrow() public {
         uint256 supplyAmount = 10 ether;
@@ -128,7 +128,7 @@ contract LoanLogicTest is BaseForkTest {
         assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
     }
 
-    /// @dev test confirming that loan state is valid after repaying 
+    /// @dev test confirming that loan state is valid after repaying
     /// @dev and that we get correct amount of debtUSDbC token
     function test_repay() public {
         uint256 supplyAmount = 10 ether;
@@ -248,54 +248,67 @@ contract LoanLogicTest is BaseForkTest {
 
     /// @dev fuzz test borrow, should revert if borrowing more then maxBorrowAmount
     function testFuzz_borrow(uint256 borrowAmount) public {
-      vm.assume(borrowAmount > 0);
+        vm.assume(borrowAmount > 0);
 
-      uint256 supplyAmount = 10 ether;
-      LoanState memory loanState;
-      loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
+        uint256 supplyAmount = 10 ether;
+        LoanState memory loanState;
+        loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
-      // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
-      uint256 maxBorrowAmountUSDbC = Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
+        // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
+        uint256 maxBorrowAmountUSDbC =
+            Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
 
-      if (borrowAmount < maxBorrowAmountUSDbC) {
-        loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
-        _validateLoanState(loanState, supplyAmount, borrowAmount);
-        assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
-      } else {
-        vm.expectRevert();
-        LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
-      }
+        if (borrowAmount < maxBorrowAmountUSDbC) {
+            loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
+            _validateLoanState(loanState, supplyAmount, borrowAmount);
+            assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
+        } else {
+            vm.expectRevert();
+            LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
+        }
     }
 
     /// @dev fuzz test borrowing & withdraw, should revert if withdraw more then maxWithdrawAmount
-    function testFuzz_borrow_withdraw(uint256 borrowAmount, uint256 withdrawAmount) public {
-      vm.assume(withdrawAmount > 0);
-      vm.assume(borrowAmount > 0);
+    function testFuzz_borrow_withdraw(
+        uint256 borrowAmount,
+        uint256 withdrawAmount
+    ) public {
+        vm.assume(withdrawAmount > 0);
+        vm.assume(borrowAmount > 0);
 
-      uint256 supplyAmount = 10 ether;
-      LoanState memory loanState;
-      loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
-      // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
-      uint256 maxBorrowAmountUSDbC = Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
-      
-      borrowAmount = bound(borrowAmount, ONE_USDbC, maxBorrowAmountUSDbC - 1);
+        uint256 supplyAmount = 10 ether;
+        LoanState memory loanState;
+        loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
+        // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
+        uint256 maxBorrowAmountUSDbC =
+            Math.mulDiv(loanState.maxBorrowAmount, ONE_USDbC, USDbC_price);
 
-      // vm.assume(borrowAmount < maxBorrowAmountUSDbC);
-      loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
+        borrowAmount = bound(borrowAmount, ONE_USDbC, maxBorrowAmountUSDbC - 1);
 
-      // converting loanState.maxWithdrawAmount (USD) amount to the CbETH asset amount
-      uint256 maxWithdrawAmountCbETH = Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
+        // vm.assume(borrowAmount < maxBorrowAmountUSDbC);
+        loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-      withdrawAmount = bound(withdrawAmount, 1000 wei, 2 * maxWithdrawAmountCbETH);
+        // converting loanState.maxWithdrawAmount (USD) amount to the CbETH asset amount
+        uint256 maxWithdrawAmountCbETH =
+            Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
 
-      if (withdrawAmount < maxWithdrawAmountCbETH) {
-        loanState = LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
-        _validateLoanState(loanState, supplyAmount - withdrawAmount, borrowAmount);
-         assertApproxEqAbs(sWETH.balanceOf(address(this)), supplyAmount - withdrawAmount, 1 wei);
-      } else {
-        vm.expectRevert();
-        LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
-      }
+        withdrawAmount =
+            bound(withdrawAmount, 1000 wei, 2 * maxWithdrawAmountCbETH);
+
+        if (withdrawAmount < maxWithdrawAmountCbETH) {
+            loanState = LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
+            _validateLoanState(
+                loanState, supplyAmount - withdrawAmount, borrowAmount
+            );
+            assertApproxEqAbs(
+                sWETH.balanceOf(address(this)),
+                supplyAmount - withdrawAmount,
+                1 wei
+            );
+        } else {
+            vm.expectRevert();
+            LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
+        }
     }
 
     /// @dev validates if the returned LoanState values correspond for the given asset amounts

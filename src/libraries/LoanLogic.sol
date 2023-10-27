@@ -86,7 +86,7 @@ library LoanLogic {
 
     /// @notice returns the current state of loan position on the Seamless Protocol lending pool for the caller's account
     /// @notice all returned values are in USD value
-    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)  
+    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @return state loan state after supply call
     function getLoanState(LendingPool memory lendingPool)
         internal
