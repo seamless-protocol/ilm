@@ -32,12 +32,12 @@ library RebalanceLogic {
         uint256 _targetCR,
         IPriceOracleGetter _oracle,
         ISwapper _swapper
-    ) external returns (uint256 ratio) {
+    ) public returns (uint256 ratio) {
         // current collateral ratio
         ratio =
-            _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+            collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
-        if (ratio > target) {
+        if (ratio > _targetCR) {
             rebalanceUp(
                 _pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper
             );
@@ -62,11 +62,11 @@ library RebalanceLogic {
         LendingPool memory _pool,
         StrategyAssets memory _assets,
         LoanState memory _loanState,
-        uint256 _currectCR,
+        uint256 _currentCR,
         uint256 _targetCR,
         IPriceOracleGetter _oracle,
         ISwapper _swapper
-    ) external returns (uint256 ratio) {
+    ) public returns (uint256 ratio) {
         // current collateral ratio
         ratio = _currentCR;
 
@@ -84,9 +84,9 @@ library RebalanceLogic {
 
             // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust borrowAmountUSD if so
             if (
-                _collateralRatioUSD(
+                collateralRatioUSD(
                     _loanState.collateralUSD
-                        + _offsetUSDAmountDown(borrowAmountUSD, offsetFactor),
+                        + offsetUSDAmountDown(borrowAmountUSD, offsetFactor),
                     _loanState.debtUSD + borrowAmountUSD
                 ) < _targetCR
             ) {
@@ -101,7 +101,7 @@ library RebalanceLogic {
 
             // convert borrowAmount from USD to a borrowAsset amount
             uint256 borrowAmountAsset =
-                _convertUSDToAsset(borrowAmountUSD, debtPriceUSD, debtDecimals);
+                convertUSDToAsset(borrowAmountUSD, debtPriceUSD, debtDecimals);
 
             // borrow _assets from AaveV3 _pool
             LoanLogic.borrow(_pool, _assets.debt, borrowAmountAsset);
@@ -123,7 +123,7 @@ library RebalanceLogic {
             );
 
             // update collateral ratio value
-            ratio = _collateralRatioUSD(
+            ratio = collateralRatioUSD(
                 _loanState.collateralUSD, _loanState.debtUSD
             );
         } while (ratio > _targetCR);
@@ -147,7 +147,7 @@ library RebalanceLogic {
         uint256 _targetCR,
         IPriceOracleGetter _oracle,
         ISwapper _swapper
-    ) external returns (uint256 ratio) {
+    ) public returns (uint256 ratio) {
         // current collateral ratio
         ratio = _currentCR;
 
@@ -174,10 +174,10 @@ library RebalanceLogic {
             // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
             // collateralAmount if so
             if (
-                _collateralRatioUSD(
+                collateralRatioUSD(
                     _loanState.collateralUSD - collateralAmountUSD,
                     _loanState.debtUSD
-                        - _offsetUSDAmountDown(collateralAmountUSD, offsetFactor)
+                        - offsetUSDAmountDown(collateralAmountUSD, offsetFactor)
                 ) > _targetCR
             ) {
                 collateralAmountUSD = (
@@ -186,10 +186,10 @@ library RebalanceLogic {
                 ).usdDiv(_targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
             }
 
-            uint256 collateralAmountAsset = _convertUSDToAsset(
+            uint256 collateralAmountAsset = convertUSDToAsset(
                 collateralAmountUSD, collateralPriceUSD, collateralDecimals
             );
-
+            
             // withdraw collateral tokens from Aave _pool
             LoanLogic.withdraw(_pool, _assets.collateral, collateralAmountAsset);
 
@@ -208,7 +208,7 @@ library RebalanceLogic {
             _loanState = LoanLogic.repay(_pool, _assets.debt, borrowAmountAsset);
 
             // update collateral ratio value
-            ratio = _collateralRatioUSD(
+            ratio = collateralRatioUSD(
                 _loanState.collateralUSD, _loanState.debtUSD
             );
         } while (ratio < _targetCR);
@@ -217,8 +217,8 @@ library RebalanceLogic {
     /// @notice helper function to offset amounts by a USD percentage downwards
     /// @param a amount to offset
     /// @param usdOffset offset as a number between 0 -  ONE_USD
-    function _offsetUSDAmountDown(uint256 a, uint256 usdOffset)
-        internal
+    function offsetUSDAmountDown(uint256 a, uint256 usdOffset)
+        public
         pure
         returns (uint256 amount)
     {
@@ -229,8 +229,8 @@ library RebalanceLogic {
     /// @param collateralUSD collateral value in USD
     /// @param debtUSD debt valut in USD
     /// @return ratio collateral ratio value
-    function _collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
-        internal
+    function collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
+        public
         pure
         returns (uint256 ratio)
     {
@@ -241,11 +241,11 @@ library RebalanceLogic {
     /// @param assetAmount amount of asset
     /// @param priceInUSD price of asset in USD
     /// @return usdAmount amount of USD after conversion
-    function _convertAssetToUSD(
+    function convertAssetToUSD(
         uint256 assetAmount,
         uint256 priceInUSD,
         uint256 assetDecimals
-    ) internal pure returns (uint256 usdAmount) {
+    ) public pure returns (uint256 usdAmount) {
         usdAmount = assetAmount * priceInUSD / (10 ** assetDecimals);
     }
 
@@ -253,11 +253,11 @@ library RebalanceLogic {
     /// @param usdAmount amount of USD
     /// @param priceInUSD price of asset in USD
     /// @return assetAmount amount of asset after conversion
-    function _convertUSDToAsset(
+    function convertUSDToAsset(
         uint256 usdAmount,
         uint256 priceInUSD,
         uint256 assetDecimals
-    ) internal pure returns (uint256 assetAmount) {
+    ) public pure returns (uint256 assetAmount) {
         if (USD_DECIMALS > assetDecimals) {
             assetAmount = usdAmount.usdDiv(priceInUSD)
                 / 10 ** (USD_DECIMALS - assetDecimals);
