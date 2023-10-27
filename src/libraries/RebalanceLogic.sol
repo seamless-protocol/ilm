@@ -34,8 +34,7 @@ library RebalanceLogic {
         ISwapper _swapper
     ) public returns (uint256 ratio) {
         // current collateral ratio
-        ratio =
-            collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        ratio = collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
 
         if (ratio > _targetCR) {
             rebalanceUp(
@@ -123,9 +122,8 @@ library RebalanceLogic {
             );
 
             // update collateral ratio value
-            ratio = collateralRatioUSD(
-                _loanState.collateralUSD, _loanState.debtUSD
-            );
+            ratio =
+                collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
         } while (ratio > _targetCR);
     }
 
@@ -189,7 +187,7 @@ library RebalanceLogic {
             uint256 collateralAmountAsset = convertUSDToAsset(
                 collateralAmountUSD, collateralPriceUSD, collateralDecimals
             );
-            
+
             // withdraw collateral tokens from Aave _pool
             LoanLogic.withdraw(_pool, _assets.collateral, collateralAmountAsset);
 
@@ -208,9 +206,8 @@ library RebalanceLogic {
             _loanState = LoanLogic.repay(_pool, _assets.debt, borrowAmountAsset);
 
             // update collateral ratio value
-            ratio = collateralRatioUSD(
-                _loanState.collateralUSD, _loanState.debtUSD
-            );
+            ratio =
+                collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
         } while (ratio < _targetCR);
     }
 

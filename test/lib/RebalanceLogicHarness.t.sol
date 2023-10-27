@@ -20,10 +20,14 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
     function test_rebalanceUp_bringsCollateralRatioToTarget() public {
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
         uint256 ratio = RebalanceLogic.rebalanceUp(
             lendingPool,
             assets,
-            LoanLogic.getLoanState(lendingPool),
+            state,
+            currentCR,
             targetCR,
             oracle,
             swapper
@@ -38,10 +42,14 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         // given by CR_min = 1 / LTV
         targetCR = 1.35e8;
 
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
         uint256 ratio = RebalanceLogic.rebalanceUp(
             lendingPool,
             assets,
-            LoanLogic.getLoanState(lendingPool),
+            state,
+            currentCR,
             targetCR,
             oracle,
             swapper
@@ -50,10 +58,15 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
 
         targetCR = 3.5e8;
+
+        state = LoanLogic.getLoanState(lendingPool);
+        currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
         ratio = RebalanceLogic.rebalanceDown(
             lendingPool,
             assets,
-            LoanLogic.getLoanState(lendingPool),
+            state,
+            currentCR,
             targetCR,
             oracle,
             swapper
@@ -71,10 +84,14 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         vm.assume(targetRatio < 50e8);
 
         targetCR = targetRatio;
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        
         uint256 ratio = RebalanceLogic.rebalanceUp(
             lendingPool,
             assets,
-            LoanLogic.getLoanState(lendingPool),
+            state,
+            currentCR,
             targetCR,
             oracle,
             swapper
