@@ -30,16 +30,17 @@ interface ILoopStrategy is IERC4626 {
     /// @return amount collateral amount
     function collateral() external returns (uint256 amount);
 
-    // TODO: fix
-    // / @notice sets the minimum and maximum collateral ratio values
-    // / @param minRatio minimum collateral ratio value
-    // / @param maxRatio maximum collateral ratio value
-    function setCollateralRatioConfig(CollateralRatio memory _collateralRatio) external;
+    /// @notice sets the collateral ratio targets (target ratio, min and max for rebalance, 
+    /// @notice max for deposit rebalance and min for collateral rebalance)
+    /// @param collateralRatioTargets collateral ratio targets struct
+    function setCollateralRatioTargets(CollateralRatio memory collateralRatioTargets) external;
 
     /// @notice returns min, max and target collateral ratio values
     /// @return ratio struct containing min, max and target collateral ratio values
-    function getCollateralRatioConfig() external view returns (CollateralRatio memory ratio);
+    function getCollateralRatioTargets() external view returns (CollateralRatio memory ratio);
 
+    /// @notice sets the interest rate mode for the loan
+    /// @param interestRateMode interest rate mode per aave enum InterestRateMode {NONE, STABLE, VARIABLE}
     function setInterestRateMode(uint256 interestRateMode) external;
 
     /// @notice returns the current collateral ratio value of the strategy
