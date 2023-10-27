@@ -25,11 +25,31 @@ library RebalanceLogic {
     uint8 internal constant USD_DECIMALS = 8;
     uint8 internal constant WAD_DECIMALS = 18;
 
+    function rebalanceTo(
+        LendingPool memory _pool,
+        StrategyAssets memory _assets,
+        LoanState memory _loanState,
+        uint256 _targetCR,
+        IPriceOracleGetter _oracle,
+        ISwapper _swapper
+    ) external returns (uint256 ratio) {
+         // current collateral ratio
+        ratio =
+            _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+
+        if(ratio > target) {
+            rebalanceUp(_pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper);
+        } else {
+            rebalanceDown(_pool, _assets, _loanState, ratio, _targetCR, _oracle, _swapper);
+        }
+    }
+
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param _pool lending pool data
     /// @param _assets addresses of collateral and borrow assets
     /// @param _loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param _currentCR current value of collateral ratio
     /// @param _targetCR target value of collateral ratio to reach
     /// @param _oracle aave oracle
     /// @param _swapper address of swapper contract
@@ -38,13 +58,13 @@ library RebalanceLogic {
         LendingPool memory _pool,
         StrategyAssets memory _assets,
         LoanState memory _loanState,
+        uint256 _currectCR,
         uint256 _targetCR,
         IPriceOracleGetter _oracle,
         ISwapper _swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
-        ratio =
-            _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        ratio = _currentCR;
 
         uint256 debtPriceUSD = _oracle.getAssetPrice(address(_assets.debt));
         uint8 debtDecimals = IERC20Metadata(address(_assets.debt)).decimals();
@@ -110,6 +130,7 @@ library RebalanceLogic {
     /// @param _pool lending pool data
     /// @param _assets addresses of collateral and borrow assets
     /// @param _loanState the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param _currentCR current value of collateral ratio
     /// @param _targetCR target value of collateral ratio to reach
     /// @param _oracle aave oracle
     /// @param _swapper address of swapper contract
@@ -118,13 +139,13 @@ library RebalanceLogic {
         LendingPool memory _pool,
         StrategyAssets memory _assets,
         LoanState memory _loanState,
+        uint256 _currentCR,
         uint256 _targetCR,
         IPriceOracleGetter _oracle,
         ISwapper _swapper
     ) external returns (uint256 ratio) {
         // current collateral ratio
-        ratio =
-            _collateralRatioUSD(_loanState.collateralUSD, _loanState.debtUSD);
+        ratio = _currentCR;
 
         uint256 collateralPriceUSD =
             _oracle.getAssetPrice(address(_assets.collateral));
