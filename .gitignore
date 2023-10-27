@@ -17,5 +17,13 @@ out
 # mac OS
 **/.DS_Store
 
+# Compiler files (Foundry cache and compiled output)
+cache/
+out/
+
+# Makefile extension output files
+.vscode/configurationCache.log
+
 # pnpm
 pnpm-lock.yaml
+

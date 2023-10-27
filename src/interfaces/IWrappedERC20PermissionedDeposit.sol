@@ -6,10 +6,9 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /// @title IWrappedERC20PermissionedDeposit
 /// @notice interface for the Wrapper of ERC20 with permissioned deposit
-/// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token. 
+/// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token.
 /// @dev Deposits are permissioned but withdrawals are open to any address.
 interface IWrappedERC20PermissionedDeposit is IERC20 {
-
     /// @notice Sender doesn't have a permission to deposit
     /// @param sender sender address
     error NotDepositor(address sender);
