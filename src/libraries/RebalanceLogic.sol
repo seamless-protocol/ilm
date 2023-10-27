@@ -211,17 +211,6 @@ library RebalanceLogic {
         } while (ratio < _targetCR);
     }
 
-    /// @notice helper function to offset amounts by a USD percentage downwards
-    /// @param a amount to offset
-    /// @param usdOffset offset as a number between 0 -  ONE_USD
-    function offsetUSDAmountDown(uint256 a, uint256 usdOffset)
-        public
-        pure
-        returns (uint256 amount)
-    {
-        amount = (a * (ONE_USD - usdOffset)) / ONE_USD;
-    }
-
     /// @notice helper function to calculate collateral ratio
     /// @param collateralUSD collateral value in USD
     /// @param debtUSD debt valut in USD
@@ -262,5 +251,22 @@ library RebalanceLogic {
             assetAmount = usdAmount.usdDiv(priceInUSD)
                 * 10 ** (assetDecimals - USD_DECIMALS);
         }
+    }
+
+    /// @notice helper function to offset amounts by a USD percentage downwards
+    /// @param a amount to offset
+    /// @param usdOffset offset as a number between 0 -  ONE_USD
+    function offsetUSDAmountDown(uint256 a, uint256 usdOffset)
+        public
+        pure
+        returns (uint256 amount)
+    {   
+        // prevent overflows
+        if (a <= type(uint256).max / (ONE_USD - usdOffset)) {
+            amount = (a * (ONE_USD - usdOffset)) / ONE_USD;
+        } else {
+            amount = (a / ONE_USD) * (ONE_USD - usdOffset);
+        }
+       
     }
 }

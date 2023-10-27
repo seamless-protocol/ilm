@@ -6,10 +6,13 @@ import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
+import { USDWadMath } from "../../src/libraries/math/USDWadMath.sol";
 
 /// @title RebalanceLogicHarness
 /// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
 contract RebalanceLogicHarness is RebalanceLogicContext {
+    using USDWadMath for uint256;
+
     //address public SUPPLIER = address(123123123);
     /// @dev sets up testing context
     function setUp() public virtual override {
@@ -21,16 +24,12 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
     function test_rebalanceUp_bringsCollateralRatioToTarget() public {
         LoanState memory state = LoanLogic.getLoanState(lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
         uint256 ratio = RebalanceLogic.rebalanceUp(
-            lendingPool,
-            assets,
-            state,
-            currentCR,
-            targetCR,
-            oracle,
-            swapper
+            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
@@ -43,16 +42,12 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         targetCR = 1.35e8;
 
         LoanState memory state = LoanLogic.getLoanState(lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
         uint256 ratio = RebalanceLogic.rebalanceUp(
-            lendingPool,
-            assets,
-            state,
-            currentCR,
-            targetCR,
-            oracle,
-            swapper
+            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
@@ -60,16 +55,12 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         targetCR = 3.5e8;
 
         state = LoanLogic.getLoanState(lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
         ratio = RebalanceLogic.rebalanceDown(
-            lendingPool,
-            assets,
-            state,
-            currentCR,
-            targetCR,
-            oracle,
-            swapper
+            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
@@ -85,16 +76,12 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
 
         targetCR = targetRatio;
         LoanState memory state = LoanLogic.getLoanState(lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-        
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
         uint256 ratio = RebalanceLogic.rebalanceUp(
-            lendingPool,
-            assets,
-            state,
-            currentCR,
-            targetCR,
-            oracle,
-            swapper
+            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
         assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
@@ -117,4 +104,67 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
 
     //      assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
     // }
+
+    function testFuzz_collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD) public {
+        /// assume that collateral is always larger than debt because otherwise 
+        /// position would have been liquidated
+        vm.assume(collateralUSD > debtUSD);
+        
+        uint256 ratio;
+
+        if(debtUSD == 0) {
+            ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
+            assertEq(ratio, 0);
+        } else if (collateralUSD <= (type(uint256).max - debtUSD / 2) / USDWadMath.USD && debtUSD != 0) {
+            ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
+            assertEq(ratio, collateralUSD.usdDiv(debtUSD));
+        } else {
+            vm.expectRevert();
+            ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
+        }
+    }
+
+    function testFuzz_convertAssetToUSD(uint256 assetAmount, uint256 priceInUSD, uint256 assetDecimals) public {
+        vm.assume(assetDecimals <= 18); // assume no tokens with more than 18 decimals would be used as assets
+        vm.assume(priceInUSD <= 250000 * 10 ** 8); // assume no token has a price larger than 250000 USD
+        vm.assume(assetAmount <= 5 * 10 ** 60); // assume no astronomical value of assets will need to be converted
+        
+        uint256 usdAmount = RebalanceLogic.convertAssetToUSD(assetAmount, priceInUSD, assetDecimals);
+        
+        assertEq(
+            usdAmount, assetAmount * priceInUSD / (10 ** assetDecimals)
+        );
+    }
+
+    function testFuzz_convertUSDtoAsset(uint256 usdAmount, uint256 priceInUSD, uint256 assetDecimals) public {
+        vm.assume(assetDecimals <= 18 && assetDecimals > 4); // assume no tokens with more than 18 decimals would be used as assets
+        vm.assume(priceInUSD <= 250000 * 10 ** 8 && priceInUSD > 1e3); // assume no token has a price larger than 250000 USD
+        vm.assume(usdAmount <= 5 * 10 ** 60 && usdAmount > 1e3); // assume no astronomical value of USD to be converted
+
+        uint256 assetAmount = RebalanceLogic.convertUSDToAsset(usdAmount, priceInUSD, assetDecimals);
+
+        if (USDWadMath.USD > assetDecimals) {
+            assertEq(assetAmount, usdAmount.usdDiv(priceInUSD) / 10 ** (USDWadMath.USD - assetDecimals));
+        } else {
+            assertEq(assetAmount, usdAmount.usdDiv(priceInUSD) * 10 ** (assetDecimals - USDWadMath.USD));
+        }
+    }
+
+    function testFuzz_offsetUSDAmountDown(uint256 a, uint256 usdOffset) public {
+        vm.assume(usdOffset <= USDWadMath.USD);
+
+        uint256 amount = RebalanceLogic.offsetUSDAmountDown(a, usdOffset);
+        
+        if (a <= type(uint256).max / (USDWadMath.USD - usdOffset)) {
+            assertEq(
+            amount, (a * (USDWadMath.USD - usdOffset) / USDWadMath.USD)
+        );
+        } else {
+            assertEq(
+            amount, (a / USDWadMath.USD) * (USDWadMath.USD - usdOffset)
+        );
+        }
+    }
+
+   
 }
