@@ -12,7 +12,7 @@ import { IPriceOracleGetter } from
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { BaseForkTest } from "../BaseForkTest.t.sol";
-import { SwapperMock } from "../mock/SwapperMock.sol";
+import { SwapperMock } from "../mock/SwapperMock.t.sol";
 import {
     CollateralRatio,
     LendingPool,
@@ -80,12 +80,6 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         // approve tokens for pool to use on supplying and repaying
         WETH.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
         USDbC.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
-
-        deal(address(WETH), address(swapper), MINT_AMOUNT);
-        deal(address(USDbC), address(swapper), MINT_AMOUNT);
-
-        assert(USDbC.balanceOf(address(swapper)) == MINT_AMOUNT);
-        assert(WETH.balanceOf(address(swapper)) == MINT_AMOUNT);
 
         // 3x leverage using collateral ratio at 1.5
         targetCR = 1.5e8;
