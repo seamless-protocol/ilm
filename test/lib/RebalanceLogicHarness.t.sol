@@ -137,7 +137,8 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
             assertEq(ratio, 0);
         } else if (
-            collateralUSD <= (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
+            collateralUSD
+                <= (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
                 && debtUSD != 0
         ) {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
@@ -211,11 +212,13 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         // ensure overflows are accounted for
         if (a <= type(uint256).max / (USDWadRayMath.USD - usdOffset)) {
             assertEq(
-                amount, (a * (USDWadRayMath.USD - usdOffset) / USDWadRayMath.USD)
+                amount,
+                (a * (USDWadRayMath.USD - usdOffset) / USDWadRayMath.USD)
             );
         } else {
             assertEq(
-                amount, (a / USDWadRayMath.USD) * (USDWadRayMath.USD - usdOffset)
+                amount,
+                (a / USDWadRayMath.USD) * (USDWadRayMath.USD - usdOffset)
             );
         }
     }

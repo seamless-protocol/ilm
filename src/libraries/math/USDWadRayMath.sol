@@ -42,7 +42,6 @@ library USDWadRayMath {
         }
     }
 
-
     /// @dev Divides two USD, rounding half up to the nearest USD
     /// @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
     /// @param a USD
