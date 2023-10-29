@@ -6,12 +6,12 @@ import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
-import { USDWadMath } from "../../src/libraries/math/USDWadMath.sol";
+import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
 /// @title RebalanceLogicHarness
 /// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
 contract RebalanceLogicHarness is RebalanceLogicContext {
-    using USDWadMath for uint256;
+    using USDWadRayMath for uint256;
 
     //address public SUPPLIER = address(123123123);
     /// @dev sets up testing context
@@ -137,7 +137,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
             assertEq(ratio, 0);
         } else if (
-            collateralUSD <= (type(uint256).max - debtUSD / 2) / USDWadMath.USD
+            collateralUSD <= (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
                 && debtUSD != 0
         ) {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
@@ -203,19 +203,19 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
     function testFuzz_offsetUSDAmountDown(uint256 a, uint256 usdOffset)
         public
     {
-        vm.assume(usdOffset <= USDWadMath.USD);
-        vm.assume(usdOffset != USDWadMath.USD);
+        vm.assume(usdOffset <= USDWadRayMath.USD);
+        vm.assume(usdOffset != USDWadRayMath.USD);
 
         uint256 amount = RebalanceLogic.offsetUSDAmountDown(a, usdOffset);
 
         // ensure overflows are accounted for
-        if (a <= type(uint256).max / (USDWadMath.USD - usdOffset)) {
+        if (a <= type(uint256).max / (USDWadRayMath.USD - usdOffset)) {
             assertEq(
-                amount, (a * (USDWadMath.USD - usdOffset) / USDWadMath.USD)
+                amount, (a * (USDWadRayMath.USD - usdOffset) / USDWadRayMath.USD)
             );
         } else {
             assertEq(
-                amount, (a / USDWadMath.USD) * (USDWadMath.USD - usdOffset)
+                amount, (a / USDWadRayMath.USD) * (USDWadRayMath.USD - usdOffset)
             );
         }
     }

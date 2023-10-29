@@ -8,18 +8,18 @@ import { IERC20Metadata } from
     "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { LoanLogic } from "./LoanLogic.sol";
-import { USDWadMath } from "./math/USDWadMath.sol";
+import { USDWadRayMath } from "./math/USDWadRayMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { LendingPool, LoanState, StrategyAssets } from "../types/DataTypes.sol";
 
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
 library RebalanceLogic {
-    using USDWadMath for uint256;
+    using USDWadRayMath for uint256;
 
     /// @dev ONE in USD scale and in WAD scale
     uint256 internal constant ONE_USD = 1e8;
-    uint256 internal constant ONE_WAD = USDWadMath.WAD;
+    uint256 internal constant ONE_WAD = USDWadRayMath.WAD;
 
     /// @dev decimals of USD prices as per _oracle, and WAD decimals
     uint8 internal constant USD_DECIMALS = 8;
