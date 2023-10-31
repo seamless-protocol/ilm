@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import { Ownable2StepUpgradeable, OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
@@ -13,6 +14,9 @@ import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage } from "./storage/LoopStrategyStorage.sol";
 import { CollateralRatio, LoanState, LendingPool, StrategyAssets } from "./types/DataTypes.sol";
+import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ISwapper } from "./interfaces/ISwapper.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
@@ -25,8 +29,10 @@ contract LoopStrategy is
     function LoopStrategy_init(
       address _initialOwner,
       StrategyAssets memory _strategyAssets,
-      CollateralRatio memory _collateralRatio,
-      IPoolAddressesProvider _poolAddressProvider
+      CollateralRatio memory _collateralRatioTargets,
+      IPoolAddressesProvider _poolAddressProvider,
+      IPriceOracleGetter _oracle,
+      ISwapper _swapper
     ) internal initializer {
       __Ownable_init(_initialOwner);
       __ERC4626_init(_strategyAssets.collateral);
@@ -34,8 +40,10 @@ contract LoopStrategy is
 
       LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
       $.strategyAssets = _strategyAssets;
-      $.collateralRatio = _collateralRatio;
+      $.collateralRatioTargets = _collateralRatioTargets;
       $.poolAddressProvider = _poolAddressProvider;
+      $.oracle = _oracle;
+      $.swapper = _swapper;
 
       $.lendingPool = LendingPool({
         pool: IPool(_poolAddressProvider.getPool()),
@@ -59,14 +67,14 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setCollateralRatioConfig(CollateralRatio memory _collateralRatio) external override onlyOwner {
+    function setCollateralRatioTargets(CollateralRatio memory _collateralRatioTargets) external override onlyOwner {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.collateralRatio = _collateralRatio;
+        $.collateralRatioTargets = _collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
-    function getCollateralRatioConfig() external view override returns (CollateralRatio memory ratio) {
-        return LoopStrategyStorage.layout().collateralRatio;
+    function getCollateralRatioTargets() external view override returns (CollateralRatio memory ratio) {
+        return LoopStrategyStorage.layout().collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
