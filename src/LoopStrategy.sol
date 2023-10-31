@@ -14,9 +14,9 @@ import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage } from "./storage/LoopStrategyStorage.sol";
 import { CollateralRatio, LoanState, LendingPool, StrategyAssets } from "./types/DataTypes.sol";
 
-/// @title LoopCbETHStrategy
+/// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
-contract LoopCbETHStrategy is
+contract LoopStrategy is
     ILoopStrategy,
     ERC4626Upgradeable,
     Ownable2StepUpgradeable,
@@ -29,7 +29,7 @@ contract LoopCbETHStrategy is
       IPoolAddressesProvider _poolAddressProvider
     ) internal initializer {
       __Ownable_init(_initialOwner);
-      __ERC4626_init(_strategyAssets.collateralAsset);
+      __ERC4626_init(_strategyAssets.collateral);
       __Pausable_init();
 
       LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
@@ -73,21 +73,21 @@ contract LoopCbETHStrategy is
     function equity() public override view returns (uint256 amount) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return state.collateral - state.debt;
+        return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function debt() external override view returns (uint256 amount) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return state.debt;
+        return state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external override view returns (uint256 amount) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return state.collateral;
+        return state.collateralUSD;
     }
 
     /// @inheritdoc ILoopStrategy
