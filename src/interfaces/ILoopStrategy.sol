@@ -3,13 +3,7 @@
 pragma solidity ^0.8.18;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-
-// import { IOwnable2Step } from "./IOwnable2Step.sol";
-// import { IPausable } from "./IPausable.sol";
-
 import { CollateralRatio } from "../types/DataTypes.sol";
-
-///TODO: add auxiliary functions
 
 /// @title IStrategy
 /// @notice interface for Integration Liquiity Market strategies

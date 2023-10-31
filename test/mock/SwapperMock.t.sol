@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
+import "forge-std/Test.sol";
+
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -12,7 +14,7 @@ import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
-contract SwapperMock is ISwapper {
+contract SwapperMock is Test, ISwapper {
     address public immutable collateralAsset;
     address public immutable borrowAsset;
     uint256 public constant borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
@@ -69,7 +71,8 @@ contract SwapperMock is ISwapper {
         /// mock account for the offset of DEX swaps
         toAmount -= (toAmount * offsetFactor(_from, _to)) / BASIS;
 
-        IERC20(_to).transfer(_beneficiary, toAmount);
+        //IERC20(_to).transfer(_beneficiary, toAmount);
+        deal(_to, _beneficiary, toAmount);
     }
 
     /// @inheritdoc ISwapper

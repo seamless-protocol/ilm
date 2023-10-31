@@ -16,6 +16,8 @@ library LoopStrategyStorage {
         /// @dev struct encapsulating min/max bounds and target values for the collateral ratio
         /// TODO: decide on whether to be 1e8 or 1e18 or 1e27
         CollateralRatio collateralRatioTargets;
+        /// @dev error margin on specific target collateral ratio passed in function calls
+        uint256 ratioMargin;
         /// @dev pool address provider for the Seamles Protocol lending pools
         IPoolAddressesProvider poolAddressProvider;
         /// @dev struct encapsulating address of the lending pool and configuration (interest rate mode)
@@ -24,9 +26,6 @@ library LoopStrategyStorage {
         IPriceOracleGetter oracle;
         /// @dev swapper address
         ISwapper swapper;
-
-        /// @dev error margin on specific target collateral ratio passed in function calls
-        uint256 ratioMargin;
     }
 
     bytes32 internal constant STORAGE_SLOT =

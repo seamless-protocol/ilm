@@ -14,13 +14,13 @@ import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage } from "./storage/LoopStrategyStorage.sol";
 import { CollateralRatio, LoanState, LendingPool, StrategyAssets } from "./types/DataTypes.sol";
-import { USDWadMath } from "./libraries/math/USDWadMath.sol";
+import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ISwapper } from "./interfaces/ISwapper.sol";
 
-/// @title LoopCbETHStrategy
+/// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
-contract LoopCbETHStrategy is
+contract LoopStrategy is
     ILoopStrategy,
     ERC4626Upgradeable,
     Ownable2StepUpgradeable,
@@ -68,9 +68,9 @@ contract LoopCbETHStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setCollateralRatioTargets(CollateralRatio memory _collateralTargets) external override onlyOwner {
+    function setCollateralRatioTargets(CollateralRatio memory _collateralRatioTargets) external override onlyOwner {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.collateralRatioTargets = _collateralTargets;
+        $.collateralRatioTargets = _collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
