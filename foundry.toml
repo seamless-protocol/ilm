@@ -2,6 +2,10 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+fuzz_runs = 256
+optimizer = true
+optimizer_runs = 1_000_000
+solc = "0.8.21"
 
 [fmt]
 line_length = 80
