@@ -100,8 +100,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function currentCollateralRatio() external override returns (uint256 ratio) {
-        // TODO: should this number from the LoanLogic lib, maybe even in LoanState
+    function currentCollateralRatio() external override view returns (uint256 ratio) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
@@ -109,7 +108,20 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function rebalance() external override whenNotPaused returns (uint256 ratio) {
-        // TODO: if collateral ratio is out of the min/max range do the rebalancing
+        if (!rebalanceNeeded()) {
+            revert RebalanceNotNeeded();
+        }
+        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        return _rebalanceTo(state, $.collateralRatioTargets.target);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function rebalanceNeeded() public view override returns(bool shouldRebalance) {
+        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        return _shouldRebalance(collateralRatio, $.collateralRatioTargets);
     }
 
     /// @inheritdoc IERC4626
@@ -151,21 +163,14 @@ contract LoopStrategy is
         emit Deposit(msg.sender, receiver, assets, shares);
         return shares;
     }
-
+    
+    /// @notice function call RebalanceLogic to rebalance the pool to given target collateral ratio
+    /// @param loanState current loan state
+    /// @param targetRatio given target collateral ratio
+    /// @return collateralRatio collateral ratio after rebalance
     function _rebalanceTo(LoanState memory loanState, uint256 targetRatio) internal returns (uint256 collateralRatio) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-
-        // TODO: waiting for the rebalanceTo function
-        // return RebalanceLogic.rebalanceTo(
-        //     $.lendingPool,
-        //     $.strategyAssets,
-        //     loanState,
-        //     targetRatio,
-        //     $.oracle,
-        //     $.swapper
-        // );
-
-        return RebalanceLogic.rebalanceDown(
+        return RebalanceLogic.rebalanceTo(
             $.lendingPool,
             $.strategyAssets,
             loanState,
@@ -177,13 +182,20 @@ contract LoopStrategy is
 
     /// @inheritdoc IERC4626
     function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
-        // TODO: static call deposit() and return number of expected shares
+        (bool success, bytes memory result) = address(this).staticcall(
+            abi.encodeWithSelector(this.deposit.selector, assets)
+        );
+
+        if (!success) {
+            revert DepositStaticcallReverted();
+        }
+
+        return abi.decode(result, (uint256));
     }
 
-    /// @inheritdoc IERC4626
-    function mint(uint256 shares, address receiver) public override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
-        revert();
-        // TODO: we should disable minting exact amount of shares
+    /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
+    function mint(uint256, address) public override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
+        revert MintDisabled();
     }
 
     /// @inheritdoc IERC4626
@@ -205,12 +217,9 @@ contract LoopStrategy is
     /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
     /// @param collateralRatio given collateral ratio
     /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
-    function _shouldRebalance(uint256 collateralRatio, CollateralRatio memory collateraRatioTargets) internal returns(bool) {
+    function _shouldRebalance(uint256 collateralRatio, CollateralRatio memory collateraRatioTargets) internal pure returns(bool) {
         return (collateralRatio < collateraRatioTargets.minForRebalance || collateralRatio > collateraRatioTargets.maxForRebalance);
     }
-
-
-    // TODO: copied from RebalanceLogic, should be part of the usdLib?
 
     /// @notice helper function to calculate collateral ratio
     /// @param collateralUSD collateral value in USD
@@ -221,6 +230,6 @@ contract LoopStrategy is
         pure
         returns (uint256 ratio)
     {
-        ratio = debtUSD != 0 ? USDWadMath.usdDiv(collateralUSD, debtUSD) : 0;
+        ratio = debtUSD != 0 ? USDWadRayMath.usdDiv(collateralUSD, debtUSD) : 0;
     }
 }
