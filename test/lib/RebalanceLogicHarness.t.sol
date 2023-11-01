@@ -8,6 +8,10 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
+import "forge-std/console.sol";
+
+/// TODO: add natspec for fuzz tests
+
 /// @title RebalanceLogicHarness
 /// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
 contract RebalanceLogicHarness is RebalanceLogicContext {
