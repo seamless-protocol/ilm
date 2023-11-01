@@ -40,7 +40,11 @@ library RebalanceLogic {
         ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
         if (ratio > _targetCR) {
+<<<<<<< HEAD
             return rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
+=======
+            rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
+>>>>>>> b505610 (feat: use  function instead of if-check in , add max iteration value)
         } else {
             return rebalanceDown(Storage.layout(), _state, ratio, _targetCR);
         }
@@ -70,15 +74,21 @@ library RebalanceLogic {
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
 
+<<<<<<< HEAD
         uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
+=======
+>>>>>>> b505610 (feat: use  function instead of if-check in , add max iteration value)
         uint256 count;
 
-        // TODO: add hardcoded number of iterations
         do {
             // debt to reach max LTV in USD
             uint256 borrowAmountUSD = _state.maxBorrowAmount;
 
             {
+<<<<<<< HEAD
+=======
+                // TODO: might be worthwhile to calculate outside of loop?
+>>>>>>> b505610 (feat: use  function instead of if-check in , add max iteration value)
                 // calculate how much borrow amount in USD is needed to reach
                 // targetCR
                 uint256 neededBorrowUSD = requiredBorrowUSD(
@@ -129,10 +139,18 @@ library RebalanceLogic {
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
+<<<<<<< HEAD
             if (++count > $.maxIterations) {
                 break;
             }
         } while (_targetCR + margin < ratio);
+=======
+            ++count;
+            if (count > 15) {
+                break;
+            }
+        } while (ratio > _targetCR); // add margin of error on _targetCR allowance
+>>>>>>> b505610 (feat: use  function instead of if-check in , add max iteration value)
     }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
@@ -239,8 +257,12 @@ library RebalanceLogic {
         pure
         returns (uint256 ratio)
     {
+<<<<<<< HEAD
         ratio =
             _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
+=======
+        ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
+>>>>>>> b505610 (feat: use  function instead of if-check in , add max iteration value)
     }
 
     /// @notice converts a asset amount to its usd value
