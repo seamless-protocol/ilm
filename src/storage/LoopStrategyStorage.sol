@@ -2,9 +2,19 @@
 
 pragma solidity ^0.8.18;
 
-import { CollateralRatio, StrategyAssets } from "../types/DataTypes.sol";
+import {
+    CollateralRatio,
+    StrategyAssets,
+    LendingPool
+} from "../types/DataTypes.sol";
+import { IPoolAddressesProvider } from
+    "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
+import { ISwapper } from "../interfaces/ISwapper.sol";
 
-library LeverageStrategyStorage {
+library LoopStrategyStorage {
     /// @dev struct containing all state for the LoopStrategy contract
     struct Layout {
         /// @dev struct encapsulating collateral and borrow asset addresses
