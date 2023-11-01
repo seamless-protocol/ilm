@@ -73,6 +73,7 @@ library RebalanceLogic {
         uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
 
+        // TODO: add hardcoded number of iterations
         do {
             // debt to reach max LTV in USD
             uint256 borrowAmountUSD = _state.maxBorrowAmount;
