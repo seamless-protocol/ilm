@@ -75,7 +75,7 @@ contract LoanLogicTest is BaseForkTest {
 
         // approve tokens for pool to use on supplying and repaying
         WETH.approve(poolAddressProvider.getPool(), 100 ether);
-        USDbC.approve(poolAddressProvider.getPool(), 1000000 * ONE_USDbC);
+        USDbC.approve(poolAddressProvider.getPool(), 1_000_000 * ONE_USDbC);
     }
 
     /// @dev test confirming that loan state is valid after withdrawing

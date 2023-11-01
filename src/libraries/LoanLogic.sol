@@ -19,7 +19,7 @@ import { LoanState, LendingPool } from "../types/DataTypes.sol";
 library LoanLogic {
     /// @dev used for availableBorrowsBase and maxWithdrawAmount to decrease them by 0.01%
     /// @dev because precision issues on converting to asset amounts can revert borrow/withdraw on lending pool
-    uint256 public constant MAX_AMOUNT_PERCENT = 99_99;
+    uint256 public constant MAX_AMOUNT_PERCENT = 9999;
 
     /// @notice collateralizes an amount of the given asset via depositing assets into Seamless lending pool
     /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
