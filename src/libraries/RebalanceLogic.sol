@@ -10,6 +10,8 @@ import { IERC20Metadata } from
 import { LoanLogic } from "./LoanLogic.sol";
 import { USDWadRayMath } from "./math/USDWadRayMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
+import { LoopStrategyStorage as Storage } from
+    "../storage/LoopStrategyStorage.sol";
 import { LendingPool, LoanState, StrategyAssets } from "../types/DataTypes.sol";
 
 /// @title RebalanceLogic
@@ -46,9 +48,7 @@ library RebalanceLogic {
         ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
         if (ratio > _targetCR) {
-            rebalanceUp(
-                _pool, _assets, _state, ratio, _targetCR, _oracle, _swapper
-            );
+            rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
         } else {
             rebalanceDown(
                 _pool, _assets, _state, ratio, _targetCR, _oracle, _swapper
@@ -58,57 +58,49 @@ library RebalanceLogic {
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param _pool lending pool data
-    /// @param _assets addresses of collateral and borrow assets
+    /// @param $ the storage state of LendingStrategyStorage
     /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param _currentCR current value of collateral ratio
     /// @param _targetCR target value of collateral ratio to reach
-    /// @param _oracle aave oracle
-    /// @param _swapper address of swapper contract
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceUp(
-        LendingPool memory _pool,
-        StrategyAssets memory _assets,
+        Storage.Layout storage $,
         LoanState memory _state,
         uint256 _currentCR,
-        uint256 _targetCR,
-        IPriceOracleGetter _oracle,
-        ISwapper _swapper
+        uint256 _targetCR
     ) public returns (uint256 ratio) {
         // current collateral ratio
         ratio = _currentCR;
 
-        uint256 debtPriceUSD = _oracle.getAssetPrice(address(_assets.debt));
-        uint8 debtDecimals = IERC20Metadata(address(_assets.debt)).decimals();
+        uint256 debtPriceUSD = $.oracle.getAssetPrice(address($.assets.debt));
+        uint8 debtDecimals = IERC20Metadata(address($.assets.debt)).decimals();
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor =
-            _swapper.offsetFactor(_assets.debt, _assets.collateral);
+            $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
 
-        // TODO: add hardcoded number of iterations
+        uint256 count;
+
         do {
             // debt to reach max LTV in USD
             uint256 borrowAmountUSD = _state.maxBorrowAmount;
 
-            // check if borrowing up to max LTV leads to smaller than  target collateral ratio, and adjust borrowAmountUSD if so
-            // TODO: check whether min(maxBorrow, adjustedBorrow) is more efficient
-            if (
-                collateralRatioUSD(
-                    _state.collateralUSD
-                        + offsetUSDAmountDown(borrowAmountUSD, offsetFactor),
-                    _state.debtUSD + borrowAmountUSD
-                ) < _targetCR
-            ) {
-                // calculate amount of debt needed to reach target collateral
-                // ONE_USD - offSetFactor < _targetCR by default/design
-                // equation used: B = C - (tCR * D) / (tCR - (1 - O))
-                // TODO: move to internal and fuzz this adjustment
-                borrowAmountUSD = requiredBorrowUSD(
+            {
+                // TODO: might be worthwhile to calculate outside of loop?
+                // calculate how much borrow amount in USD is needed to reach
+                // targetCR
+                uint256 neededBorrowUSD = requiredBorrowUSD(
                     _targetCR,
                     _state.collateralUSD,
                     _state.debtUSD,
                     offsetFactor
                 );
+
+                // if less than the max borrow amount possible is needed to reach LTV,
+                // use the amount that is required to reach targetCR
+                borrowAmountUSD = borrowAmountUSD < neededBorrowUSD
+                    ? borrowAmountUSD
+                    : neededBorrowUSD;
             }
 
             // convert borrowAmount from USD to a borrowAsset amount
@@ -120,26 +112,31 @@ library RebalanceLogic {
             }
 
             // borrow _assets from AaveV3 _pool
-            LoanLogic.borrow(_pool, _assets.debt, borrowAmountAsset);
+            LoanLogic.borrow($.lendingPool, $.assets.debt, borrowAmountAsset);
 
             // approve _swapper contract to swap asset
-            _assets.debt.approve(address(_swapper), borrowAmountAsset);
+            $.assets.debt.approve(address($.swapper), borrowAmountAsset);
 
             // exchange debtAmountAsset of debt tokens for collateral tokens
-            uint256 collateralAmountAsset = _swapper.swap(
-                _assets.debt,
-                _assets.collateral,
+            uint256 collateralAmountAsset = $.swapper.swap(
+                $.assets.debt,
+                $.assets.collateral,
                 borrowAmountAsset,
                 payable(address(this))
             );
 
             // collateralize _assets in AaveV3 _pool
             _state = LoanLogic.supply(
-                _pool, _assets.collateral, collateralAmountAsset
+                $.lendingPool, $.assets.collateral, collateralAmountAsset
             );
 
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
+
+            ++count;
+            if (count > 15) {
+                break;
+            }
         } while (ratio > _targetCR); // add margin of error on _targetCR allowance
     }
 
@@ -237,7 +234,7 @@ library RebalanceLogic {
         pure
         returns (uint256 ratio)
     {
-        ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : 0;
+        ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
     }
 
     /// @notice converts a asset amount to its usd value
