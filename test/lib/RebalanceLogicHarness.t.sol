@@ -8,6 +8,10 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
+import "forge-std/console.sol";
+
+/// TODO: add natspec for fuzz tests
+
 /// @title RebalanceLogicHarness
 /// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
 contract RebalanceLogicHarness is RebalanceLogicContext {
@@ -32,7 +36,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
@@ -50,7 +54,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
 
         targetCR = 3.5e8;
 
@@ -63,7 +67,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
@@ -71,8 +75,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         uint256 targetRatio
     ) public {
         // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-        vm.assume(targetRatio > 1.34e8);
-        vm.assume(targetRatio < 50e8);
+        bound(targetRatio, 1.34e8, 50e8);
 
         targetCR = targetRatio;
         LoanState memory state = LoanLogic.getLoanState(lendingPool);
@@ -84,7 +87,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
@@ -103,10 +106,9 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
 
-        vm.assume(targetRatio > 1.35e8);
-        vm.assume(targetRatio < 5e8);
+        targetRatio = bound(targetRatio, 1.35e8, 5e8);
 
         targetCR = targetRatio;
 
@@ -119,7 +121,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             lendingPool, assets, state, currentCR, targetCR, oracle, swapper
         );
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100000);
+        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
     }
 
     /// @dev ensures that calculating the collateral ratio gives the expected value, for a range
@@ -157,7 +159,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         uint256 assetDecimals
     ) public {
         vm.assume(assetDecimals <= 18); // assume no tokens with more than 18 decimals would be used as assets
-        vm.assume(priceInUSD <= 250000 * 10 ** 8); // assume no token has a price larger than 250000 USD
+        vm.assume(priceInUSD <= 250_000 * 10 ** 8); // assume no token has a price larger than 250000 USD
         vm.assume(assetAmount <= 5 * 10 ** 60); // assume no astronomical value of assets will need to be converted
 
         uint256 usdAmount = RebalanceLogic.convertAssetToUSD(
@@ -175,7 +177,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         uint256 assetDecimals
     ) public {
         vm.assume(assetDecimals <= 18 && assetDecimals != 0); // assume no tokens with more than 18 decimals would be used as assets
-        vm.assume(priceInUSD <= 250000 * 10 ** 8 && priceInUSD != 0); // assume no token has a price larger than 250000 USD
+        vm.assume(priceInUSD <= 250_000 * 10 ** 8 && priceInUSD != 0); // assume no token has a price larger than 250000 USD
         vm.assume(usdAmount <= 5 * 10 ** 60 && usdAmount != 0); // assume no astronomical value of USD to be converted
 
         uint256 assetAmount = RebalanceLogic.convertUSDToAsset(
@@ -222,4 +224,41 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             );
         }
     }
+
+    /// @dev ensures that requiredBorrowUSD returns the value required to reach target CR
+    function testFuzz_requiredBorrowUSD(
+        uint256 _ltv,
+        uint256 _targetCR,
+        uint256 _collateralUSD,
+        uint256 _debtUSD,
+        uint256 _offsetFactor
+    ) public {
+        /// need a minimum LTV and maximum LTV to bound all other variables
+        /// LTV must always be < 1 as we are working with overcallateralized positions
+        _ltv = bound(_ltv, 0.01e8, 0.9e8);
+        /// offsetFactor is a value up to 1e8
+        _offsetFactor = bound(_offsetFactor, 0, 1e8);
+        /// target CR must be at least 1 / LTV
+        /// max bound is set to be very high because at that point it is as if we have 0 debt (debt is neglible)
+        _targetCR = bound(_targetCR, (USDWadRayMath.USD).usdDiv(_ltv), 1e26);
+
+        /// assume less than 3 trillion USD collateral, and more than 1 USD
+        _collateralUSD = bound(_collateralUSD, 1e8, 3e20);
+
+        _debtUSD = bound(_debtUSD, 0, _collateralUSD.usdMul(_ltv));
+
+        if (_collateralUSD > _targetCR.usdMul(_debtUSD)) {
+            uint256 requiredBorrow = RebalanceLogic.requiredBorrowUSD(
+                _targetCR, _collateralUSD, _debtUSD, _offsetFactor
+            );
+
+            /// TODO: change this after MOCK
+            uint256 actualBorrow = (_collateralUSD - _targetCR.usdMul(_debtUSD))
+                .usdDiv(_targetCR - (USDWadRayMath.USD - _offsetFactor));
+
+            assertEq(requiredBorrow, actualBorrow);
+        }
+    }
+
+   
 }
