@@ -42,8 +42,8 @@ interface ISwapper {
     /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
     function swap(
-        address from,
-        address to,
+        IERC20 from,
+        IERC20 to,
         uint256 fromAmount,
         address payable beneficiary
     ) external returns (uint256 toAmount);
@@ -52,7 +52,7 @@ interface ISwapper {
     /// @param from address of `from` token
     /// @param to address of `to` token
     /// @return offset factor between 0 - 1e18 to represent offset (1e18 is 100% offset so 0 value returned)
-    function offsetFactor(address from, address to)
+    function offsetFactor(IERC20 from, IERC20 to)
         external
         returns (uint256 offset);
 }

@@ -82,9 +82,8 @@ library RebalanceLogic {
         uint8 debtDecimals = IERC20Metadata(address(_assets.debt)).decimals();
 
         // get offset caused by DEX fees + slippage
-        uint256 offsetFactor = _swapper.offsetFactor(
-            address(_assets.debt), address(_assets.collateral)
-        );
+        uint256 offsetFactor =
+            _swapper.offsetFactor(_assets.debt, _assets.collateral);
 
         // TODO: add hardcoded number of iterations
         do {
@@ -128,8 +127,8 @@ library RebalanceLogic {
 
             // exchange debtAmountAsset of debt tokens for collateral tokens
             uint256 collateralAmountAsset = _swapper.swap(
-                address(_assets.debt),
-                address(_assets.collateral),
+                _assets.debt,
+                _assets.collateral,
                 borrowAmountAsset,
                 payable(address(this))
             );
@@ -170,9 +169,8 @@ library RebalanceLogic {
             IERC20Metadata(address(_assets.collateral)).decimals();
 
         // get offset caused by DEX fees + slippage
-        uint256 offsetFactor = _swapper.offsetFactor(
-            address(_assets.collateral), address(_assets.debt)
-        );
+        uint256 offsetFactor =
+            _swapper.offsetFactor(_assets.collateral, _assets.debt);
 
         do {
             // current collateral ratio
@@ -216,8 +214,8 @@ library RebalanceLogic {
 
             // exchange collateralAmount of collateral tokens for borrow tokens
             uint256 borrowAmountAsset = _swapper.swap(
-                address(_assets.collateral),
-                address(_assets.debt),
+                _assets.collateral,
+                _assets.debt,
                 collateralAmountAsset,
                 payable(address(this))
             );

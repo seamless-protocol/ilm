@@ -15,8 +15,8 @@ import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
 contract SwapperMock is Test, ISwapper {
-    address public immutable collateralAsset;
-    address public immutable borrowAsset;
+    IERC20 public immutable collateralAsset;
+    IERC20 public immutable borrowAsset;
     uint256 public constant borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public constant collateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public constant BASIS = 1e8;
@@ -27,13 +27,13 @@ contract SwapperMock is Test, ISwapper {
         address _borrowAsset,
         address _oracle
     ) {
-        collateralAsset = _collateralAsset;
-        borrowAsset = _borrowAsset;
+        collateralAsset = IERC20(_collateralAsset);
+        borrowAsset = IERC20(_borrowAsset);
         oracle = IPriceOracleGetter(_oracle);
     }
 
     /// @inheritdoc ISwapper
-    function offsetFactor(address _from, address _to)
+    function offsetFactor(IERC20 _from, IERC20 _to)
         public
         view
         returns (uint256 offset)
@@ -47,18 +47,18 @@ contract SwapperMock is Test, ISwapper {
 
     /// @inheritdoc ISwapper
     function swap(
-        address _from,
-        address _to,
+        IERC20 _from,
+        IERC20 _to,
         uint256 _fromAmount,
         address payable _beneficiary
     ) external returns (uint256 toAmount) {
-        IERC20(_from).transferFrom(_beneficiary, address(this), _fromAmount);
+        _from.transferFrom(_beneficiary, address(this), _fromAmount);
 
-        uint256 fromPriceUSD = oracle.getAssetPrice(_from);
-        uint256 toPriceUSD = oracle.getAssetPrice(_to);
+        uint256 fromPriceUSD = oracle.getAssetPrice(address(_from));
+        uint256 toPriceUSD = oracle.getAssetPrice(address(_to));
 
-        uint8 fromDecimals = IERC20Metadata(_from).decimals();
-        uint8 toDecimals = IERC20Metadata(_to).decimals();
+        uint8 fromDecimals = IERC20Metadata(address(_from)).decimals();
+        uint8 toDecimals = IERC20Metadata(address(_to)).decimals();
 
         if (fromDecimals < toDecimals) {
             toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD)
@@ -72,7 +72,7 @@ contract SwapperMock is Test, ISwapper {
         toAmount -= (toAmount * offsetFactor(_from, _to)) / BASIS;
 
         //IERC20(_to).transfer(_beneficiary, toAmount);
-        deal(_to, _beneficiary, toAmount);
+        deal(address(_to), _beneficiary, toAmount);
     }
 
     /// @inheritdoc ISwapper
