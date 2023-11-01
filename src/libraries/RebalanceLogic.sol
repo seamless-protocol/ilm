@@ -104,9 +104,12 @@ library RebalanceLogic {
                 // ONE_USD - offSetFactor < _targetCR by default/design
                 // equation used: B = C - (tCR * D) / (tCR - (1 - O))
                 // TODO: move to internal and fuzz this adjustment
-                borrowAmountUSD = (
-                    _state.collateralUSD - _targetCR.usdMul(_state.debtUSD)
-                ).usdDiv(_targetCR - (ONE_USD - offsetFactor));
+                borrowAmountUSD = requiredBorrowUSD(
+                    _targetCR,
+                    _state.collateralUSD,
+                    _state.debtUSD,
+                    offsetFactor
+                );
             }
 
             // convert borrowAmount from USD to a borrowAsset amount
