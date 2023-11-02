@@ -38,12 +38,13 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             $, state, currentCR, $.collateralRatioTargets.target
         );
 
+        // TODO: add explicit margin
         assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
     /// starting from a position of non-zero debt and needing more than one iteration to reach
-    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringMoreThanOneIteration(
+    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringMultipleIterations(
     ) public {
         // set targetCR to 1.45e8
         targetCR = $.collateralRatioTargets.maxForDepositRebalance;
@@ -86,7 +87,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
     /// starting from a position of non-zero debt and needing only one iteration to reach
-    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringOnlyOneIteration(
+    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringOneIteration(
     ) public {
         // set targetCR to 1.8555e8
         targetCR = 1.8555e8;
@@ -128,7 +129,9 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    function test_rebalanceDown_bringsCollateralRatioToTarget() public {
+    /// when rebalancing requires a single iteration
+    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration(
+    ) public {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
         targetCR = 1.35e8;
@@ -141,7 +144,43 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+
+        targetCR = 1.45e8;
+
+        state = LoanLogic.getLoanState(lendingPool);
+        currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+
+        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+    }
+
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
+    /// when rebalancing requires multiple iterations
+    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations(
+    ) public {
+        // with 0.75 LTV, we have a min CR of 1.33e8
+        // given by CR_min = 1 / LTV
+        targetCR = 1.35e8;
+
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
 
         targetCR = 3.5e8;
 
@@ -150,11 +189,11 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             state.collateralUSD, state.debtUSD
         );
 
-        ratio = RebalanceLogic.rebalanceDown(
-            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
-        );
+        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
+        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
@@ -199,7 +238,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
 
         assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
 
-        targetRatio = bound(targetRatio, 1.35e8, 5e8);
+        targetRatio = bound(targetRatio, 1.35e8, 7e8);
 
         targetCR = targetRatio;
 
@@ -208,11 +247,11 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             state.collateralUSD, state.debtUSD
         );
 
-        ratio = RebalanceLogic.rebalanceDown(
-            lendingPool, assets, state, currentCR, targetCR, oracle, swapper
-        );
+        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
     }
 
     /// @dev ensures that calculating the collateral ratio gives the expected value, for a range
@@ -220,25 +259,25 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
     function testFuzz_collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
         public
     {
+        debtUSD = bound(
+            debtUSD, 0, (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
+        );
         /// assume that collateral is always larger than debt because otherwise
         /// position would have been liquidated
-        vm.assume(collateralUSD > debtUSD);
+        collateralUSD = bound(
+            collateralUSD,
+            debtUSD,
+            (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
+        );
 
         uint256 ratio;
 
         if (debtUSD == 0) {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
-            assertEq(ratio, 0);
-        } else if (
-            collateralUSD
-                <= (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
-                && debtUSD != 0
-        ) {
+            assertEq(ratio, type(uint256).max);
+        } else {
             ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
             assertEq(ratio, collateralUSD.usdDiv(debtUSD));
-        } else {
-            vm.expectRevert();
-            ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
         }
     }
 

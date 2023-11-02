@@ -32,19 +32,17 @@ library RebalanceLogic {
     /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param _targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
-    function rebalanceTo(
-        LoanState memory _state,
-        uint256 _targetCR
-    ) public returns (uint256 ratio) {
+    function rebalanceTo(LoanState memory _state, uint256 _targetCR)
+        public
+        returns (uint256 ratio)
+    {
         // current collateral ratio
         ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
         if (ratio > _targetCR) {
             return rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
         } else {
-            return rebalanceDown(
-                Storage.layout(), _state, ratio, _targetCR
-            );
+            return rebalanceDown(Storage.layout(), _state, ratio, _targetCR);
         }
     }
 
@@ -145,7 +143,7 @@ library RebalanceLogic {
     /// @param _targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceDown(
-         Storage.Layout storage $,
+        Storage.Layout storage $,
         LoanState memory _state,
         uint256 _currentCR,
         uint256 _targetCR
@@ -159,7 +157,7 @@ library RebalanceLogic {
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
-        
+
         uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
 
@@ -198,10 +196,14 @@ library RebalanceLogic {
             }
 
             // withdraw collateral tokens from Aave _pool
-            LoanLogic.withdraw($.lendingPool, $.assets.collateral, collateralAmountAsset);
+            LoanLogic.withdraw(
+                $.lendingPool, $.assets.collateral, collateralAmountAsset
+            );
 
             // approve _swapper contract to swap asset
-            $.assets.collateral.approve(address($.swapper), collateralAmountAsset);
+            $.assets.collateral.approve(
+                address($.swapper), collateralAmountAsset
+            );
 
             // exchange collateralAmount of collateral tokens for borrow tokens
             uint256 borrowAmountAsset = $.swapper.swap(
@@ -216,11 +218,12 @@ library RebalanceLogic {
             }
 
             // repay debt to AaveV3 _pool
-            _state = LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
+            _state =
+                LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
 
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
-            if(++count > 15) {
+            if (++count > 15) {
                 break;
             }
         } while (ratio + margin < _targetCR);
