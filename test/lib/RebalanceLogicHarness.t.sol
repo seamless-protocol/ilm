@@ -8,8 +8,6 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
-import "forge-std/console.sol";
-
 /// TODO: add natspec for fuzz tests
 
 /// @title RebalanceLogicHarness
@@ -102,6 +100,92 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        // perform a single borrow-supply iteration, so non-zero debt whilst still needing
+        // one iteration to reach targetCR of  1.8555e8
+        uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
+            state.maxBorrowAmount, USDbC_price, 6
+        );
+
+        state =
+            LoanLogic.borrow($.lendingPool, $.assets.debt, borrowAmountAsset);
+
+        // approve _swapper contract to swap asset
+        $.assets.debt.approve(address($.swapper), borrowAmountAsset);
+
+        uint256 collateralAmountAsset = $.swapper.swap(
+            $.assets.debt,
+            $.assets.collateral,
+            borrowAmountAsset,
+            payable(address(this))
+        );
+
+        state = LoanLogic.supply(
+            $.lendingPool, $.assets.collateral, collateralAmountAsset
+        );
+
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+    }
+
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
+    /// starting from a position of non-zero debt and needing more than one iteration to reach
+    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringMoreThanOneIteration(
+    ) public {
+        // set targetCR to 1.45e8
+        targetCR = $.collateralRatioTargets.maxForDepositRebalance;
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
+
+        // perform a single borrow-supply iteration, so non-zero debt whilst still needing
+        // more than one iteration to reach targetCR of 1.45e8
+        uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
+            state.maxBorrowAmount, USDbC_price, 6
+        );
+
+        state =
+            LoanLogic.borrow($.lendingPool, $.assets.debt, borrowAmountAsset);
+
+        // approve _swapper contract to swap asset
+        $.assets.debt.approve(address($.swapper), borrowAmountAsset);
+
+        uint256 collateralAmountAsset = $.swapper.swap(
+            $.assets.debt,
+            $.assets.collateral,
+            borrowAmountAsset,
+            payable(address(this))
+        );
+
+        state = LoanLogic.supply(
+            $.lendingPool, $.assets.collateral, collateralAmountAsset
+        );
+
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+    }
+
+    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
+    /// starting from a position of non-zero debt and needing only one iteration to reach
+    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringOnlyOneIteration(
+    ) public {
+        // set targetCR to 1.8555e8
+        targetCR = 1.8555e8;
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        LoanState memory state = LoanLogic.getLoanState(lendingPool);
 
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // one iteration to reach targetCR of  1.8555e8
