@@ -55,6 +55,12 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     uint256 internal constant MIN_FOR_WITHDRAW_REBALANCE_CR = 1.55e8;
     uint256 internal constant MAX_FOR_DEPOSIT_REBALANCE_CR = 1.45e8;
 
+    uint256 internal constant TARGET_CR = 1.5e8;
+    uint256 internal constant MIN_FOR_REBALANCE_CR = 134_444_444;
+    uint256 internal constant MAX_FOR_REBALANCE_CR = 166_666_666;
+    uint256 internal constant MAX_FOR_WITHDRAW_REBALANCE_CR = 1.55e8;
+    uint256 internal constant MAX_FOR_DEPOSIT_REBALANCE_CR = 1.45e8;
+
     /// @dev sets up auxiliary contracts and context for RebalanceLogic tests
     function setUp() public virtual {
         // set up LoopStrategyStorage
@@ -75,6 +81,8 @@ abstract contract RebalanceLogicContext is BaseForkTest {
             minForWithdrawRebalance: MAX_FOR_DEPOSIT_REBALANCE_CR
         });
         $.maxIterations = 15;
+
+        ltvWETHUSD = ltvWETH * 1e4;
 
         // getting token prices
         WETH_price = $.oracle.getAssetPrice(address(WETH));
