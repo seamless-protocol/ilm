@@ -29,34 +29,27 @@ library RebalanceLogic {
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param _pool lending pool data
-    /// @param _assets addresses of collateral and borrow assets
     /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param _targetCR target value of collateral ratio to reach
-    /// @param _oracle aave oracle
-    /// @param _swapper address of swapper contract
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceTo(
-        LendingPool memory _pool,
-        StrategyAssets memory _assets,
         LoanState memory _state,
-        uint256 _targetCR,
-        IPriceOracleGetter _oracle,
-        ISwapper _swapper
+        uint256 _targetCR
     ) public returns (uint256 ratio) {
         // current collateral ratio
         ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
         if (ratio > _targetCR) {
-            rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
+            return rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
         } else {
-            rebalanceDown(
-                _pool, _assets, _state, ratio, _targetCR, _oracle, _swapper
+            return rebalanceDown(
+                Storage.layout(), _state, ratio, _targetCR
             );
         }
     }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
+    /// @dev "upwards" in this context means reducing collateral ratio, thereby _increasing_ exposure
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param $ the storage state of LendingStrategyStorage
     /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
@@ -87,7 +80,6 @@ library RebalanceLogic {
             uint256 borrowAmountUSD = _state.maxBorrowAmount;
 
             {
-                // TODO: might be worthwhile to calculate outside of loop?
                 // calculate how much borrow amount in USD is needed to reach
                 // targetCR
                 uint256 neededBorrowUSD = requiredBorrowUSD(
@@ -145,33 +137,31 @@ library RebalanceLogic {
     }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
+    /// @dev "downards" in this context means increasing collateral ratio, thereby _decreasing_ exposure
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
-    /// @param _pool lending pool data
-    /// @param _assets addresses of collateral and borrow assets
+    /// @param $ the storage state of LendingStrategyStorage
     /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param _currentCR current value of collateral ratio
     /// @param _targetCR target value of collateral ratio to reach
-    /// @param _oracle aave oracle
-    /// @param _swapper address of swapper contract
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceDown(
-        LendingPool memory _pool,
-        StrategyAssets memory _assets,
+         Storage.Layout storage $,
         LoanState memory _state,
         uint256 _currentCR,
-        uint256 _targetCR,
-        IPriceOracleGetter _oracle,
-        ISwapper _swapper
+        uint256 _targetCR
     ) public returns (uint256 ratio) {
         uint256 collateralPriceUSD =
-            _oracle.getAssetPrice(address(_assets.collateral));
+            $.oracle.getAssetPrice(address($.assets.collateral));
 
         uint8 collateralDecimals =
-            IERC20Metadata(address(_assets.collateral)).decimals();
+            IERC20Metadata(address($.assets.collateral)).decimals();
 
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor =
-            _swapper.offsetFactor(_assets.collateral, _assets.debt);
+            $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+        
+        uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
+        uint256 count;
 
         do {
             // current collateral ratio
@@ -208,25 +198,32 @@ library RebalanceLogic {
             }
 
             // withdraw collateral tokens from Aave _pool
-            LoanLogic.withdraw(_pool, _assets.collateral, collateralAmountAsset);
+            LoanLogic.withdraw($.lendingPool, $.assets.collateral, collateralAmountAsset);
 
             // approve _swapper contract to swap asset
-            _assets.collateral.approve(address(_swapper), collateralAmountAsset);
+            $.assets.collateral.approve(address($.swapper), collateralAmountAsset);
 
             // exchange collateralAmount of collateral tokens for borrow tokens
-            uint256 borrowAmountAsset = _swapper.swap(
-                _assets.collateral,
-                _assets.debt,
+            uint256 borrowAmountAsset = $.swapper.swap(
+                $.assets.collateral,
+                $.assets.debt,
                 collateralAmountAsset,
                 payable(address(this))
             );
 
+            if (borrowAmountAsset == 0) {
+                break;
+            }
+
             // repay debt to AaveV3 _pool
-            _state = LoanLogic.repay(_pool, _assets.debt, borrowAmountAsset);
+            _state = LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
 
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
-        } while (ratio < _targetCR); // check asymptotic behavior
+            if(++count > 15) {
+                break;
+            }
+        } while (ratio + margin < _targetCR);
     }
 
     /// @notice helper function to calculate collateral ratio
