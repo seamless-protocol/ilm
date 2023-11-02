@@ -61,8 +61,9 @@ contract SwapperMock is Test, ISwapper {
         uint8 toDecimals = IERC20Metadata(address(_to)).decimals();
 
         if (fromDecimals < toDecimals) {
-            toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD)
-                * 10 ** (toDecimals - fromDecimals);
+            toAmount = (
+                (_fromAmount * fromPriceUSD) * 10 ** (toDecimals - fromDecimals)
+            ) / toPriceUSD;
         } else {
             toAmount = ((_fromAmount * fromPriceUSD) / toPriceUSD)
                 / 10 ** (fromDecimals - toDecimals);
