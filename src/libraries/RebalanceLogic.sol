@@ -242,7 +242,11 @@ library RebalanceLogic {
 
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
+<<<<<<< HEAD
             if (++count > $.maxIterations) {
+=======
+            if (++count > 15) {
+>>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
                 break;
             }
         } while (ratio + margin < _targetCR);
