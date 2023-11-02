@@ -79,6 +79,7 @@ library RebalanceLogic {
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
 
+        uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
 
         do {
@@ -125,6 +126,10 @@ library RebalanceLogic {
                 payable(address(this))
             );
 
+            if (collateralAmountAsset == 0) {
+                break;
+            }
+
             // collateralize _assets in AaveV3 _pool
             _state = LoanLogic.supply(
                 $.lendingPool, $.assets.collateral, collateralAmountAsset
@@ -133,11 +138,10 @@ library RebalanceLogic {
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
-            ++count;
-            if (count > 15) {
+            if (++count > 15) {
                 break;
             }
-        } while (ratio > _targetCR); // add margin of error on _targetCR allowance
+        } while (_targetCR + margin < ratio);
     }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
