@@ -15,8 +15,8 @@ import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
 contract SwapperMock is Test, ISwapper {
-    address public immutable collateralAsset;
-    address public immutable borrowAsset;
+    IERC20 public immutable collateralAsset;
+    IERC20 public immutable borrowAsset;
     uint256 public borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public collateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public constant BASIS = 1e8;

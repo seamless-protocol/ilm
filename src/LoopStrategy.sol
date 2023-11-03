@@ -119,7 +119,7 @@ contract LoopStrategy is
         }
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return _rebalanceTo(state, $.collateralRatioTargets.target);
+        return RebalanceLogic.rebalanceTo(state, $.collateralRatioTargets.target);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -199,22 +199,6 @@ contract LoopStrategy is
         return (collateralRatio < collateraRatioTargets.minForRebalance || collateralRatio > collateraRatioTargets.maxForRebalance);
     }
 
-    /// @notice function call RebalanceLogic to rebalance the pool to given target collateral ratio
-    /// @param loanState current loan state
-    /// @param targetRatio given target collateral ratio
-    /// @return collateralRatio collateral ratio after rebalance
-    function _rebalanceTo(LoanState memory loanState, uint256 targetRatio) internal returns (uint256 collateralRatio) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        return RebalanceLogic.rebalanceTo(
-            $.lendingPool,
-            $.strategyAssets,
-            loanState,
-            targetRatio,
-            $.oracle,
-            $.swapper
-        );
-    }
-
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
@@ -223,32 +207,32 @@ contract LoopStrategy is
     /// @return equityReceived amount of received equity
     function _deposit(uint256 assets, address receiver, uint256 minEquityReceived) internal returns (uint256 shares, uint256 equityReceived) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        SafeERC20.safeTransferFrom($.strategyAssets.underlying, msg.sender, address(this), assets);
+        SafeERC20.safeTransferFrom($.assets.underlying, msg.sender, address(this), assets);
 
-        assets = _convertUnderlyingToCollateralAsset($.strategyAssets, assets);
+        assets = _convertUnderlyingToCollateralAsset($.assets, assets);
         
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (collateralRatio != 0 && _shouldRebalance(collateralRatio, $.collateralRatioTargets)) {
-            collateralRatio = _rebalanceTo(state, $.collateralRatioTargets.target);
+            collateralRatio = RebalanceLogic.rebalanceTo(state,  $.collateralRatioTargets.target);
         }
 
         uint256 prevTotalAssets = totalAssets();
         uint256 prevCollateralRatio = collateralRatio;
 
-        state = LoanLogic.supply($.lendingPool, $.strategyAssets.collateral, assets);
+        state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
         uint256 afterCollateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (prevCollateralRatio == 0) {
-            collateralRatio = _rebalanceTo(state, $.collateralRatioTargets.target);
+            collateralRatio = RebalanceLogic.rebalanceTo(state, $.collateralRatioTargets.target);
         } else if (afterCollateralRatio > $.collateralRatioTargets.maxForDepositRebalance) {
             uint256 rebalanceToRatio = prevCollateralRatio;
             if ($.collateralRatioTargets.maxForDepositRebalance > rebalanceToRatio) {
                 rebalanceToRatio = $.collateralRatioTargets.maxForDepositRebalance;
             }
-            collateralRatio = _rebalanceTo(state, rebalanceToRatio);
+            collateralRatio = RebalanceLogic.rebalanceTo(state, rebalanceToRatio);
         }
 
         equityReceived = totalAssets() - prevTotalAssets;

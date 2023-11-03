@@ -104,7 +104,7 @@ contract LoopStrategyTest is BaseForkTest {
 
         SwapperMock(address(swapper)).setOffsets(5e5, 5e5);
         swapOffset = swapper.offsetFactor(
-            address(strategyAssets.debt), address(strategyAssets.collateral)
+            strategyAssets.debt, strategyAssets.collateral
         );
     }
 
