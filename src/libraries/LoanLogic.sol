@@ -103,6 +103,15 @@ library LoanLogic {
             /* healthFactor */
         ) = lendingPool.pool.getUserAccountData(address(this));
 
+        if (totalCollateralBase == 0) {
+            return LoanState({
+                collateralUSD: 0,
+                debtUSD: 0,
+                maxBorrowAmount: 0,
+                maxWithdrawAmount: 0
+            });
+        }
+        
         uint256 maxWithdrawAmount =
             totalCollateralBase - PercentageMath.percentDiv(totalDebtBase, ltv);
 

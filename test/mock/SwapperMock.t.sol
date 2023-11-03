@@ -17,8 +17,8 @@ import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 contract SwapperMock is Test, ISwapper {
     address public immutable collateralAsset;
     address public immutable borrowAsset;
-    uint256 public constant borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
-    uint256 public constant collateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
+    uint256 public borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
+    uint256 public collateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public constant BASIS = 1e8;
     IPriceOracleGetter public oracle;
 
@@ -87,4 +87,9 @@ contract SwapperMock is Test, ISwapper {
     function setRoute(address from, address to, Step[] calldata steps)
         external
     { }
+
+    function setOffsets(uint256 _borrowToCollateralOffset, uint256 _collateralToBorrowOffset) external {
+        borrowToCollateralOffset = _borrowToCollateralOffset;
+        collateralToBorrowOffset = _collateralToBorrowOffset;
+    }
 }

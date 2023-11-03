@@ -6,6 +6,7 @@ import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ER
 import { Ownable2StepUpgradeable, OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol"; 
@@ -17,6 +18,7 @@ import { CollateralRatio, LoanState, LendingPool, StrategyAssets } from "./types
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ISwapper } from "./interfaces/ISwapper.sol";
+import { IWrappedERC20PermissionedDeposit } from "./interfaces/IWrappedERC20PermissionedDeposit.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
@@ -34,7 +36,7 @@ contract LoopStrategy is
       IPoolAddressesProvider _poolAddressProvider,
       IPriceOracleGetter _oracle,
       ISwapper _swapper
-    ) internal initializer {
+    ) external initializer {
       __Ownable_init(_initialOwner);
       __ERC4626_init(_strategyAssets.collateral);
       __Pausable_init();
@@ -51,6 +53,10 @@ contract LoopStrategy is
         // 2 is the variable interest rate mode
         interestRateMode: 2
       });
+
+      // approving to lending pool collateral and debt assets in advance 
+      $.strategyAssets.collateral.approve(address($.lendingPool.pool), type(uint256).max);
+      $.strategyAssets.debt.approve(address($.lendingPool.pool), type(uint256).max);
     }
 
     function pause() external onlyOwner {
@@ -130,60 +136,19 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc IERC4626
-    function deposit(uint256 assets, address receiver) public override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        SafeERC20.safeTransferFrom($.strategyAssets.collateral, msg.sender, address(this), assets);
-        
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        if (_shouldRebalance(collateralRatio, $.collateralRatioTargets)) {
-            collateralRatio = _rebalanceTo(state, $.collateralRatioTargets.target);
-        }
-
-        uint256 prevTotalAssets = totalAssets();
-        uint256 prevCollateralRatio = collateralRatio;
-
-        state = LoanLogic.supply($.lendingPool, $.strategyAssets.collateral, assets);
-        uint256 afterCollateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        if (afterCollateralRatio > $.collateralRatioTargets.maxForDepositRebalance) {
-            uint256 rebalanceToRatio = prevCollateralRatio;
-            if ($.collateralRatioTargets.maxForDepositRebalance > rebalanceToRatio) {
-                rebalanceToRatio = $.collateralRatioTargets.maxForDepositRebalance;
-            }
-            collateralRatio = _rebalanceTo(state, rebalanceToRatio);
-        }
-
-        uint256 afterTotalAssets = totalAssets();
-        uint256 shares = convertToShares(afterTotalAssets - prevTotalAssets);
-        _mint(receiver, shares);
-
-        emit Deposit(msg.sender, receiver, assets, shares);
-        return shares;
+    function deposit(uint256 assets, address receiver) public override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256 shares) {
+        (shares, ) = _deposit(assets, receiver, 0);
     }
-    
-    /// @notice function call RebalanceLogic to rebalance the pool to given target collateral ratio
-    /// @param loanState current loan state
-    /// @param targetRatio given target collateral ratio
-    /// @return collateralRatio collateral ratio after rebalance
-    function _rebalanceTo(LoanState memory loanState, uint256 targetRatio) internal returns (uint256 collateralRatio) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        return RebalanceLogic.rebalanceTo(
-            $.lendingPool,
-            $.strategyAssets,
-            loanState,
-            targetRatio,
-            $.oracle,
-            $.swapper
-        );
+
+    /// @inheritdoc ILoopStrategy
+    function deposit(uint256 assets, address receiver, uint256 minEquityReceived) external override whenNotPaused returns (uint256 shares, uint256 equityReceived) {
+        (shares, equityReceived) = _deposit(assets, receiver, minEquityReceived);
     }
 
     /// @inheritdoc IERC4626
     function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         (bool success, bytes memory result) = address(this).staticcall(
-            abi.encodeWithSelector(this.deposit.selector, assets)
+            abi.encodeWithSelector(IERC4626.deposit.selector, assets, address(0))
         );
 
         if (!success) {
@@ -193,8 +158,21 @@ contract LoopStrategy is
         return abi.decode(result, (uint256));
     }
 
+    /// @inheritdoc ILoopStrategy
+    function previewDepositEquity(uint256 assets) external view returns (uint256 shares, uint256 equityExpected) {
+        (bool success, bytes memory result) = address(this).staticcall(
+            abi.encodeWithSelector(ILoopStrategy.deposit.selector, assets, address(0))
+        );
+
+        if (!success) {
+            revert DepositStaticcallReverted();
+        }
+
+        return abi.decode(result, (uint256, uint256));
+    }
+
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
-    function mint(uint256, address) public override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
+    function mint(uint256, address) public view override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
         revert MintDisabled();
     }
 
@@ -221,6 +199,70 @@ contract LoopStrategy is
         return (collateralRatio < collateraRatioTargets.minForRebalance || collateralRatio > collateraRatioTargets.maxForRebalance);
     }
 
+    /// @notice function call RebalanceLogic to rebalance the pool to given target collateral ratio
+    /// @param loanState current loan state
+    /// @param targetRatio given target collateral ratio
+    /// @return collateralRatio collateral ratio after rebalance
+    function _rebalanceTo(LoanState memory loanState, uint256 targetRatio) internal returns (uint256 collateralRatio) {
+        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        return RebalanceLogic.rebalanceTo(
+            $.lendingPool,
+            $.strategyAssets,
+            loanState,
+            targetRatio,
+            $.oracle,
+            $.swapper
+        );
+    }
+
+    /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
+    /// @param assets amount of assets to deposit
+    /// @param receiver address of the receiver of share tokens
+    /// @param minEquityReceived required minimum of equity received
+    /// @return shares number of received shares
+    /// @return equityReceived amount of received equity
+    function _deposit(uint256 assets, address receiver, uint256 minEquityReceived) internal returns (uint256 shares, uint256 equityReceived) {
+        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        SafeERC20.safeTransferFrom($.strategyAssets.underlying, msg.sender, address(this), assets);
+
+        assets = _convertUnderlyingToCollateralAsset($.strategyAssets, assets);
+        
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        if (collateralRatio != 0 && _shouldRebalance(collateralRatio, $.collateralRatioTargets)) {
+            collateralRatio = _rebalanceTo(state, $.collateralRatioTargets.target);
+        }
+
+        uint256 prevTotalAssets = totalAssets();
+        uint256 prevCollateralRatio = collateralRatio;
+
+        state = LoanLogic.supply($.lendingPool, $.strategyAssets.collateral, assets);
+        uint256 afterCollateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        if (prevCollateralRatio == 0) {
+            collateralRatio = _rebalanceTo(state, $.collateralRatioTargets.target);
+        } else if (afterCollateralRatio > $.collateralRatioTargets.maxForDepositRebalance) {
+            uint256 rebalanceToRatio = prevCollateralRatio;
+            if ($.collateralRatioTargets.maxForDepositRebalance > rebalanceToRatio) {
+                rebalanceToRatio = $.collateralRatioTargets.maxForDepositRebalance;
+            }
+            collateralRatio = _rebalanceTo(state, rebalanceToRatio);
+        }
+
+        equityReceived = totalAssets() - prevTotalAssets;
+        if (equityReceived < minEquityReceived) {
+            revert EquityReceivedBelowMinimum(equityReceived, minEquityReceived);
+        }
+
+        shares = _convertToShares(equityReceived, prevTotalAssets);
+        _mint(receiver, shares);
+
+        emit Deposit(msg.sender, receiver, assets, shares);
+        return (shares, equityReceived);
+    }
+
     /// @notice helper function to calculate collateral ratio
     /// @param collateralUSD collateral value in USD
     /// @param debtUSD debt valut in USD
@@ -231,5 +273,27 @@ contract LoopStrategy is
         returns (uint256 ratio)
     {
         ratio = debtUSD != 0 ? USDWadRayMath.usdDiv(collateralUSD, debtUSD) : 0;
+    }
+
+    /// @notice function is the same formula as in ERC4626 implementation, but totalAssets is passed as a parameter of the function
+    /// @notice we are using this function because totalAssets may change before we are able to calculate asset(equity) amount;
+    /// @notice that is because we are calculating assets based on change in totalAssets
+    /// @param _assets amount of assets provided
+    /// @param _totalAssets amount of total assets which are used in calculation of shares
+    /// @return shares
+    function _convertToShares(uint256 _assets, uint256 _totalAssets) internal view virtual returns (uint256 shares) {
+        shares = Math.mulDiv(_assets, totalSupply() + 10 ** _decimalsOffset(), _totalAssets + 1, Math.Rounding.Floor);
+    }
+
+    /// @notice converts underlying asset to the collateral asset if those are different
+    /// @param strategyAssets struct which contain underlying asset address and collateral asset address
+    /// @param assets amount of assets to convert
+    /// @return receivedAssets amount of received collateral assets
+    function _convertUnderlyingToCollateralAsset(StrategyAssets storage strategyAssets, uint256 assets) internal virtual returns (uint256 receivedAssets) {
+        if (strategyAssets.underlying != strategyAssets.collateral) {
+            strategyAssets.underlying.approve(address(strategyAssets.collateral), assets);
+            IWrappedERC20PermissionedDeposit(address(strategyAssets.collateral)).deposit(assets);
+        }
+        receivedAssets = assets;
     }
 }

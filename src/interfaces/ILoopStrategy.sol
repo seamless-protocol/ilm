@@ -13,8 +13,12 @@ interface ILoopStrategy is IERC4626 {
     error MintDisabled();
     /// @notice reverts when deposit staticcal from previewDeposit reverts
     error DepositStaticcallReverted();
-    /// notice reverts when rebalance function is called but collateral ratio is in the target range
+    /// @notice reverts when rebalance function is called but collateral ratio is in the target range
     error RebalanceNotNeeded();
+    /// @notice reverts when equity received by user on deposit is lower than given minimum
+    /// @param equityReceived amount of equity received
+    /// @param minEquityReceived minimum defined by caller
+    error EquityReceivedBelowMinimum(uint256 equityReceived, uint256 minEquityReceived);
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying value (USD)
@@ -57,4 +61,18 @@ interface ILoopStrategy is IERC4626 {
     /// @notice retruns true if collateral ratio is out of the target range, and we need to rebalance pool
     /// @return shouldRebalance true if rebalance is needed
     function rebalanceNeeded() external view returns(bool shouldRebalance);
+
+    /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
+    /// @param assets amount of assets to deposit
+    /// @param receiver address of the receiver of share tokens
+    /// @param minEquityReceived required minimum of equity received
+    /// @return shares number of received shares
+    /// @return equityReceived amount of received equity
+    function deposit(uint256 assets, address receiver, uint256 minEquityReceived) external returns (uint256 shares, uint256 equityReceived);
+
+    /// @notice returns number of expected amount of equity received and shares received for the supplied assets amount
+    /// @param assets amount of assets to deposit
+    /// @return shares amount of expected shares to receive
+    /// @return equityExpected amount of expected equity to receive
+    function previewDepositEquity(uint256 assets) external view returns (uint256 shares, uint256 equityExpected);
 }
