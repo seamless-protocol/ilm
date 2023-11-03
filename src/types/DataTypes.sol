@@ -38,6 +38,14 @@ struct LendingPool {
     uint256 interestRateMode;
 }
 
+/// @dev conatins address of the lending pool and configuration
+struct LendingPool {
+    /// @dev address of the lending pool
+    IPool pool;
+    /// @dev interest rate mode used on loan
+    uint256 interestRateMode;
+}
+
 /// @dev contains all data pertaining to the current position state of the strategy
 struct LoanState {
     /// @dev collateral value in underlying (USD)
