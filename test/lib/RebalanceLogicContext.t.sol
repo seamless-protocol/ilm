@@ -80,10 +80,17 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         USDbC_price = $.oracle.getAssetPrice(address(USDbC));
 
         // deploy mock swapper instance
-        $.swapper = new SwapperMock(address($.assets.collateral), address($.assets.debt), address($.oracle));
+        $.swapper =
+        new SwapperMock(address($.assets.collateral), address($.assets.debt), address($.oracle));
 
-        assert(address(SwapperMock(address($.swapper)).borrowAsset()) == address(USDbC));
-        assert(address(SwapperMock(address($.swapper)).collateralAsset()) == address(WETH));
+        assert(
+            address(SwapperMock(address($.swapper)).borrowAsset())
+                == address(USDbC)
+        );
+        assert(
+            address(SwapperMock(address($.swapper)).collateralAsset())
+                == address(WETH)
+        );
 
         // fake minting some tokens to start with
         deal(address(WETH), address(this), MINT_AMOUNT);
