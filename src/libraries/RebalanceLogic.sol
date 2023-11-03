@@ -262,11 +262,15 @@ library RebalanceLogic {
         returns (uint256 ratio)
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
         ratio =
             _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
 =======
         ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
 >>>>>>> b505610 (feat: use  function instead of if-check in , add max iteration value)
+=======
+        ratio = _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
+>>>>>>> 197d196 (style: RebalanceLogic aligned with style guide)
     }
 
     /// @notice converts a asset amount to its usd value
