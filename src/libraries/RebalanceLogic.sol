@@ -230,60 +230,60 @@ library RebalanceLogic {
     }
 
     /// @notice helper function to calculate collateral ratio
-    /// @param collateralUSD collateral value in USD
-    /// @param debtUSD debt valut in USD
+    /// @param _collateralUSD collateral value in USD
+    /// @param _debtUSD debt valut in USD
     /// @return ratio collateral ratio value
-    function collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
+    function collateralRatioUSD(uint256 _collateralUSD, uint256 _debtUSD)
         public
         pure
         returns (uint256 ratio)
     {
-        ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
+        ratio = _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
     }
 
     /// @notice converts a asset amount to its usd value
-    /// @param assetAmount amount of asset
-    /// @param priceInUSD price of asset in USD
+    /// @param _assetAmount amount of asset
+    /// @param _priceInUSD price of asset in USD
     /// @return usdAmount amount of USD after conversion
     function convertAssetToUSD(
-        uint256 assetAmount,
-        uint256 priceInUSD,
-        uint256 assetDecimals
+        uint256 _assetAmount,
+        uint256 _priceInUSD,
+        uint256 _assetDecimals
     ) public pure returns (uint256 usdAmount) {
-        usdAmount = assetAmount * priceInUSD / (10 ** assetDecimals);
+        usdAmount = _assetAmount * _priceInUSD / (10 ** _assetDecimals);
     }
 
     /// @notice converts a USD amount to its token value
-    /// @param usdAmount amount of USD
-    /// @param priceInUSD price of asset in USD
+    /// @param _usdAmount amount of USD
+    /// @param _priceInUSD price of asset in USD
     /// @return assetAmount amount of asset after conversion
     function convertUSDToAsset(
-        uint256 usdAmount,
-        uint256 priceInUSD,
-        uint256 assetDecimals
+        uint256 _usdAmount,
+        uint256 _priceInUSD,
+        uint256 _assetDecimals
     ) public pure returns (uint256 assetAmount) {
-        if (USD_DECIMALS > assetDecimals) {
-            assetAmount = usdAmount.usdDiv(priceInUSD)
-                / (10 ** (USD_DECIMALS - assetDecimals));
+        if (USD_DECIMALS > _assetDecimals) {
+            assetAmount = _usdAmount.usdDiv(_priceInUSD)
+                / (10 ** (USD_DECIMALS - _assetDecimals));
         } else {
-            assetAmount = usdAmount.usdDiv(priceInUSD)
-                * (10 ** (assetDecimals - USD_DECIMALS));
+            assetAmount = _usdAmount.usdDiv(_priceInUSD)
+                * (10 ** (_assetDecimals - USD_DECIMALS));
         }
     }
 
     /// @notice helper function to offset amounts by a USD percentage downwards
-    /// @param a amount to offset
-    /// @param usdOffset offset as a number between 0 -  ONE_USD
-    function offsetUSDAmountDown(uint256 a, uint256 usdOffset)
+    /// @param _a amount to offset
+    /// @param _offsetUSD offset as a number between 0 -  ONE_USD
+    function offsetUSDAmountDown(uint256 _a, uint256 _offsetUSD)
         public
         pure
         returns (uint256 amount)
     {
         // prevent overflows
-        if (a <= type(uint256).max / (ONE_USD - usdOffset)) {
-            amount = (a * (ONE_USD - usdOffset)) / ONE_USD;
+        if (_a <= type(uint256).max / (ONE_USD - _offsetUSD)) {
+            amount = (_a * (ONE_USD - _offsetUSD)) / ONE_USD;
         } else {
-            amount = (a / ONE_USD) * (ONE_USD - usdOffset);
+            amount = (_a / ONE_USD) * (ONE_USD - _offsetUSD);
         }
     }
 
