@@ -32,6 +32,8 @@ library LoopStrategyStorage {
         IPriceOracleGetter oracle;
         /// @dev swapper address
         ISwapper swapper;
+        /// @dev maximum amount of loop iterations when rebalancing
+        uint16 maxIterations;
     }
 
     bytes32 internal constant STORAGE_SLOT =
