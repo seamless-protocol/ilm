@@ -55,8 +55,8 @@ contract LoopStrategy is
       });
 
       // approving to lending pool collateral and debt assets in advance 
-      $.strategyAssets.collateral.approve(address($.lendingPool.pool), type(uint256).max);
-      $.strategyAssets.debt.approve(address($.lendingPool.pool), type(uint256).max);
+      $.assets.collateral.approve(address($.lendingPool.pool), type(uint256).max);
+      $.assets.debt.approve(address($.lendingPool.pool), type(uint256).max);
     }
 
     function pause() external onlyOwner {
