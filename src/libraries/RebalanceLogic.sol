@@ -128,7 +128,7 @@ library RebalanceLogic {
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
-            if (++count > 15) {
+            if (++count > $.maxIterations) {
                 break;
             }
         } while (_targetCR + margin < ratio);
@@ -223,7 +223,7 @@ library RebalanceLogic {
 
             // update collateral ratio value
             ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
-            if (++count > 15) {
+            if (++count > $.maxIterations) {
                 break;
             }
         } while (ratio + margin < _targetCR);
@@ -238,7 +238,8 @@ library RebalanceLogic {
         pure
         returns (uint256 ratio)
     {
-        ratio = _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
+        ratio =
+            _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
     }
 
     /// @notice converts a asset amount to its usd value

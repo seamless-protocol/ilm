@@ -74,6 +74,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
             maxForDepositRebalance: MIN_FOR_WITHDRAW_REBALANCE_CR,
             minForWithdrawRebalance: MAX_FOR_DEPOSIT_REBALANCE_CR
         });
+        $.maxIterations = 15;
 
         // getting token prices
         WETH_price = $.oracle.getAssetPrice(address(WETH));
