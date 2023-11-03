@@ -28,11 +28,11 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     /// contracts needed for setting up and testing RebalanceLogic
     IPoolAddressesProvider public constant poolAddressProvider =
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
-    IPriceOracleGetter public oracle;
+    // IPriceOracleGetter public oracle;
     IPoolDataProvider public poolDataProvider;
-    LendingPool lendingPool;
-    StrategyAssets public assets;
-    SwapperMock public swapper;
+    // LendingPool lendingPool;
+    // StrategyAssets public assets;
+    // SwapperMock public swapper;
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
 
@@ -41,15 +41,14 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     /// values required for setting up and testing RebalanceLogic
     uint256 public WETH_price;
     uint256 public USDbC_price;
-    uint256 public ltvWETH;
-    uint256 public ltvWETHUSD;
 
     uint256 internal constant BASIS = 1e8;
     uint256 internal constant MINT_AMOUNT = 1000 ether;
     CollateralRatio internal ratio;
 
-    uint256 targetCR;
-
+    // set up ratios:
+    // targerCR is 1.5e8 for 3x weighting, and the min/max values for rebalance are
+    // determined by the maximum number of iterations (15 iterations can only allow to reach a certain target)
     uint256 internal constant TARGET_CR = 1.5e8;
     uint256 internal constant MIN_FOR_REBALANCE_CR = 134_444_444;
     uint256 internal constant MAX_FOR_REBALANCE_CR = 166_666_666;
@@ -58,6 +57,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
 
     /// @dev sets up auxiliary contracts and context for RebalanceLogic tests
     function setUp() public virtual {
+        // set up LoopStrategyStorage
         $.assets.collateral = WETH;
         $.assets.debt = USDbC;
         $.lendingPool = LendingPool({
@@ -67,36 +67,23 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         });
         $.oracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
         $.ratioMargin = 100_000; // 1e2 / 1e8 = 0.001%
-
-        lendingPool = LendingPool({
-            pool: IPool(poolAddressProvider.getPool()),
-            // variable interest rate mode is 2
-            interestRateMode: 2
+        $.collateralRatioTargets = CollateralRatio({
+            target: TARGET_CR,
+            minForRebalance: MIN_FOR_REBALANCE_CR,
+            maxForRebalance: MAX_FOR_REBALANCE_CR,
+            maxForDepositRebalance: MIN_FOR_WITHDRAW_REBALANCE_CR,
+            minForWithdrawRebalance: MAX_FOR_DEPOSIT_REBALANCE_CR
         });
 
-        assets.collateral = WETH;
-        assets.debt = USDbC;
-
-        poolDataProvider =
-            IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
-        (, ltvWETH,,,,,,,,) =
-            poolDataProvider.getReserveConfigurationData(address(WETH));
-
-        ltvWETHUSD = ltvWETH * 1e4;
-
         // getting token prices
-        oracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
-        WETH_price = oracle.getAssetPrice(address(WETH));
-        USDbC_price = oracle.getAssetPrice(address(USDbC));
+        WETH_price = $.oracle.getAssetPrice(address(WETH));
+        USDbC_price = $.oracle.getAssetPrice(address(USDbC));
 
         // deploy mock swapper instance
-        swapper =
-        new SwapperMock(address(assets.collateral), address(assets.debt), address(oracle));
+        $.swapper = new SwapperMock(address($.assets.collateral), address($.assets.debt), address($.oracle));
 
-        $.swapper = swapper;
-
-        assert(address(swapper.borrowAsset()) == address(USDbC));
-        assert(address(swapper.collateralAsset()) == address(WETH));
+        assert(address(SwapperMock(address($.swapper)).borrowAsset()) == address(USDbC));
+        assert(address(SwapperMock(address($.swapper)).collateralAsset()) == address(WETH));
 
         // fake minting some tokens to start with
         deal(address(WETH), address(this), MINT_AMOUNT);
@@ -105,15 +92,5 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         // approve tokens for pool to use on supplying and repaying
         WETH.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
         USDbC.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
-
-        // 3x leverage using collateral ratio at 1.5
-        targetCR = 1.5e8;
-        ratio.target = TARGET_CR;
-        ratio.minForRebalance = MIN_FOR_REBALANCE_CR;
-        ratio.maxForRebalance = MAX_FOR_REBALANCE_CR;
-        ratio.minForWithdrawRebalance = MIN_FOR_WITHDRAW_REBALANCE_CR;
-        ratio.maxForDepositRebalance = MAX_FOR_DEPOSIT_REBALANCE_CR;
-
-        $.collateralRatioTargets = ratio;
     }
 }
