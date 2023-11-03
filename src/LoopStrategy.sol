@@ -42,7 +42,7 @@ contract LoopStrategy is
       __Pausable_init();
 
       LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-      $.strategyAssets = _strategyAssets;
+      $.assets = _strategyAssets;
       $.collateralRatioTargets = _collateralRatioTargets;
       $.poolAddressProvider = _poolAddressProvider;
       $.oracle = _oracle;
