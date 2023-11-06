@@ -8,9 +8,9 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
-/// @title RebalanceLogicHarness
-/// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
-contract RebalanceLogicHarness is RebalanceLogicContext {
+/// @title RebalanceLogicTest
+/// @dev RebalanceLogicTest contract which exposes RebalanceLogic library functions
+contract RebalanceLogicTest is RebalanceLogicContext {
     using USDWadRayMath for uint256;
 
     uint256 targetCR;
