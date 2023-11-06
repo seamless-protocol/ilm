@@ -9,7 +9,7 @@ import { LoanState } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
-    
+
 import "forge-std/console.sol";
 
 contract RebalanceLogicVerification is RebalanceLogicContext {
@@ -59,8 +59,8 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
 
         state = LoanLogic.getLoanState($.lendingPool);
 
-        console.log('cUSD: ', state.collateralUSD);
-        console.log('dUSD: ', state.debtUSD);
+        console.log("cUSD: ", state.collateralUSD);
+        console.log("dUSD: ", state.debtUSD);
 
         currentCR = RebalanceLogic.collateralRatioUSD(
             state.collateralUSD, state.debtUSD
