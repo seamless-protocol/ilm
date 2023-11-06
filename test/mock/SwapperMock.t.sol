@@ -72,8 +72,7 @@ contract SwapperMock is Test, ISwapper {
         /// mock account for the offset of DEX swaps
         toAmount -= (toAmount * offsetFactor(_from, _to)) / BASIS;
 
-        //IERC20(_to).transfer(_beneficiary, toAmount);
-        deal(address(_to), _beneficiary, toAmount);
+        deal(address(_to), _beneficiary, _to.balanceOf(_beneficiary) + toAmount);
     }
 
     /// @inheritdoc ISwapper
