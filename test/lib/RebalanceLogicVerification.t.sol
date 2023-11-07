@@ -10,8 +10,9 @@ import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
 
-import "forge-std/console.sol";
 
+/// @title RebalanceLogicVerification contract
+/// @dev Tests some of the scenarios in the EquityModel excel sheet
 contract RebalanceLogicVerification is RebalanceLogicContext {
     function setUp() public override {
         super.setUp();
@@ -22,14 +23,14 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
     /// @dev verifies against EquityModel - scenario 1 excel case by mimicking all actions and
     /// respective rebalances
     function test_EquityModel_ScenarioOne() public {
-        uint256 startingAmountAsset = 1 ether;
+        // a bit more than a third to hit as close as possible to 1 ETH after rebalancing upwards for
+        // 3x leverage
+        uint256 startingAmountAsset = uint256(1 ether) * 11 / 30;
         uint256 startingAmountUSD = RebalanceLogic.convertAssetToUSD(
             startingAmountAsset, WETH_price, 18
         );
 
         uint256 depositAmountAsset = 0.1 ether;
-        uint256 usdDeposit =
-            RebalanceLogic.convertAssetToUSD(depositAmountAsset, WETH_price, 18);
 
         LoanLogic.supply(
             $.lendingPool, $.assets.collateral, startingAmountAsset
@@ -51,24 +52,27 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
-        console.log("cUSD: ", state.collateralUSD);
-        console.log("dUSD: ", state.debtUSD);
-
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
+        // expect to leverage up to approximately 1 WETH in USD value and 2/3 of that in debt
+        assertApproxEqAbs(state.collateralUSD, WETH_price, WETH_price / 100_000);
+        assertApproxEqAbs(
+            state.debtUSD, WETH_price * 2 / 3, WETH_price * 2 / (3 * 100_000)
         );
-
         assertApproxEqAbs(currentCR, targetCR, margin);
 
-        LoanLogic.supply($.lendingPool, $.assets.collateral, depositAmountAsset);
+        state = LoanLogic.supply(
+            $.lendingPool, $.assets.collateral, depositAmountAsset
+        );
+
+        // expect to have approximately 1.1x WETH_price in collateralUSD value
+        assertApproxEqAbs(
+            state.collateralUSD,
+            WETH_price * 11 / 10,
+            WETH_price * 11 / (10 * 100_000)
+        );
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -76,8 +80,97 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
             state.collateralUSD, state.debtUSD
         );
 
+        // expectedCR taken from scenario case
         uint256 expectedCR = uint256(1.65e8);
 
         assertApproxEqAbs(currentCR, expectedCR, expectedCR / 1_000_000);
+
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        // expect to leverage up to approximately 14 / 11 WETH USD valuem, and 2/3 of that in debt
+        assertApproxEqAbs(
+            state.collateralUSD,
+            WETH_price * 14 / 11,
+            WETH_price * 14 / (11 * 100_000)
+        );
+        assertApproxEqAbs(
+            state.debtUSD,
+            WETH_price * 28 / 33,
+            WETH_price * 28 / (33 * 100_000)
+        );
+        assertApproxEqAbs(currentCR, targetCR, margin);
+    }
+
+    /// @dev verifies against EquityModel - scenario 2 excel case by mimicking all actions and
+    // respective rebalances
+    function test_EquityModel_ScenarioTwo() public {
+        // a bit more than a quarter to hit as close as possible to 1 ETH after rebalancing upwards for
+        // 3x leverage
+        // value is found heuristically
+        uint256 startingAmountAsset = uint256(1 ether) * 288143/1000000;
+        uint256 startingAmountUSD = RebalanceLogic.convertAssetToUSD(
+            startingAmountAsset, WETH_price, 18
+        );
+
+        uint256 depositAmountAsset = 0.01 ether;
+
+        LoanState memory state = LoanLogic.supply(
+            $.lendingPool, $.assets.collateral, startingAmountAsset
+        );
+
+        uint256 targetCR = $.collateralRatioTargets.target;
+
+        assertApproxEqAbs(
+            state.collateralUSD, startingAmountUSD, startingAmountUSD / 100_000
+        );
+        assertEq(state.debtUSD, 0);
+        assertEq(
+            RebalanceLogic.collateralRatioUSD(
+                state.collateralUSD, state.debtUSD
+            ),
+            type(uint256).max
+        );
+
+        // set targetCR to be max of 1.33333333e8 and maxIterations to be 25 (to reach the targetCR)
+        targetCR = 1.33333333e8;
+        $.maxIterations = 25;
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        // allow more error on USD values
+        assertApproxEqAbs(
+            state.collateralUSD, WETH_price, WETH_price / 1000
+        );
+        // allow more error on USD values
+        assertApproxEqAbs(
+            state.debtUSD, WETH_price * 3 / 4, WETH_price * 3 / (4 * 1000)
+        );
+        assertApproxEqAbs(currentCR, targetCR, margin);
+
+        targetCR = 1.4e8;
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
+        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(currentCR, targetCR, margin);
+
+        state = LoanLogic.supply($.lendingPool, $.assets.collateral, depositAmountAsset);
+        currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        
+        uint256 expectedCR = 1.4165e8;
+
+        // allow more error on expectedCR due to conversions
+        assertApproxEqAbs(currentCR, expectedCR, expectedCR / 10000);
+
+        targetCR = 1.4e8;
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
+        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+        
+        assertApproxEqAbs(currentCR, targetCR, margin);
+
+        state = LoanLogic.getLoanState($.lendingPool);
     }
 }
