@@ -29,20 +29,22 @@ library RebalanceLogic {
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
+    /// @param $ the storage state of LendingStrategyStorage
     /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param _targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
-    function rebalanceTo(LoanState memory _state, uint256 _targetCR)
-        public
-        returns (uint256 ratio)
-    {
+    function rebalanceTo(
+        Storage.Layout storage $,
+        LoanState memory _state,
+        uint256 _targetCR
+    ) public returns (uint256 ratio) {
         // current collateral ratio
         ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
 
         if (ratio > _targetCR) {
-            return rebalanceUp(Storage.layout(), _state, ratio, _targetCR);
+            return rebalanceUp($, _state, ratio, _targetCR);
         } else {
-            return rebalanceDown(Storage.layout(), _state, ratio, _targetCR);
+            return rebalanceDown($, _state, ratio, _targetCR);
         }
     }
 
