@@ -3,18 +3,19 @@
 pragma solidity ^0.8.18;
 
 import { Test } from "forge-std/Test.sol";
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPoolDataProvider } from "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IPool } from "@aave/contracts/interfaces/IPool.sol";
-import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
+import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+
+import { TestConstants } from "../config/TestConstants.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LoanState, LendingPool } from "../../src/types/DataTypes.sol";
-import { TestConstants } from "../config/TestConstants.sol";
-import "forge-std/console.sol";
 
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
