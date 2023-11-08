@@ -52,7 +52,7 @@ contract LoopStrategy is
         __ERC4626_init(_strategyAssets.collateral);
         __Pausable_init();
 
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         $.assets = _strategyAssets;
         $.collateralRatioTargets = _collateralRatioTargets;
         $.poolAddressProvider = _poolAddressProvider;
