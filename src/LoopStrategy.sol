@@ -21,7 +21,8 @@ import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { ILoopStrategy, IERC4626 } from "./interfaces/ILoopStrategy.sol";
 import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
-import { LoopStrategyStorage } from "./storage/LoopStrategyStorage.sol";
+import { LoopStrategyStorage as Storage } from
+    "./storage/LoopStrategyStorage.sol";
 import {
     CollateralRatio,
     LoanState,
@@ -95,16 +96,14 @@ contract LoopStrategy is
         override
         onlyOwner
     {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.lendingPool.interestRateMode = _interestRateMode;
+        Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
 
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(
         CollateralRatio memory _collateralRatioTargets
     ) external override onlyOwner {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.collateralRatioTargets = _collateralRatioTargets;
+        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
@@ -114,27 +113,27 @@ contract LoopStrategy is
         override
         returns (CollateralRatio memory ratio)
     {
-        return LoopStrategyStorage.layout().collateralRatioTargets;
+        return Storage.layout().collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
     function equity() public view override returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function debt() external view override returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external view override returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD;
     }
 
@@ -145,8 +144,8 @@ contract LoopStrategy is
         override
         returns (uint256 ratio)
     {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
@@ -160,7 +159,7 @@ contract LoopStrategy is
         if (!rebalanceNeeded()) {
             revert RebalanceNotNeeded();
         }
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         return RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
     }
@@ -172,7 +171,7 @@ contract LoopStrategy is
         override
         returns (bool shouldRebalance)
     {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         uint256 collateralRatio =
             _collateralRatioUSD(state.collateralUSD, state.debtUSD);
@@ -272,9 +271,7 @@ contract LoopStrategy is
         override(ERC4626Upgradeable, IERC4626)
         whenNotPaused
         returns (uint256)
-    {
-       
-    }
+    { }
 
     /// @inheritdoc IERC4626
     function previewRedeem(uint256 shares)
