@@ -12,7 +12,7 @@ import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { ILoopStrategy, IERC4626 } from "./interfaces/ILoopStrategy.sol";
 import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
-import { LoopStrategyStorage } from "./storage/LoopStrategyStorage.sol";
+import { LoopStrategyStorage as Storage} from "./storage/LoopStrategyStorage.sol";
 import { CollateralRatio, LoanState, LendingPool, StrategyAssets } from "./types/DataTypes.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -62,39 +62,34 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function setInterestRateMode(uint256 _interestRateMode) external override onlyOwner {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.lendingPool.interestRateMode = _interestRateMode;
+        Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
 
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(CollateralRatio memory _collateralRatioTargets) external override onlyOwner {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.collateralRatioTargets = _collateralRatioTargets;
+        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
     function getCollateralRatioTargets() external view override returns (CollateralRatio memory ratio) {
-        return LoopStrategyStorage.layout().collateralRatioTargets;
+        return Storage.layout().collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
     function equity() public override view returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function debt() external override view returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external override view returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD;
     }
 
