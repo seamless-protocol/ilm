@@ -111,19 +111,22 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function equity() public view override returns (uint256 amount) {
-        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function debt() external view override returns (uint256 amount) {
-        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external view override returns (uint256 amount) {
-        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD;
     }
 
@@ -134,7 +137,8 @@ contract LoopStrategy is
         override
         returns (uint256 ratio)
     {
-        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
+        LoanState memory state =
+            LoanLogic.getLoanState(Storage.layout().lendingPool);
         return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
