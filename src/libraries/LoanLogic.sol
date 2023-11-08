@@ -119,7 +119,7 @@ library LoanLogic {
                 maxWithdrawAmount: 0
             });
         }
-        
+
         uint256 maxWithdrawAmount =
             totalCollateralUSD - PercentageMath.percentDiv(totalDebtUSD, ltv);
 

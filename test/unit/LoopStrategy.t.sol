@@ -63,7 +63,7 @@ contract LoopStrategyTest is BaseForkTest {
             interestRateMode: 2
         });
 
-        // deploy MockAaveOracle to the address of already existing priceOracle 
+        // deploy MockAaveOracle to the address of already existing priceOracle
         MockAaveOracle mockOracle = new MockAaveOracle();
         bytes memory mockOracleCode = address(mockOracle).code;
         vm.etch(poolAddressProvider.getPriceOracle(), mockOracleCode);
@@ -72,9 +72,11 @@ contract LoopStrategyTest is BaseForkTest {
         _changePrice(USDbC, 1e8);
         _changePrice(CbETH, 2000 * 1e8);
 
-        wrappedCbETH = new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
+        wrappedCbETH =
+            new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
 
-        swapper = new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));
+        swapper =
+        new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));
         strategyAssets = StrategyAssets({
             underlying: CbETH,
             collateral: CbETH,
@@ -139,7 +141,10 @@ contract LoopStrategyTest is BaseForkTest {
         assertEq(priceOracle.getAssetPrice(address(CbETH)), 1234 * 1e8);
     }
 
-    function _depositFor(address user, uint256 amount) internal returns(uint256 shares) {
+    function _depositFor(address user, uint256 amount)
+        internal
+        returns (uint256 shares)
+    {
         vm.startPrank(user);
         deal(address(strategyAssets.underlying), user, amount);
         strategyAssets.underlying.approve(address(strategy), amount);
@@ -156,7 +161,9 @@ contract LoopStrategyTest is BaseForkTest {
     }
 
     function _changePrice(IERC20 token, uint256 price) internal {
-        MockAaveOracle(address(priceOracle)).setAssetPrice(address(token), price);
+        MockAaveOracle(address(priceOracle)).setAssetPrice(
+            address(token), price
+        );
     }
 
     /// @dev changes the borrow cap parameter for the given asset
