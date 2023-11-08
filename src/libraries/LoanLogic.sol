@@ -111,7 +111,7 @@ library LoanLogic {
                 maxWithdrawAmount: 0
             });
         }
-        
+
         uint256 maxWithdrawAmount =
             totalCollateralBase - PercentageMath.percentDiv(totalDebtBase, ltv);
 

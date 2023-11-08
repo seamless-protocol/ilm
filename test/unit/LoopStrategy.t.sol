@@ -9,8 +9,7 @@ import { IPoolDataProvider } from
     "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IAaveOracle } from
-    "@aave/contracts/interfaces/IAaveOracle.sol";
+import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
@@ -19,7 +18,12 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
 import { BaseForkTest } from "../BaseForkTest.t.sol";
-import { LendingPool, LoanState, StrategyAssets, CollateralRatio } from "../../src/types/DataTypes.sol";
+import {
+    LendingPool,
+    LoanState,
+    StrategyAssets,
+    CollateralRatio
+} from "../../src/types/DataTypes.sol";
 import { LoopStrategy } from "../../src/LoopStrategy.sol";
 import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
@@ -61,7 +65,7 @@ contract LoopStrategyTest is BaseForkTest {
             interestRateMode: 2
         });
 
-        // deploy MockAaveOracle to the address of already existing priceOracle 
+        // deploy MockAaveOracle to the address of already existing priceOracle
         MockAaveOracle mockOracle = new MockAaveOracle();
         bytes memory mockOracleCode = address(mockOracle).code;
         vm.etch(poolAddressProvider.getPriceOracle(), mockOracleCode);
@@ -70,9 +74,11 @@ contract LoopStrategyTest is BaseForkTest {
         _changePrice(USDbC, 1e8);
         _changePrice(CbETH, 2000 * 1e8);
 
-        wrappedCbETH = new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
+        wrappedCbETH =
+            new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
 
-        swapper = new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));
+        swapper =
+        new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));
         strategyAssets = StrategyAssets({
             underlying: CbETH,
             collateral: CbETH,
@@ -103,9 +109,8 @@ contract LoopStrategyTest is BaseForkTest {
         deal(address(CbETH), address(this), 100 ether);
 
         SwapperMock(address(swapper)).setOffsets(5e5, 5e5);
-        swapOffset = swapper.offsetFactor(
-            strategyAssets.debt, strategyAssets.collateral
-        );
+        swapOffset =
+            swapper.offsetFactor(strategyAssets.debt, strategyAssets.collateral);
     }
 
     function test_changePrice() public {
@@ -113,7 +118,10 @@ contract LoopStrategyTest is BaseForkTest {
         assertEq(priceOracle.getAssetPrice(address(CbETH)), 1234 * 1e8);
     }
 
-    function _depositFor(address user, uint256 amount) internal returns(uint256 shares) {
+    function _depositFor(address user, uint256 amount)
+        internal
+        returns (uint256 shares)
+    {
         vm.startPrank(user);
         deal(address(strategyAssets.underlying), user, amount);
         strategyAssets.underlying.approve(address(strategy), amount);
@@ -122,7 +130,8 @@ contract LoopStrategyTest is BaseForkTest {
     }
 
     function _changePrice(IERC20 token, uint256 price) internal {
-        MockAaveOracle(address(priceOracle)).setAssetPrice(address(token), price);
+        MockAaveOracle(address(priceOracle)).setAssetPrice(
+            address(token), price
+        );
     }
-
 }

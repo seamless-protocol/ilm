@@ -18,7 +18,9 @@ interface ILoopStrategy is IERC4626 {
     /// @notice reverts when equity received by user on deposit is lower than given minimum
     /// @param equityReceived amount of equity received
     /// @param minEquityReceived minimum defined by caller
-    error EquityReceivedBelowMinimum(uint256 equityReceived, uint256 minEquityReceived);
+    error EquityReceivedBelowMinimum(
+        uint256 equityReceived, uint256 minEquityReceived
+    );
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying value (USD)
@@ -35,14 +37,19 @@ interface ILoopStrategy is IERC4626 {
     /// @return amount collateral amount
     function collateral() external view returns (uint256 amount);
 
-    /// @notice sets the collateral ratio targets (target ratio, min and max for rebalance, 
+    /// @notice sets the collateral ratio targets (target ratio, min and max for rebalance,
     /// @notice max for deposit rebalance and min for collateral rebalance)
     /// @param collateralRatioTargets collateral ratio targets struct
-    function setCollateralRatioTargets(CollateralRatio memory collateralRatioTargets) external;
+    function setCollateralRatioTargets(
+        CollateralRatio memory collateralRatioTargets
+    ) external;
 
     /// @notice returns min, max and target collateral ratio values
     /// @return ratio struct containing min, max and target collateral ratio values
-    function getCollateralRatioTargets() external view returns (CollateralRatio memory ratio);
+    function getCollateralRatioTargets()
+        external
+        view
+        returns (CollateralRatio memory ratio);
 
     /// @notice sets the interest rate mode for the loan
     /// @param interestRateMode interest rate mode per aave enum InterestRateMode {NONE, STABLE, VARIABLE}
@@ -57,10 +64,10 @@ interface ILoopStrategy is IERC4626 {
     /// within collateral ratio range
     /// @return ratio value of collateral ratio after strategy rebalances
     function rebalance() external returns (uint256 ratio);
-    
+
     /// @notice retruns true if collateral ratio is out of the target range, and we need to rebalance pool
     /// @return shouldRebalance true if rebalance is needed
-    function rebalanceNeeded() external view returns(bool shouldRebalance);
+    function rebalanceNeeded() external view returns (bool shouldRebalance);
 
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
@@ -68,11 +75,18 @@ interface ILoopStrategy is IERC4626 {
     /// @param minEquityReceived required minimum of equity received
     /// @return shares number of received shares
     /// @return equityReceived amount of received equity
-    function deposit(uint256 assets, address receiver, uint256 minEquityReceived) external returns (uint256 shares, uint256 equityReceived);
+    function deposit(
+        uint256 assets,
+        address receiver,
+        uint256 minEquityReceived
+    ) external returns (uint256 shares, uint256 equityReceived);
 
     /// @notice returns number of expected amount of equity received and shares received for the supplied assets amount
     /// @param assets amount of assets to deposit
     /// @return shares amount of expected shares to receive
     /// @return equityExpected amount of expected equity to receive
-    function previewDepositEquity(uint256 assets) external view returns (uint256 shares, uint256 equityExpected);
+    function previewDepositEquity(uint256 assets)
+        external
+        view
+        returns (uint256 shares, uint256 equityExpected);
 }
