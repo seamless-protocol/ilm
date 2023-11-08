@@ -78,7 +78,7 @@ contract LoanLogicTest is Test, TestConstants {
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_supply() public {
       uint256 wethAmountBefore = WETH.balanceOf(address(this));
-      uint256 supplyAmount = 10 ether;
+      uint256 supplyAmount = 3 ether;
 
       LoanState memory loanState;
       loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
@@ -136,7 +136,7 @@ contract LoanLogicTest is Test, TestConstants {
 
     /// @dev test confirming that we can borrow `maxBorrowAmount` returned from loan state
     function test_borrow_maxBorrow() public {
-      uint256 supplyAmount = 10 ether;
+      uint256 supplyAmount = 3 ether;
       LoanState memory loanState;
       loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
@@ -156,7 +156,7 @@ contract LoanLogicTest is Test, TestConstants {
 
     /// @dev test reverting when borrow 0.1% above `maxBorrowAmount` returned from loan state
     function test_borrow_revertsWhen_borrowingAboveMaxBorrow() public {
-      uint256 supplyAmount = 10 ether;
+      uint256 supplyAmount = 3 ether;
       LoanState memory loanState;
       loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
@@ -212,7 +212,7 @@ contract LoanLogicTest is Test, TestConstants {
     function testFuzz_borrow(uint256 borrowAmount) public {
       vm.assume(borrowAmount > 0);
 
-      uint256 supplyAmount = 10 ether;
+      uint256 supplyAmount = 3 ether;
       LoanState memory loanState;
       loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
@@ -234,7 +234,7 @@ contract LoanLogicTest is Test, TestConstants {
       vm.assume(withdrawAmount > 0);
       vm.assume(borrowAmount > 0);
 
-      uint256 supplyAmount = 10 ether;
+      uint256 supplyAmount = 3 ether;
       LoanState memory loanState;
       loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
       // converting loanState.maxBorrowAmount (USD) amount to the USDbC asset amount
