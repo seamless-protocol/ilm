@@ -89,16 +89,14 @@ contract LoopStrategy is
         override
         onlyOwner
     {
-        Storage.Layout storage $ = Storage.layout();
-        $.lendingPool.interestRateMode = _interestRateMode;
+        Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
 
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(
         CollateralRatio memory _collateralRatioTargets
     ) external override onlyOwner {
-        Storage.Layout storage $ = Storage.layout();
-        $.collateralRatioTargets = _collateralRatioTargets;
+        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
@@ -113,22 +111,19 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function equity() public view override returns (uint256 amount) {
-        Storage.Layout storage $ = Storage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function debt() external view override returns (uint256 amount) {
-        Storage.Layout storage $ = Storage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external view override returns (uint256 amount) {
-        Storage.Layout storage $ = Storage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD;
     }
 
@@ -139,8 +134,7 @@ contract LoopStrategy is
         override
         returns (uint256 ratio)
     {
-        Storage.Layout storage $ = Storage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
