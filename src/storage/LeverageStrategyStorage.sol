@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {CollateralRatio, StrategyAssets} from "../types/DataTypes.sol";
+import { CollateralRatio, StrategyAssets } from "../types/DataTypes.sol";
 
 library LeverageStrategyStorage {
     /// @dev struct containing all state for the LeverageStrategy contract

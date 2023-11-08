@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import {ISwapAdapter} from "./ISwapAdapter.sol";
+import { ISwapAdapter } from "./ISwapAdapter.sol";
 
 /// @title ISwapper
 /// @notice interface for Swapper contract
