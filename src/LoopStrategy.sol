@@ -140,12 +140,12 @@ contract LoopStrategy is
 
     /// @inheritdoc IERC4626
     function deposit(uint256 assets, address receiver) public override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256 shares) {
-        (shares, ) = _deposit(assets, receiver, 0);
+        shares = _deposit(assets, receiver, 0);
     }
 
     /// @inheritdoc ILoopStrategy
-    function deposit(uint256 assets, address receiver, uint256 minEquityReceived) external override whenNotPaused returns (uint256 shares, uint256 equityReceived) {
-        (shares, equityReceived) = _deposit(assets, receiver, minEquityReceived);
+    function deposit(uint256 assets, address receiver, uint256 minSharesReceived) external override whenNotPaused returns (uint256 shares) {
+        shares = _deposit(assets, receiver, minSharesReceived);
     }
 
     /// @inheritdoc IERC4626
@@ -221,10 +221,9 @@ contract LoopStrategy is
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
-    /// @param minEquityReceived required minimum of equity received
+    /// @param minSharesReceived required minimum of equity received
     /// @return shares number of received shares
-    /// @return equityReceived amount of received equity
-    function _deposit(uint256 assets, address receiver, uint256 minEquityReceived) internal returns (uint256 shares, uint256 equityReceived) {
+    function _deposit(uint256 assets, address receiver, uint256 minSharesReceived) internal returns (uint256 shares) {
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         SafeERC20.safeTransferFrom($.assets.underlying, msg.sender, address(this), assets);
 
@@ -254,16 +253,17 @@ contract LoopStrategy is
             collateralRatio = RebalanceLogic.rebalanceTo($, state, rebalanceToRatio);
         }
 
-        equityReceived = totalAssets() - prevTotalAssets;
-        if (equityReceived < minEquityReceived) {
-            revert EquityReceivedBelowMinimum(equityReceived, minEquityReceived);
+        uint256 equityReceived = totalAssets() - prevTotalAssets;
+        shares = _convertToShares(equityReceived, prevTotalAssets);
+
+        if (shares < minSharesReceived) {
+            revert SharesReceivedBelowMinimum(shares, minSharesReceived);
         }
 
-        shares = _convertToShares(equityReceived, prevTotalAssets);
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
-        return (shares, equityReceived);
+        return shares;
     }
 
     /// @notice helper function to calculate collateral ratio
