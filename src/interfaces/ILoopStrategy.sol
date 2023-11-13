@@ -69,10 +69,4 @@ interface ILoopStrategy is IERC4626 {
     /// @return shares number of received shares
     /// @return equityReceived amount of received equity
     function deposit(uint256 assets, address receiver, uint256 minEquityReceived) external returns (uint256 shares, uint256 equityReceived);
-
-    /// @notice returns number of expected amount of equity received and shares received for the supplied assets amount
-    /// @param assets amount of assets to deposit
-    /// @return shares amount of expected shares to receive
-    /// @return equityExpected amount of expected equity to receive
-    function previewDepositEquity(uint256 assets) external view returns (uint256 shares, uint256 equityExpected);
 }

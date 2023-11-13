@@ -3,6 +3,7 @@
 pragma solidity ^0.8.18;
 
 import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import { Ownable2StepUpgradeable, OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IPriceOracleGetter } from "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -19,6 +20,7 @@ import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ISwapper } from "./interfaces/ISwapper.sol";
 import { IWrappedERC20PermissionedDeposit } from "./interfaces/IWrappedERC20PermissionedDeposit.sol";
+import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
@@ -28,6 +30,7 @@ contract LoopStrategy is
     Ownable2StepUpgradeable,
     PausableUpgradeable
 {
+    using USDWadRayMath for uint256;
 
     function LoopStrategy_init(
       address _initialOwner,
@@ -119,7 +122,7 @@ contract LoopStrategy is
         }
         LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return RebalanceLogic.rebalanceTo(state, $.collateralRatioTargets.target);
+        return RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -147,33 +150,49 @@ contract LoopStrategy is
 
     /// @inheritdoc IERC4626
     function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
-        (bool success, bytes memory result) = address(this).staticcall(
-            abi.encodeWithSelector(IERC4626.deposit.selector, assets, address(0))
+        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        uint256 currentCR = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 estimateTargetCR;
+
+        uint256 underlyingPrice = $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 assetsUSD = RebalanceLogic.convertAssetToUSD(
+            assets, 
+            underlyingPrice, 
+            IERC20Metadata(address($.assets.underlying)).decimals()
         );
 
-        if (!success) {
-            revert DepositStaticcallReverted();
+        if (currentCR == 0 || _shouldRebalance(currentCR, $.collateralRatioTargets)) {
+            currentCR = $.collateralRatioTargets.target;
+        } 
+
+        uint256 afterCR = _collateralRatioUSD(state.collateralUSD + assetsUSD, state.debtUSD);
+        if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
+            estimateTargetCR = currentCR;
+            if ($.collateralRatioTargets.maxForDepositRebalance > estimateTargetCR) {
+                estimateTargetCR = $.collateralRatioTargets.maxForDepositRebalance;
+            }
+        } else {
+            estimateTargetCR = afterCR;
         }
 
-        return abi.decode(result, (uint256));
-    }
-
-    /// @inheritdoc ILoopStrategy
-    function previewDepositEquity(uint256 assets) external view returns (uint256 shares, uint256 equityExpected) {
-        (bool success, bytes memory result) = address(this).staticcall(
-            abi.encodeWithSelector(ILoopStrategy.deposit.selector, assets, address(0))
-        );
-
-        if (!success) {
-            revert DepositStaticcallReverted();
-        }
-
-        return abi.decode(result, (uint256, uint256));
+        uint256 offsetFactor = $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+        uint256 borrowAmount = RebalanceLogic.requiredBorrowUSD(estimateTargetCR, assetsUSD, 0, offsetFactor);
+        uint256 collateralAfterUSD = (assetsUSD.usdMul(estimateTargetCR)).usdDiv(estimateTargetCR - 1);
+        
+        uint256 estimatedEquity = collateralAfterUSD - borrowAmount;
+        return _convertToShares(estimatedEquity, totalAssets());
     }
 
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
     function mint(uint256, address) public view override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
         revert MintDisabled();
+    }
+
+    /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
+    /// @dev returning 0 because previewMint function must not revert by the ERC4626 standard
+    function previewMint(uint256) public view override(ERC4626Upgradeable, IERC4626) whenNotPaused returns (uint256) {
+        return 0;
     }
 
     /// @inheritdoc IERC4626
@@ -216,7 +235,7 @@ contract LoopStrategy is
         uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (collateralRatio != 0 && _shouldRebalance(collateralRatio, $.collateralRatioTargets)) {
-            collateralRatio = RebalanceLogic.rebalanceTo(state,  $.collateralRatioTargets.target);
+            collateralRatio = RebalanceLogic.rebalanceTo($, state,  $.collateralRatioTargets.target);
         }
 
         uint256 prevTotalAssets = totalAssets();
@@ -226,13 +245,13 @@ contract LoopStrategy is
         uint256 afterCollateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (prevCollateralRatio == 0) {
-            collateralRatio = RebalanceLogic.rebalanceTo(state, $.collateralRatioTargets.target);
+            collateralRatio = RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
         } else if (afterCollateralRatio > $.collateralRatioTargets.maxForDepositRebalance) {
             uint256 rebalanceToRatio = prevCollateralRatio;
             if ($.collateralRatioTargets.maxForDepositRebalance > rebalanceToRatio) {
                 rebalanceToRatio = $.collateralRatioTargets.maxForDepositRebalance;
             }
-            collateralRatio = RebalanceLogic.rebalanceTo(state, rebalanceToRatio);
+            collateralRatio = RebalanceLogic.rebalanceTo($, state, rebalanceToRatio);
         }
 
         equityReceived = totalAssets() - prevTotalAssets;
