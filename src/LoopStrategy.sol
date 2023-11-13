@@ -21,6 +21,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ISwapper } from "./interfaces/ISwapper.sol";
 import { IWrappedERC20PermissionedDeposit } from "./interfaces/IWrappedERC20PermissionedDeposit.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
+import { PointsEmissions } from "./PointsEmissions.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
@@ -28,7 +29,8 @@ contract LoopStrategy is
     ILoopStrategy,
     ERC4626Upgradeable,
     Ownable2StepUpgradeable,
-    PausableUpgradeable
+    PausableUpgradeable,
+    PointsEmissions
 {
     using USDWadRayMath for uint256;
 
@@ -45,6 +47,7 @@ contract LoopStrategy is
       __Ownable_init(_initialOwner);
       __ERC4626_init(_strategyAssets.collateral);
       __Pausable_init();
+      
 
       LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
       $.assets = _strategyAssets;
@@ -72,6 +75,32 @@ contract LoopStrategy is
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function initializePointEmissions(
+      IERC20 _rewardToken,
+      uint256 _emissionsPerSecond,
+      uint256 _sharesUnit
+    ) external override onlyOwner {
+        __PointsEmissions_init(_rewardToken, _emissionsPerSecond, _sharesUnit);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setEmissionsPerSecond(uint256 emissionsPerSecond) external override onlyOwner {
+        _setEmissionsPerSecond(emissionsPerSecond);
+    }
+
+    /// @dev overriding _update function to call PointsEmission functions on share changes
+    function _update(address from, address to, uint256 value) internal virtual override {
+        if (from != address(0)) {
+            _removeShares(from, value);
+        }
+        if (to != address(0)) {
+            _addShares(to, value);
+        }
+
+        super._update(from, to, value);
     }
 
     /// @inheritdoc ILoopStrategy

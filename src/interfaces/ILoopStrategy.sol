@@ -3,6 +3,7 @@
 pragma solidity ^0.8.18;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { CollateralRatio } from "../types/DataTypes.sol";
 
 /// @title IStrategy
@@ -68,4 +69,18 @@ interface ILoopStrategy is IERC4626 {
     /// @param minSharesReceived required minimum of shares received
     /// @return shares number of received shares
     function deposit(uint256 assets, address receiver, uint256 minSharesReceived) external returns (uint256 shares);
+
+    /// @notice initializes PointEmissions contract
+    /// @param rewardToken address of the token to be rewarded
+    /// @param emissionsPerSecond emissions of token per second
+    /// @param sharesUnit 1 unit of share in the ERC4626 contract
+    function initializePointEmissions(
+      IERC20 rewardToken,
+      uint256 emissionsPerSecond,
+      uint256 sharesUnit
+    ) external;
+
+    /// @notice changes emissions per second of reward token in PointEmissions
+    /// @param emissionsPerSecond emissions of token per second
+    function setEmissionsPerSecond(uint256 emissionsPerSecond) external;
 }
