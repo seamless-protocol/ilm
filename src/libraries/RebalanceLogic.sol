@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.18;
 
-import { ISwapper } from "../interfaces/ISwapper.sol";
-import { StrategyAssets, LoanState } from "../types/DataTypes.sol";
 import { IPriceOracleGetter } from "../interfaces/IPriceOracleGetter.sol";
+import { ISwapper } from "../interfaces/ISwapper.sol";
+import { LoanState, StrategyAssets } from "../types/DataTypes.sol";
 
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
