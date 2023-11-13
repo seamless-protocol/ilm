@@ -35,18 +35,46 @@ When developing using the Foundry testing kit we follow the [recommended best pr
 
 - The rule of thumb with naming conventions is clarity over brevity; the ideal being clarity _with_ brevity.
 
-- Name return variables
+- All return variables should be named
 
-- Add `_` prefix for function parameters, and internal function names:
-    - `function _someFunc(uint256 _uintParam) internal returns (address depositor);`
+- Function parameters should _only_ have a `_` prefix when setting a variable with the same name. For example, setting the storage variable `uint256 sameName` would be:
+    - `function setSameNameVariable(uint256 _sameName) external;`
 
+- Internal function names should always be prefixed with an `_`:
+    - `function _someFunc(uint256 uintParam) internal returns (address depositor);`
+
+- When a variable in storage stops being used, prefix it with `deprecated` upon upgrade. For example, deprecating a storage variable `uint256 someVariable` would be:
+  - `uint256 deprecated_someVariable`;
+
+- When upgrading a struct used in storage, deprecate the current struct and add a version suffix at the end of the struct type. For example:
+  ```
+  struct Person {
+    string name;
+    uint256 age;
+  }
+
+  Person person;
+  ```
+  becomes:
+
+  ```
+  struct PersonV2 {
+    string name;
+    uint256 age;
+    uint256 height;
+  }
+
+  Person deprecated_person;
+  PersonV2 person;
+  ```
+  
 - Nit: Use the same “voice” (active or passive) across comments
 
 - Test function naming as :
   - `test_FuncName_Effect`: `test_deposit_emitsDepositEvent()`
 - Fuzz testing as:
   - `testFuzz_FuncName_Effect`: `testFuzz_setFeeBP_setNewFeeValue(uint32 feeBP)`
-- Test function reversion cases as : `test_FunctName_RevertsWhen_ReversionContext`
+- Test function reversion cases as : `test_FunctName_RevertsWhen/If_ReversionContext`
   - `test_setFeeBP_RevertsWhen_CallerIsNotOwner()`
 
 ## Comment Styling
