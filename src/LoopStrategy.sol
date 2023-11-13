@@ -38,7 +38,9 @@ contract LoopStrategy is
       CollateralRatio memory _collateralRatioTargets,
       IPoolAddressesProvider _poolAddressProvider,
       IPriceOracleGetter _oracle,
-      ISwapper _swapper
+      ISwapper _swapper,
+      uint256 _ratioMargin,
+      uint16 _maxIterations
     ) external initializer {
       __Ownable_init(_initialOwner);
       __ERC4626_init(_strategyAssets.collateral);
@@ -50,6 +52,8 @@ contract LoopStrategy is
       $.poolAddressProvider = _poolAddressProvider;
       $.oracle = _oracle;
       $.swapper = _swapper;
+      $.ratioMargin = _ratioMargin;
+      $.maxIterations = _maxIterations;
 
       $.lendingPool = LendingPool({
         pool: IPool(_poolAddressProvider.getPool()),
@@ -162,24 +166,27 @@ contract LoopStrategy is
             IERC20Metadata(address($.assets.underlying)).decimals()
         );
 
-        if (currentCR == 0 || _shouldRebalance(currentCR, $.collateralRatioTargets)) {
-            currentCR = $.collateralRatioTargets.target;
-        } 
-
-        uint256 afterCR = _collateralRatioUSD(state.collateralUSD + assetsUSD, state.debtUSD);
-        if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
-            estimateTargetCR = currentCR;
-            if ($.collateralRatioTargets.maxForDepositRebalance > estimateTargetCR) {
-                estimateTargetCR = $.collateralRatioTargets.maxForDepositRebalance;
-            }
+        if (currentCR == 0) {
+            estimateTargetCR = $.collateralRatioTargets.target;
         } else {
-            estimateTargetCR = afterCR;
+            if (_shouldRebalance(currentCR, $.collateralRatioTargets)) {
+                currentCR = $.collateralRatioTargets.target;
+            }
+
+            uint256 afterCR = _collateralRatioUSD(state.collateralUSD + assetsUSD, state.debtUSD);
+            if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
+                estimateTargetCR = currentCR;
+                if ($.collateralRatioTargets.maxForDepositRebalance > estimateTargetCR) {
+                    estimateTargetCR = $.collateralRatioTargets.maxForDepositRebalance;
+                }
+            } else {
+                estimateTargetCR = afterCR;
+            }
         }
 
         uint256 offsetFactor = $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
         uint256 borrowAmount = RebalanceLogic.requiredBorrowUSD(estimateTargetCR, assetsUSD, 0, offsetFactor);
-        uint256 collateralAfterUSD = (assetsUSD.usdMul(estimateTargetCR)).usdDiv(estimateTargetCR - 1);
-        
+        uint256 collateralAfterUSD = borrowAmount.usdMul(estimateTargetCR);
         uint256 estimatedEquity = collateralAfterUSD - borrowAmount;
         return _convertToShares(estimatedEquity, totalAssets());
     }
@@ -298,5 +305,10 @@ contract LoopStrategy is
             IWrappedERC20PermissionedDeposit(address(strategyAssets.collateral)).deposit(assets);
         }
         receivedAssets = assets;
+    }
+
+    function maxBorrowUSD() external view returns(uint256) {
+        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        return LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, $.oracle.getAssetPrice(address($.assets.debt)));
     }
 }

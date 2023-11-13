@@ -5,6 +5,9 @@ pragma solidity ^0.8.18;
 /// @title IPausable
 /// @notice interface for Pausable functionality
 interface IPausable {
+    /// @notice the operation failed because the contract is paused
+    error EnforcedPause();
+
     /// @notice set paused state to true
     function pause() external;
 
