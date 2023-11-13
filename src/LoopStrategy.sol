@@ -408,7 +408,10 @@ contract LoopStrategy is
             // debt amount
             state = _repayDebtWithCollateral(
                 $,
-                Math.min(state.maxWithdrawAmount, (remainingDebtUSD * ONE_USD) / (ONE_USD - offsetUSD)),
+                Math.min(
+                    state.maxWithdrawAmount,
+                    (remainingDebtUSD * ONE_USD) / (ONE_USD - offsetUSD)
+                ),
                 collateralPriceUSD,
                 collateralDecimals
             );
@@ -434,11 +437,11 @@ contract LoopStrategy is
 
         // QUESTION:
         // 1. Can there be a situation where the rebalancing causes more fees than users left over equity?
-        // 2. How to anticipate & handle? 
-        // if under the minimum for withdraw rebalance limit rebalance upwards 
+        // 2. How to anticipate & handle?
+        // if under the minimum for withdraw rebalance limit rebalance upwards
         if (currentCR > $.collateralRatioTargets.minForWithdrawRebalance) {
             uint256 preRebalanceDebtUSD = state.debtUSD;
-            // NOTE: this is not accurate because the final amount of asset withdrawal 
+            // NOTE: this is not accurate because the final amount of asset withdrawal
             // is actually less than the original accounted amount. How to fix?
             // calculate the collateral ratio to rebalance up to so that when
             // collateral is withdrawn, the initialCR is attained
@@ -460,7 +463,9 @@ contract LoopStrategy is
 
         // make this check cbETH
         if (netShareEquityUSD < minEquityReceivedUSD) {
-            revert EquityReceivedBelowMinimum(netShareEquityUSD, minEquityReceivedUSD);
+            revert EquityReceivedBelowMinimum(
+                netShareEquityUSD, minEquityReceivedUSD
+            );
         }
 
         // QUESTION:
@@ -470,8 +475,12 @@ contract LoopStrategy is
             netShareEquityUSD, collateralPriceUSD, collateralDecimals
         );
 
-        LoanLogic.withdraw($.lendingPool, $.assets.collateral, netShareCollateralAsset);
-        $.assets.collateral.transferFrom(address(this), receiver, netShareCollateralAsset);
+        LoanLogic.withdraw(
+            $.lendingPool, $.assets.collateral, netShareCollateralAsset
+        );
+        $.assets.collateral.transferFrom(
+            address(this), receiver, netShareCollateralAsset
+        );
 
         return (netShareCollateralAsset, netShareEquityUSD);
     }
