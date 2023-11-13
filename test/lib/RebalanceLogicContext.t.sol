@@ -76,8 +76,6 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         });
         $.maxIterations = 15;
 
-        ltvWETHUSD = ltvWETH * 1e4;
-
         // getting token prices
         WETH_price = $.oracle.getAssetPrice(address(WETH));
         USDbC_price = $.oracle.getAssetPrice(address(USDbC));

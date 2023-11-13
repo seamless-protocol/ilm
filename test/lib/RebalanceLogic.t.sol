@@ -43,102 +43,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $, state, currentCR, $.collateralRatioTargets.target
         );
 
-<<<<<<< HEAD
-<<<<<<< HEAD
         assertApproxEqAbs(ratio, targetCR, margin);
-    }
-
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-    /// starting from a position of non-zero debt and needing more than one iteration to reach
-    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringMultipleIterations(
-    ) public {
-        // set targetCR to 1.45e8
-        targetCR = $.collateralRatioTargets.maxForDepositRebalance;
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        // perform a single borrow-supply iteration, so non-zero debt whilst still needing
-        // more than one iteration to reach targetCR of 1.45e8
-        uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
-            state.maxBorrowAmount, USDbC_price, 6
-        );
-
-        state =
-            LoanLogic.borrow($.lendingPool, $.assets.debt, borrowAmountAsset);
-
-        // approve _swapper contract to swap asset
-        $.assets.debt.approve(address($.swapper), borrowAmountAsset);
-
-        uint256 collateralAmountAsset = $.swapper.swap(
-            $.assets.debt,
-            $.assets.collateral,
-            borrowAmountAsset,
-            payable(address(this))
-        );
-
-        state = LoanLogic.supply(
-            $.lendingPool, $.assets.collateral, collateralAmountAsset
-        );
-
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-    }
-
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-    /// starting from a position of non-zero debt and needing only one iteration to reach
-    function test_rebalanceUp_bringsCollateralRatioToTarget_FromNonZeroDebt_RequiringOneIteration(
-    ) public {
-        // set targetCR to 1.8555e8
-        targetCR = 1.8555e8;
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        // perform a single borrow-supply iteration, so non-zero debt whilst still needing
-        // one iteration to reach targetCR of  1.8555e8
-        uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
-            state.maxBorrowAmount, USDbC_price, 6
-        );
-
-        state =
-            LoanLogic.borrow($.lendingPool, $.assets.debt, borrowAmountAsset);
-
-        // approve _swapper contract to swap asset
-        $.assets.debt.approve(address($.swapper), borrowAmountAsset);
-
-        uint256 collateralAmountAsset = $.swapper.swap(
-            $.assets.debt,
-            $.assets.collateral,
-            borrowAmountAsset,
-            payable(address(this))
-        );
-
-        state = LoanLogic.supply(
-            $.lendingPool, $.assets.collateral, collateralAmountAsset
-        );
-
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-=======
-        // TODO: add explicit margin
-        assertApproxEqAbs(ratio, targetCR, targetCR / 100_000);
->>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
-=======
-        assertApproxEqAbs(ratio, targetCR, margin);
->>>>>>> 46a546a (build: align test with style guide)
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
@@ -235,14 +140,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         // given by CR_min = 1 / LTV
         targetCR = 1.35e8;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-=======
-        LoanState memory state = LoanLogic.getLoanState(lendingPool);
-=======
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
->>>>>>> 46a546a (build: align test with style guide)
+
         uint256 currentCR = RebalanceLogic.collateralRatioUSD(
             state.collateralUSD, state.debtUSD
         );
@@ -268,39 +167,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, margin);
     }
 
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    /// when rebalancing requires multiple iterations
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations(
-    ) public {
-        // with 0.75 LTV, we have a min CR of 1.33e8
-        // given by CR_min = 1 / LTV
-        targetCR = 1.35e8;
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
-
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-
-        targetCR = 3.5e8;
-
-        state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
-
-        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-    }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
     /// @param targetRatio fuzzed value of targetRatio
@@ -314,13 +180,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $.collateralRatioTargets.maxForRebalance
         );
 
-<<<<<<< HEAD
         uint256 targetCR = targetRatio;
-        LoanState memory state = LoanLogic.getLoanState(lendingPool);
->>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
-=======
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
->>>>>>> 46a546a (build: align test with style guide)
+
         uint256 currentCR = RebalanceLogic.collateralRatioUSD(
             state.collateralUSD, state.debtUSD
         );
@@ -330,39 +192,10 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         uint256 margin = $.ratioMargin * targetRatio / USDWadRayMath.USD;
 
-<<<<<<< HEAD
         assertApproxEqAbs(ratio, targetCR, margin);
 
         targetCR = 1.45e8;
 
-=======
-        assertApproxEqAbs(ratio, targetRatio, margin);
-    }
-
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    /// @param targetRatio fuzzed value of targetRatio
-    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(
-        uint256 targetRatio
-    ) public {
-        // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-        targetCR = 1.34e8;
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-
-        targetRatio = bound(targetRatio, 1.35e8, 7e8);
-
-        targetCR = targetRatio;
-
->>>>>>> 46a546a (build: align test with style guide)
         state = LoanLogic.getLoanState($.lendingPool);
         currentCR = RebalanceLogic.collateralRatioUSD(
             state.collateralUSD, state.debtUSD
@@ -371,7 +204,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-<<<<<<< HEAD
 
         assertApproxEqAbs(ratio, targetCR, margin);
     }
@@ -393,14 +225,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-=======
->>>>>>> 46a546a (build: align test with style guide)
 
-<<<<<<< HEAD
         assertApproxEqAbs(ratio, targetCR, margin);
-=======
-        targetRatio = bound(targetRatio, 1.35e8, 7e8);
->>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
 
         targetCR = 3.5e8;
 
@@ -410,36 +236,10 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         );
 
         ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
-<<<<<<< HEAD
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(ratio, targetCR, margin);
-    }
-
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
-    /// @param targetRatio fuzzed value of targetRatio
-    function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(
-        uint256 targetRatio
-    ) public {
-        // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-        targetRatio = bound(
-            targetRatio,
-            $.collateralRatioTargets.minForRebalance,
-            $.collateralRatioTargets.maxForRebalance
-        );
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetRatio);
-
-        uint256 margin = $.ratioMargin * targetRatio / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetRatio, margin);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
@@ -473,20 +273,12 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-=======
-
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
->>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
 
         assertApproxEqAbs(ratio, targetCR, margin);
     }
 
     /// @dev ensures that calculating the collateral ratio gives the expected value, for a range
     /// of inputs
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 46a546a (build: align test with style guide)
     /// @param _collateralUSD fuzzed value of collateral held by contract in USD
     /// @param _debtUSD fuzzed value of debt held by contract in USD
     function testFuzz_collateralRatioUSD(
@@ -495,7 +287,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     ) public {
         _debtUSD = bound(
             _debtUSD, 0, (type(uint256).max - _debtUSD / 2) / USDWadRayMath.USD
-<<<<<<< HEAD
         );
         /// assume that collateral is always larger than debt because otherwise
         /// position would have been liquidated
@@ -503,57 +294,16 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             _collateralUSD,
             _debtUSD,
             (type(uint256).max - _debtUSD / 2) / USDWadRayMath.USD
-=======
-    function testFuzz_collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
-        public
-    {
-        debtUSD = bound(
-            debtUSD, 0, (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
-        );
-        /// assume that collateral is always larger than debt because otherwise
-        /// position would have been liquidated
-        collateralUSD = bound(
-            collateralUSD,
-            debtUSD,
-            (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
->>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
-=======
-        );
-        /// assume that collateral is always larger than debt because otherwise
-        /// position would have been liquidated
-        _collateralUSD = bound(
-            _collateralUSD,
-            _debtUSD,
-            (type(uint256).max - _debtUSD / 2) / USDWadRayMath.USD
->>>>>>> 46a546a (build: align test with style guide)
         );
 
         uint256 ratio;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
         if (_debtUSD == 0) {
             ratio = RebalanceLogic.collateralRatioUSD(_collateralUSD, _debtUSD);
             assertEq(ratio, type(uint256).max);
         } else {
             ratio = RebalanceLogic.collateralRatioUSD(_collateralUSD, _debtUSD);
             assertEq(ratio, _collateralUSD.usdDiv(_debtUSD));
-=======
-        if (debtUSD == 0) {
-            ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
-            assertEq(ratio, type(uint256).max);
-        } else {
-            ratio = RebalanceLogic.collateralRatioUSD(collateralUSD, debtUSD);
-            assertEq(ratio, collateralUSD.usdDiv(debtUSD));
->>>>>>> 3ed1b98 (build: add rebalanceDown tests, debug fuzz tests)
-=======
-        if (_debtUSD == 0) {
-            ratio = RebalanceLogic.collateralRatioUSD(_collateralUSD, _debtUSD);
-            assertEq(ratio, type(uint256).max);
-        } else {
-            ratio = RebalanceLogic.collateralRatioUSD(_collateralUSD, _debtUSD);
-            assertEq(ratio, _collateralUSD.usdDiv(_debtUSD));
->>>>>>> 46a546a (build: align test with style guide)
         }
     }
 
