@@ -38,9 +38,9 @@ When developing using the Foundry testing kit we follow the [recommended best pr
 - All return variables should be named
 
 - Function parameters should _only_ have a `_` prefix when setting a variable with the same name. For example, setting the storage variable `uint256 sameName` would be:
-    - `function setSameNameVariable(uint256 _sameName) external;`
+    - `function setSameName(uint256 _sameName) external;`
 
-- Internal function names should always be prefixed with an `_`:
+- Internal and private function names should always be prefixed with an `_`:
     - `function _someFunc(uint256 uintParam) internal returns (address depositor);`
 
 - When a variable in storage stops being used, prefix it with `deprecated` upon upgrade. For example, deprecating a storage variable `uint256 someVariable` would be:
