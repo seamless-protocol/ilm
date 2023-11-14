@@ -9,9 +9,9 @@ import { IPoolDataProvider } from
     "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IAaveOracle } from
-    "@aave/contracts/interfaces/IAaveOracle.sol";
-import { IPoolConfigurator } from "@aave/contracts/interfaces/IPoolConfigurator.sol";
+import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
+import { IPoolConfigurator } from
+    "@aave/contracts/interfaces/IPoolConfigurator.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
@@ -20,7 +20,12 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
 import { BaseForkTest } from "../BaseForkTest.t.sol";
-import { LendingPool, LoanState, StrategyAssets, CollateralRatio } from "../../src/types/DataTypes.sol";
+import {
+    LendingPool,
+    LoanState,
+    StrategyAssets,
+    CollateralRatio
+} from "../../src/types/DataTypes.sol";
 import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
 import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
@@ -99,7 +104,7 @@ contract LoopStrategyTest is BaseForkTest {
             poolAddressProvider,
             priceOracle,
             swapper,
-            10**4, // 0.01% ratio margin
+            10 ** 4, // 0.01% ratio margin
             10
         );
 
@@ -109,28 +114,35 @@ contract LoopStrategyTest is BaseForkTest {
         deal(address(CbETH), address(this), 100 ether);
 
         SwapperMock(address(swapper)).setOffsets(5e5, 5e5);
-        swapOffset = swapper.offsetFactor(
-            strategyAssets.debt, strategyAssets.collateral
-        );
+        swapOffset =
+            swapper.offsetFactor(strategyAssets.debt, strategyAssets.collateral);
 
-        _changeBorrowCap(USDbC, 1000000);
+        _changeBorrowCap(USDbC, 1_000_000);
     }
 
     /// @dev test confirms that functions reverts when pool is paused
     function test_pausableFunctions_revertEnforcedPause() public {
         IPausable(address(strategy)).pause();
 
-        vm.expectRevert(abi.encodeWithSelector(IPausable.EnforcedPause.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IPausable.EnforcedPause.selector)
+        );
         strategy.deposit(1 ether, address(this));
-        vm.expectRevert(abi.encodeWithSelector(IPausable.EnforcedPause.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IPausable.EnforcedPause.selector)
+        );
         strategy.withdraw(1 ether, address(this), address(this));
-        vm.expectRevert(abi.encodeWithSelector(IPausable.EnforcedPause.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IPausable.EnforcedPause.selector)
+        );
         strategy.redeem(1 ether, address(this), address(this));
     }
 
     /// @dev test confimrs that mint function is disabled
     function test_mint_revertMintDisabled() public {
-        vm.expectRevert(abi.encodeWithSelector(ILoopStrategy.MintDisabled.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ILoopStrategy.MintDisabled.selector)
+        );
         strategy.mint(1 ether, address(this));
         assertEq(strategy.previewMint(1 ether), 0);
     }
@@ -152,7 +164,11 @@ contract LoopStrategyTest is BaseForkTest {
         vm.stopPrank();
     }
 
-    function _depositFor(address user, uint256 amount, uint256 minSharesReceived) internal returns(uint256 shares) {
+    function _depositFor(
+        address user,
+        uint256 amount,
+        uint256 minSharesReceived
+    ) internal returns (uint256 shares) {
         vm.startPrank(user);
         deal(address(strategyAssets.underlying), user, amount);
         strategyAssets.underlying.approve(address(strategy), amount);
@@ -170,10 +186,10 @@ contract LoopStrategyTest is BaseForkTest {
     /// @param asset asset to change borrow cap
     /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
     function _changeBorrowCap(IERC20 asset, uint256 borrowCap) internal {
-      address aclAdmin = poolAddressProvider.getACLAdmin();
-      vm.startPrank(aclAdmin);
-      IPoolConfigurator(poolAddressProvider.getPoolConfigurator()).setBorrowCap(address(asset), borrowCap);
-      vm.stopPrank();
+        address aclAdmin = poolAddressProvider.getACLAdmin();
+        vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), borrowCap);
+        vm.stopPrank();
     }
-
 }

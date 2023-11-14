@@ -167,7 +167,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, margin);
     }
 
-
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
     /// @param targetRatio fuzzed value of targetRatio
     function testFuzz_rebalanceUp_bringsCollateralRatioToTarget(

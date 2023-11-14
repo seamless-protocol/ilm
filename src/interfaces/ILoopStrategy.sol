@@ -18,7 +18,13 @@ interface ILoopStrategy is IERC4626 {
     /// @notice reverts when shares received by user on deposit is lower than given minimum
     /// @param sharesReceived amount of shares received
     /// @param minSharesReceived minimum defined by caller
-    error SharesReceivedBelowMinimum(uint256 sharesReceived, uint256 minSharesReceived);
+    error SharesReceivedBelowMinimum(
+        uint256 sharesReceived, uint256 minSharesReceived
+    );
+
+    error EquityReceivedBelowMinimum(
+        uint256 equityReceived, uint256 minEquityReceived
+    );
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying value (USD)
@@ -72,5 +78,9 @@ interface ILoopStrategy is IERC4626 {
     /// @param receiver address of the receiver of share tokens
     /// @param minSharesReceived required minimum of shares received
     /// @return shares number of received shares
-    function deposit(uint256 assets, address receiver, uint256 minSharesReceived) external returns (uint256 shares);
+    function deposit(
+        uint256 assets,
+        address receiver,
+        uint256 minSharesReceived
+    ) external returns (uint256 shares);
 }

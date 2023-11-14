@@ -9,8 +9,7 @@ import { IPoolDataProvider } from
     "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
-import { IAaveOracle } from
-    "@aave/contracts/interfaces/IAaveOracle.sol";
+import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
@@ -19,7 +18,12 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
 import { BaseForkTest } from "../BaseForkTest.t.sol";
-import { LendingPool, LoanState, StrategyAssets, CollateralRatio } from "../../src/types/DataTypes.sol";
+import {
+    LendingPool,
+    LoanState,
+    StrategyAssets,
+    CollateralRatio
+} from "../../src/types/DataTypes.sol";
 import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
 import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
@@ -31,7 +35,6 @@ import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
 /// @notice Unit tests for the LoopStrategy deposit flow
 contract LoopStrategyDepositTest is LoopStrategyTest {
-
     /// @dev test confirms that initial deposit works as itended and the correct amount of shares is issued equal to the equity
     function test_deposit_firstDeposit() public {
         uint256 depositAmount = 1 ether;
@@ -45,8 +48,12 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         assert(sharesReceived > 0);
         assertEq(sharesReceived, sharesReturned);
         // the biggest acceptable loss set to be 1%
-        assertApproxEqRel(sharesReceived, RebalanceLogic.offsetUSDAmountDown(depositValue, swapOffset), 0.01 ether);
-        
+        assertApproxEqRel(
+            sharesReceived,
+            RebalanceLogic.offsetUSDAmountDown(depositValue, swapOffset),
+            0.01 ether
+        );
+
         assertEq(strategy.totalAssets(), sharesReceived);
         assertEq(strategy.equity(), sharesReceived);
     }
@@ -57,19 +64,20 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         uint256 depositBob = 0.2 ether;
         uint256 depositCharlie = 0.1 ether;
         uint256 sharesAlice = _depositFor(alice, depositAlice);
-        uint256 sharesBob  = _depositFor(bob, depositBob);
+        uint256 sharesBob = _depositFor(bob, depositBob);
         uint256 sharesCharlie = _depositFor(charlie, depositCharlie);
 
         assert(sharesAlice > sharesBob && sharesBob > sharesCharlie);
         assertEq(sharesAlice, IERC20(address(strategy)).balanceOf(alice));
         assertEq(sharesBob, IERC20(address(strategy)).balanceOf(bob));
         assertEq(sharesCharlie, IERC20(address(strategy)).balanceOf(charlie));
-        assertEq(strategy.totalSupply(), sharesAlice + sharesBob + sharesCharlie);
+        assertEq(
+            strategy.totalSupply(), sharesAlice + sharesBob + sharesCharlie
+        );
         assertEq(strategy.totalSupply(), strategy.totalAssets());
 
         _validateCollateralRatio(collateralRatioTargets.maxForDepositRebalance);
     }
-
 
     /// @dev test confirms that pool rebalance is done if the current collateral ratio is out of acceptable range
     function test_deposit_shouldRebalance() public {
@@ -114,7 +122,8 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         _changePrice(CbETH, 1900 * 1e8);
 
         uint256 depositBob = 0.2 ether;
-        uint256 depositBobUSD = depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
+        uint256 depositBobUSD =
+            depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
         uint256 expectedShares = strategy.convertToShares(depositBobUSD);
         uint256 sharesBob = _depositFor(bob, depositBob);
         assertEq(sharesBob, expectedShares);
@@ -126,22 +135,26 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         uint256 depositAlice = 3 ether;
         _depositFor(alice, depositAlice);
         _changePrice(CbETH, 1900 * 1e8);
-        
+
         uint256 depositBob = 0.2 ether;
-        uint256 depositBobUSD = depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
+        uint256 depositBobUSD =
+            depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
         uint256 expectedShares = strategy.convertToShares(depositBobUSD);
         // set min to receive to 0.01% above expected
-        uint256 minSharesAboveExpexted = PercentageMath.percentMul(expectedShares, 100_01); 
+        uint256 minSharesAboveExpexted =
+            PercentageMath.percentMul(expectedShares, 10_001);
 
         // can't use _depositFor because of vm.expectRevert
         vm.startPrank(bob);
         deal(address(strategyAssets.underlying), bob, depositBob);
         strategyAssets.underlying.approve(address(strategy), depositBob);
-        vm.expectRevert(abi.encodeWithSelector(
-            ILoopStrategy.SharesReceivedBelowMinimum.selector, 
-            expectedShares, 
-            minSharesAboveExpexted
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ILoopStrategy.SharesReceivedBelowMinimum.selector,
+                expectedShares,
+                minSharesAboveExpexted
+            )
+        );
         strategy.deposit(depositBob, bob, minSharesAboveExpexted);
         vm.stopPrank();
     }
@@ -153,17 +166,21 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         _depositFor(alice, depositAlice);
 
         // borrow cap is low now so we don't have any more available USDbC on lendingp pool
-        _changeBorrowCap(USDbC, 100000);
+        _changeBorrowCap(USDbC, 100_000);
         uint256 beforeCR = strategy.currentCollateralRatio();
 
         uint256 depositBob = 5 ether;
-        uint256 depositBobUSD = depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
+        uint256 depositBobUSD =
+            depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
         uint256 expectedShares = strategy.convertToShares(depositBobUSD);
         uint256 sharesBob = _depositFor(bob, depositBob);
 
         uint256 afterCR = strategy.currentCollateralRatio();
         // this is the only case when it's ok to finish with CR more than both beforeCR and maxForDepositRebalance
-        assert(afterCR > beforeCR && afterCR > collateralRatioTargets.maxForDepositRebalance);
+        assert(
+            afterCR > beforeCR
+                && afterCR > collateralRatioTargets.maxForDepositRebalance
+        );
 
         // bob didn't lose on fees because there was no rebalance even though we are out of range
         assert(afterCR > collateralRatioTargets.maxForRebalance);
@@ -180,7 +197,8 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
 
     /// @dev validates current collateral ratio with relative error max 0.01%
     function _validateCollateralRatio(uint256 expectedCR) internal {
-        assertApproxEqRel(strategy.currentCollateralRatio(), expectedCR, 0.0001 ether);
+        assertApproxEqRel(
+            strategy.currentCollateralRatio(), expectedCR, 0.0001 ether
+        );
     }
-
 }
