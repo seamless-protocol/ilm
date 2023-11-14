@@ -179,9 +179,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $.collateralRatioTargets.maxForRebalance
         );
 
-        uint256 targetCR = targetRatio;
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
         uint256 currentCR = RebalanceLogic.collateralRatioUSD(
             state.collateralUSD, state.debtUSD
         );
@@ -191,20 +189,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         uint256 margin = $.ratioMargin * targetRatio / USDWadRayMath.USD;
 
-        assertApproxEqAbs(ratio, targetCR, margin);
-
-        targetCR = 1.45e8;
-
-        state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
-
-        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
+        assertApproxEqAbs(ratio, targetRatio, margin);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
