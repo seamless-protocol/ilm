@@ -134,7 +134,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// when rebalancing requires a single iteration
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration(
+    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration_ZeroValueWithdrawal(
     ) public {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
@@ -194,7 +194,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// when rebalancing requires multiple iterations
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations(
+    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations_ZeroValueWithdrawal(
     ) public {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
@@ -228,7 +228,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// @param targetRatio fuzzed value of targetRatio
-    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(
+    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget_ZeroValueWithdrawal(
         uint256 targetRatio
     ) public {
         // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
