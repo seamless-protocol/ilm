@@ -163,7 +163,7 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         return RebalanceLogic.rebalanceTo(
-            $, state, $.collateralRatioTargets.target
+            $, state, 0, $.collateralRatioTargets.target
         );
     }
 
@@ -357,7 +357,7 @@ contract LoopStrategy is
                 && _shouldRebalance(collateralRatio, $.collateralRatioTargets)
         ) {
             collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, $.collateralRatioTargets.target
+                $, state, 0, $.collateralRatioTargets.target
             );
         }
 
@@ -370,7 +370,7 @@ contract LoopStrategy is
 
         if (prevCollateralRatio == 0) {
             collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, $.collateralRatioTargets.target
+                $, state, 0, $.collateralRatioTargets.target
             );
         } else if (
             afterCollateralRatio
@@ -385,7 +385,7 @@ contract LoopStrategy is
                     $.collateralRatioTargets.maxForDepositRebalance;
             }
             collateralRatio =
-                RebalanceLogic.rebalanceTo($, state, rebalanceToRatio);
+                RebalanceLogic.rebalanceTo($, state, 0, rebalanceToRatio);
         }
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
@@ -425,7 +425,7 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (_shouldRebalance(initialCR, $.collateralRatioTargets)) {
             initialCR = RebalanceLogic.rebalanceTo(
-                $, state, $.collateralRatioTargets.target
+                $, state, 0, $.collateralRatioTargets.target
             );
 
             state = LoanLogic.getLoanState($.lendingPool);
@@ -504,7 +504,7 @@ contract LoopStrategy is
                 initialCR.usdMul(preRebalanceDebtUSD) + netShareEquityUSD
             ).usdDiv(preRebalanceDebtUSD);
 
-            RebalanceLogic.rebalanceTo($, state, targetCR);
+            RebalanceLogic.rebalanceTo($, state, 0, targetCR);
 
             state = LoanLogic.getLoanState($.lendingPool);
         }
