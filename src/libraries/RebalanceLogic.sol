@@ -171,12 +171,12 @@ library RebalanceLogic {
         uint256 margin = targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
 
+        // adjust collateralUSD in state by withdrawalUSD
+        state.collateralUSD -= withdrawalUSD;
+
         do {
             // current collateral ratio
             ratio = currentCR;
-
-            // adjust collateralUSD in state by withdrawalUSD
-            state.collateralUSD -= withdrawalUSD;
 
             uint256 collateralAmountAsset = calculateCollateralAsset(
                 state,
