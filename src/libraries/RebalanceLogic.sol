@@ -302,19 +302,38 @@ library RebalanceLogic {
     }
 
     /// @notice calculates the total required borrow amount in order to reach a target collateral ratio value
-    /// @param _targetCR target collateral ratio value
-    /// @param _collateralUSD current collateral value in USD
-    /// @param _debtUSD current debt value in USD
-    /// @param _offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
+    /// @param targetCR target collateral ratio value
+    /// @param collateralUSD current collateral value in USD
+    /// @param debtUSD current debt value in USD
+    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
     /// @return amount required borrow amount
     function requiredBorrowUSD(
-        uint256 _targetCR,
-        uint256 _collateralUSD,
-        uint256 _debtUSD,
-        uint256 _offsetFactor
+        uint256 targetCR,
+        uint256 collateralUSD,
+        uint256 debtUSD,
+        uint256 offsetFactor
     ) public pure returns (uint256 amount) {
-        return (_collateralUSD - _targetCR.usdMul(_debtUSD)).usdDiv(
-            _targetCR - (ONE_USD - _offsetFactor)
+        return (collateralUSD - targetCR.usdMul(debtUSD)).usdDiv(
+            targetCR - (ONE_USD - offsetFactor)
+        );
+    }
+
+    /// @notice calculates the total required collateral amount in order to reach a target collateral ratio value
+    /// @param targetCR target collateral ratio value
+    /// @param collateralUSD current collateral value in USD
+    /// @param debtUSD current debt value in USD
+    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
+    /// @return amount required collateral amount
+    function requiredCollateralUSD(
+        uint256 targetCR,
+        uint256 collateralUSD,
+        uint256 debtUSD,
+        uint256 offsetFactor
+    ) public pure returns (uint256 amount) {
+        return (
+            amount = (
+                    targetCR.usdMul(debtUSD) - collateralUSD
+                ).usdDiv(targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD)
         );
     }
 }
