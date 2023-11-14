@@ -95,7 +95,7 @@ library RebalanceLogic {
                     offsetFactor
                 );
 
-                // if less than the max borrow amount possible is needed to reach LTV,
+                // if less than the max borrow amount possible is needed,
                 // use the amount that is required to reach targetCR
                 borrowAmountUSD = borrowAmountUSD < neededBorrowUSD
                     ? borrowAmountUSD
@@ -178,53 +178,20 @@ library RebalanceLogic {
             // adjust collateralUSD in state by withdrawalUSD
             state.collateralUSD -= withdrawalUSD;
 
-            // maximum amount of collateral to not jeopardize loan health in USD
-            uint256 collateralAmountUSD = state.maxWithdrawAmount;
-
-            // handle cases where debt is less than maxWithdrawAmount possible
-            if (state.debtUSD < state.maxWithdrawAmount) {
-                collateralAmountUSD = state.debtUSD;
-            }
-
-            // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
-            // collateralAmount if so
-            if (
-                collateralRatioUSD(
-                    state.collateralUSD - collateralAmountUSD,
-                    state.debtUSD
-                        - offsetUSDAmountDown(collateralAmountUSD, offsetFactor)
-                ) > targetCR
-            ) {
-                collateralAmountUSD = (
-                    targetCR.usdMul(state.debtUSD) - state.collateralUSD
-                ).usdDiv(targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
-            }
-
-            uint256 collateralAmountAsset = convertUSDToAsset(
-                collateralAmountUSD, collateralPriceUSD, collateralDecimals
+            uint256 collateralAmountAsset = calculateCollateralAsset(
+                state,
+                targetCR,
+                offsetFactor,
+                collateralPriceUSD,
+                collateralDecimals
             );
 
             if (collateralAmountAsset == 0) {
                 break;
             }
 
-            // withdraw collateral tokens from Aave _pool
-            LoanLogic.withdraw(
-                $.lendingPool, $.assets.collateral, collateralAmountAsset
-            );
-
-            // approve _swapper contract to swap asset
-            $.assets.collateral.approve(
-                address($.swapper), collateralAmountAsset
-            );
-
-            // exchange collateralAmount of collateral tokens for borrow tokens
-            uint256 borrowAmountAsset = $.swapper.swap(
-                $.assets.collateral,
-                $.assets.debt,
-                collateralAmountAsset,
-                payable(address(this))
-            );
+            uint256 borrowAmountAsset =
+                withdrawAndSwapCollateral($, collateralAmountAsset);
 
             if (borrowAmountAsset == 0) {
                 break;
@@ -331,9 +298,69 @@ library RebalanceLogic {
         uint256 offsetFactor
     ) public pure returns (uint256 amount) {
         return (
-            amount = (
-                    targetCR.usdMul(debtUSD) - collateralUSD
-                ).usdDiv(targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD)
+            amount = (targetCR.usdMul(debtUSD) - collateralUSD).usdDiv(
+                targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD
+            )
+        );
+    }
+
+    /// @notice determines the collateral asset amount needed for a rebalance down cycle
+    /// @param state loan state
+    /// @param targetCR target collateral ratio value
+    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
+    /// @param collateralPriceUSD price of collateral in USD
+    /// @param collateralDecimals decimals of collateral token
+    /// @return collateralAmountAsset amount of collateral asset needed fo the current rebalance down cycle
+    function calculateCollateralAsset(
+        LoanState memory state,
+        uint256 targetCR,
+        uint256 offsetFactor,
+        uint256 collateralPriceUSD,
+        uint256 collateralDecimals
+    ) public pure returns (uint256 collateralAmountAsset) {
+        // maximum amount of collateral to not jeopardize loan health in USD
+        uint256 collateralAmountUSD = state.maxWithdrawAmount;
+
+        // handle cases where debt is less than maxWithdrawAmount possible
+        if (state.debtUSD < state.maxWithdrawAmount) {
+            collateralAmountUSD = state.debtUSD;
+        }
+
+        // calculate how much total collateral is needed to reach
+        // targetCR
+        uint256 neededCollateralUSD = requiredCollateralUSD(
+            targetCR, state.collateralUSD, state.debtUSD, offsetFactor
+        );
+
+        // if less than the max collateral amount possible is needed,
+        // use the amount that is required to reach targetCR
+        collateralAmountUSD = collateralAmountUSD < neededCollateralUSD
+            ? collateralAmountUSD
+            : neededCollateralUSD;
+
+        return convertUSDToAsset(
+            collateralAmountUSD, collateralPriceUSD, collateralDecimals
+        );
+    }
+
+    function withdrawAndSwapCollateral(
+        Storage.Layout storage $,
+        uint256 collateralAmountAsset
+    ) public returns (uint256 borrowAmountAsset) {
+        // withdraw collateral tokens from Aave _pool
+        LoanLogic.withdraw(
+            $.lendingPool, $.assets.collateral, collateralAmountAsset
+        );
+
+        // approve _swapper contract to swap asset
+        $.assets.collateral.approve(address($.swapper), collateralAmountAsset);
+
+        // exchange collateralAmount of collateral tokens for borrow tokens
+        return $.swapper.swap(
+            $.assets.collateral,
+            $.assets.debt,
+            collateralAmountAsset,
+            payable(address(this))
         );
     }
 }
