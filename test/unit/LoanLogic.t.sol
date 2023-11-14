@@ -166,7 +166,7 @@ contract LoanLogicTest is BaseForkTest {
             Math.mulDiv(initialMaxBorrowUSD, ONE_USDbC, USDbC_price);
         loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-        // getting 0.01% of initial maxBorrowUSD, because we left that as a saftey for precision issues
+        // getting 0.01% of initial maxBorrowUSD, because we left that as a safety for precision issues
         uint256 maxBorrowLeft = PercentageMath.percentMul(
             initialMaxBorrowUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT
         );
@@ -322,13 +322,13 @@ contract LoanLogicTest is BaseForkTest {
     }
 
     /// @dev test confirming getMaxBorrowUSD function return correct maximum in all 3 cases
-    /// @dev cases are when max borrow is limited by: 1) user's collateral 2) borrow cap 3) borow token total supply
+    /// @dev cases are when max borrow is limited by: 1) user's collateral 2) borrow cap 3) borrow token total supply
     function test_getMaxBorrowUSD() public {
         uint256 supplyAmount = 10 ether;
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
-        // max borrow is limited by user's collatera;
+        // max borrow is limited by user's collateral
         _changeBorrowCap(USDbC, 500000);
         uint256 maxBorrow = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
         assertEq(maxBorrow, loanState.maxBorrowAmount);
@@ -349,7 +349,6 @@ contract LoanLogicTest is BaseForkTest {
         maxBorrow = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
         // max relative diff is set to 0.05% because of precision errors
         uint256 totalSupplyUSDbCUSD = (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
-        // assertApproxEqAbs(maxBorrow, totalSupplyUSDbCUSD, 10**8);
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
     }
 
