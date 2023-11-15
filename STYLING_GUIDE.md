@@ -79,6 +79,10 @@ When developing using the Foundry testing kit we follow the [recommended best pr
   Person deprecated_person;
   PersonV2 person;
   ```
+
+  The engineer should use their own judgement for the above rule; if the struct has a nested mapping data-migration could prove difficult and perhaps an alternative route to upgrade is better suited. 
+  
+  Additionally, if the struct is in some mapping `mapping(uint256 index => MyStruct structExample) myStructs;` then the struct can simply be upgraded as no storage clashing can occur.
   
 - Nit: Use the same “voice” (active or passive) across comments
 
