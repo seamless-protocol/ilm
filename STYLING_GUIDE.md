@@ -37,8 +37,20 @@ When developing using the Foundry testing kit we follow the [recommended best pr
 
 - All return variables should be named
 
-- Function parameters should _only_ have a `_` prefix when setting a variable with the same name. For example, setting the storage variable `uint256 sameName` would be:
-    - `function setSameName(uint256 _sameName) external;`
+- Function parameters should _only_ have a `_` prefix when setting a variable with the same name, unless it is a variable in _unstructured storage, in which case no compiler warnings/clashing occurs.. For example, setting the storage variable `uint256 sameName` in structured and unstructured storages respectively would be:
+    ```
+    function setSameName(uint256 _sameName) external {
+      sameName = _sameName;
+    }
+    ```
+
+    and
+
+    ```
+    function setSameName(uint256 sameName) external {
+      Storage.layout().sameName = sameName;
+    }
+    ```
 
 - Internal and private function names should always be prefixed with an `_`:
     - `function _someFunc(uint256 uintParam) internal returns (address depositor);`
