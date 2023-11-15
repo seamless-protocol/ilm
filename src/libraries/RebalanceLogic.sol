@@ -201,8 +201,12 @@ library RebalanceLogic {
             state =
                 LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
 
+            // adjust collateralUSD in state by withdrawalUSD
+            state.collateralUSD -= withdrawalUSD;
+
             // update collateral ratio value
             ratio = collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
             if (++count > $.maxIterations) {
                 break;
             }
