@@ -180,8 +180,9 @@ library RebalanceLogic {
 
             uint256 collateralAmountAsset = calculateCollateralAsset(
                 state,
-                targetCR,
-                offsetFactor,
+                requiredCollateralUSD(
+                    targetCR, state.collateralUSD, state.debtUSD, offsetFactor
+                ),
                 collateralPriceUSD,
                 collateralDecimals
             );
@@ -310,15 +311,13 @@ library RebalanceLogic {
 
     /// @notice determines the collateral asset amount needed for a rebalance down cycle
     /// @param state loan state
-    /// @param targetCR target collateral ratio value
-    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
+    /// @param neededCollateralUSD collateral needed for overall operation in USD
     /// @param collateralPriceUSD price of collateral in USD
     /// @param collateralDecimals decimals of collateral token
     /// @return collateralAmountAsset amount of collateral asset needed fo the current rebalance down cycle
     function calculateCollateralAsset(
         LoanState memory state,
-        uint256 targetCR,
-        uint256 offsetFactor,
+        uint256 neededCollateralUSD,
         uint256 collateralPriceUSD,
         uint256 collateralDecimals
     ) public pure returns (uint256 collateralAmountAsset) {
@@ -329,12 +328,6 @@ library RebalanceLogic {
         if (state.debtUSD < state.maxWithdrawAmount) {
             collateralAmountUSD = state.debtUSD;
         }
-
-        // calculate how much total collateral is needed to reach
-        // targetCR
-        uint256 neededCollateralUSD = requiredCollateralUSD(
-            targetCR, state.collateralUSD, state.debtUSD, offsetFactor
-        );
 
         // if less than the max collateral amount possible is needed,
         // use the amount that is required to reach targetCR
@@ -347,6 +340,11 @@ library RebalanceLogic {
         );
     }
 
+    /// @notice withrdraws an amount of collateral asset and exchanges it for an 
+    /// amount of debt asset
+    /// @param $ the storage state of LendingStrategyStorage
+    /// @param collateralAmountAsset amount of collateral asset to withdraw and swap
+    /// @return borrowAmountAsset amount of borrow asset received from swap
     function withdrawAndSwapCollateral(
         Storage.Layout storage $,
         uint256 collateralAmountAsset
@@ -356,7 +354,7 @@ library RebalanceLogic {
             $.lendingPool, $.assets.collateral, collateralAmountAsset
         );
 
-        // approve _swapper contract to swap asset
+        // approve swapper contract to swap asset
         $.assets.collateral.approve(address($.swapper), collateralAmountAsset);
 
         // exchange collateralAmount of collateral tokens for borrow tokens
