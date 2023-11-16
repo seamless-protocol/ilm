@@ -214,6 +214,61 @@ library RebalanceLogic {
         } while (ratio + margin < targetCR);
     }
 
+    /// @notice rebalances downwards until a debt amount is reached
+    /// @param $ the storage state of LendingStrategyStorage
+    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param targetDebtUSD target debt value in USD to reach
+    function rebalanceDownToDebt(
+        Storage.Layout storage $,
+        LoanState memory state,
+        uint256 targetDebtUSD
+    ) public {
+        uint256 collateralPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.collateral));
+
+        uint8 collateralDecimals =
+            IERC20Metadata(address($.assets.collateral)).decimals();
+
+        // get offset caused by DEX fees + slippage
+        uint256 offsetFactor =
+            $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+
+        uint256 remainingDebtUSD = state.debtUSD - targetDebtUSD;
+        uint256 count;
+
+        do {
+            uint256 collateralAmountAsset = calculateCollateralAsset(
+                state,
+                remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor),
+                collateralPriceUSD,
+                collateralDecimals
+            );
+
+            if (collateralAmountAsset == 0) {
+                break;
+            }
+
+            uint256 borrowAmountAsset =
+                withdrawAndSwapCollateral($, collateralAmountAsset);
+
+            if (borrowAmountAsset == 0) {
+                break;
+            }
+
+            // repay debt to AaveV3 _pool
+            state =
+                LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
+
+            remainingDebtUSD = state.debtUSD > targetDebtUSD
+                ? state.debtUSD - targetDebtUSD
+                : 0;
+
+            if (++count > $.maxIterations) {
+                break;
+            }
+        } while (targetDebtUSD < state.debtUSD);
+    }
+
     /// @notice helper function to calculate collateral ratio
     /// @param _collateralUSD collateral value in USD
     /// @param _debtUSD debt valut in USD
@@ -340,7 +395,7 @@ library RebalanceLogic {
         );
     }
 
-    /// @notice withrdraws an amount of collateral asset and exchanges it for an 
+    /// @notice withrdraws an amount of collateral asset and exchanges it for an
     /// amount of debt asset
     /// @param $ the storage state of LendingStrategyStorage
     /// @param collateralAmountAsset amount of collateral asset to withdraw and swap
