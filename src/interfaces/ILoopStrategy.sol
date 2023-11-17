@@ -22,8 +22,12 @@ interface ILoopStrategy is IERC4626 {
         uint256 sharesReceived, uint256 minSharesReceived
     );
 
-    error EquityReceivedBelowMinimum(
-        uint256 equityReceived, uint256 minEquityReceived
+    /// @notice thrown when collalteral received upon share redemption or asset withdrawing is 
+    /// les than given minimum limit
+    /// @param collateralReceived amount of collateral received
+    /// @param minCollateralReceived minimum amount of collateral to receive
+    error CollateralReceivedBelowMinimum(
+        uint256 collateralReceived, uint256 minCollateralReceived
     );
 
     /// @notice returns the amount of equity belonging to the strategy
