@@ -11,10 +11,13 @@ import { CollateralRatio } from "../types/DataTypes.sol";
 interface ILoopStrategy is IERC4626 {
     /// @notice mint function from IERC4626 is disabled
     error MintDisabled();
+
     /// @notice reverts when deposit staticcal from previewDeposit reverts
     error DepositStaticcallReverted();
+
     /// @notice reverts when rebalance function is called but collateral ratio is in the target range
     error RebalanceNotNeeded();
+    
     /// @notice reverts when shares received by user on deposit is lower than given minimum
     /// @param sharesReceived amount of shares received
     /// @param minSharesReceived minimum defined by caller
@@ -22,7 +25,7 @@ interface ILoopStrategy is IERC4626 {
         uint256 sharesReceived, uint256 minSharesReceived
     );
 
-    /// @notice thrown when collalteral received upon share redemption or asset withdrawing is 
+    /// @notice thrown when collalteral received upon share redemption or asset withdrawing is
     /// les than given minimum limit
     /// @param collateralReceived amount of collateral received
     /// @param minCollateralReceived minimum amount of collateral to receive
