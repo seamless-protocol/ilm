@@ -88,7 +88,10 @@ contract SwapperMock is Test, ISwapper {
         external
     { }
 
-    function setOffsets(uint256 _borrowToCollateralOffset, uint256 _collateralToBorrowOffset) external {
+    function setOffsets(
+        uint256 _borrowToCollateralOffset,
+        uint256 _collateralToBorrowOffset
+    ) external {
         borrowToCollateralOffset = _borrowToCollateralOffset;
         collateralToBorrowOffset = _collateralToBorrowOffset;
     }

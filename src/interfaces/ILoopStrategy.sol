@@ -18,7 +18,9 @@ interface ILoopStrategy is IERC4626 {
     /// @notice reverts when shares received by user on deposit is lower than given minimum
     /// @param sharesReceived amount of shares received
     /// @param minSharesReceived minimum defined by caller
-    error SharesReceivedBelowMinimum(uint256 sharesReceived, uint256 minSharesReceived);
+    error SharesReceivedBelowMinimum(
+        uint256 sharesReceived, uint256 minSharesReceived
+    );
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
@@ -40,14 +42,19 @@ interface ILoopStrategy is IERC4626 {
     /// @return amount collateral amount
     function collateral() external view returns (uint256 amount);
 
-    /// @notice sets the collateral ratio targets (target ratio, min and max for rebalance, 
+    /// @notice sets the collateral ratio targets (target ratio, min and max for rebalance,
     /// @notice max for deposit rebalance and min for collateral rebalance)
     /// @param collateralRatioTargets collateral ratio targets struct
-    function setCollateralRatioTargets(CollateralRatio memory collateralRatioTargets) external;
+    function setCollateralRatioTargets(
+        CollateralRatio memory collateralRatioTargets
+    ) external;
 
     /// @notice returns min, max and target collateral ratio values
     /// @return ratio struct containing min, max and target collateral ratio values
-    function getCollateralRatioTargets() external view returns (CollateralRatio memory ratio);
+    function getCollateralRatioTargets()
+        external
+        view
+        returns (CollateralRatio memory ratio);
 
     /// @notice sets the interest rate mode for the loan
     /// @param interestRateMode interest rate mode per aave enum InterestRateMode {NONE, STABLE, VARIABLE}
@@ -62,15 +69,19 @@ interface ILoopStrategy is IERC4626 {
     /// within collateral ratio range
     /// @return ratio value of collateral ratio after strategy rebalances
     function rebalance() external returns (uint256 ratio);
-    
+
     /// @notice retruns true if collateral ratio is out of the target range, and we need to rebalance pool
     /// @return shouldRebalance true if rebalance is needed
-    function rebalanceNeeded() external view returns(bool shouldRebalance);
+    function rebalanceNeeded() external view returns (bool shouldRebalance);
 
     /// @notice deposit assets to the strategy with the requirement of shares received
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
     /// @param minSharesReceived required minimum of shares received
     /// @return shares number of received shares
-    function deposit(uint256 assets, address receiver, uint256 minSharesReceived) external returns (uint256 shares);
+    function deposit(
+        uint256 assets,
+        address receiver,
+        uint256 minSharesReceived
+    ) external returns (uint256 shares);
 }

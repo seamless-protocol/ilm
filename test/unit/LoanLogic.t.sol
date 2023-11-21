@@ -269,7 +269,9 @@ contract LoanLogicTest is BaseForkTest {
         if (borrowAmount < maxBorrowAmountUSDbC) {
             loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
             _validateLoanState(loanState, supplyAmount, borrowAmount);
-            assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount, USD_DELTA);
+            assertApproxEqAbs(
+                debtUSDbC.balanceOf(address(this)), borrowAmount, USD_DELTA
+            );
         } else {
             vm.expectRevert();
             LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
