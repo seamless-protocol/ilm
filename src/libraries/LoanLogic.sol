@@ -3,9 +3,12 @@
 pragma solidity ^0.8.18;
 
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
-import { IPoolAddressesProvider } from "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
-import { PercentageMath } from "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
-import { DataTypes } from "@aave/contracts/protocol/libraries/types/DataTypes.sol";
+import { IPoolAddressesProvider } from
+    "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { PercentageMath } from
+    "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
+import { DataTypes } from
+    "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { LoanState, LendingPool } from "../types/DataTypes.sol";
