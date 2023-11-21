@@ -108,7 +108,7 @@ contract LoopStrategy is
     /// @inheritdoc ILoopStrategy
     function currentCollateralRatio() external override view returns (uint256 ratio) {
         LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
-        return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        return RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -129,7 +129,7 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         return _shouldRebalance(
-            _collateralRatioUSD(state.collateralUSD, state.debtUSD), 
+            RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD), 
             $.collateralRatioTargets
         );
     }
@@ -153,7 +153,7 @@ contract LoopStrategy is
     function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
         uint256 estimateTargetCR;
 
         uint256 underlyingPrice = $.oracle.getAssetPrice(address($.assets.underlying));
@@ -163,14 +163,14 @@ contract LoopStrategy is
             IERC20Metadata(address($.assets.underlying)).decimals()
         );
 
-        if (currentCR == 0) {
+        if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
             if (_shouldRebalance(currentCR, $.collateralRatioTargets)) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
-            uint256 afterCR = _collateralRatioUSD(state.collateralUSD + assetsUSD, state.debtUSD);
+            uint256 afterCR = RebalanceLogic.collateralRatioUSD(state.collateralUSD + assetsUSD, state.debtUSD);
             if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
                 estimateTargetCR = currentCR;
                 if ($.collateralRatioTargets.maxForDepositRebalance > estimateTargetCR) {
@@ -235,9 +235,9 @@ contract LoopStrategy is
         
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
-        uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 collateralRatio = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        if (collateralRatio != 0 && _shouldRebalance(collateralRatio, $.collateralRatioTargets)) {
+        if (collateralRatio != type(uint256).max && _shouldRebalance(collateralRatio, $.collateralRatioTargets)) {
             collateralRatio = RebalanceLogic.rebalanceTo($, state,  $.collateralRatioTargets.target);
         }
 
@@ -245,9 +245,9 @@ contract LoopStrategy is
         uint256 prevCollateralRatio = collateralRatio;
 
         state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
-        uint256 afterCollateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 afterCollateralRatio = RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        if (prevCollateralRatio == 0) {
+        if (prevCollateralRatio == type(uint256).max) {
             collateralRatio = RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
         } else if (afterCollateralRatio > $.collateralRatioTargets.maxForDepositRebalance) {
             uint256 rebalanceToRatio = prevCollateralRatio;
@@ -270,17 +270,7 @@ contract LoopStrategy is
         return shares;
     }
 
-    /// @notice helper function to calculate collateral ratio
-    /// @param collateralUSD collateral value in USD
-    /// @param debtUSD debt valut in USD
-    /// @return ratio collateral ratio value
-    function _collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
-        internal
-        pure
-        returns (uint256 ratio)
-    {
-        ratio = debtUSD != 0 ? USDWadRayMath.usdDiv(collateralUSD, debtUSD) : 0;
-    }
+    // TODO: change this funciton !!!
 
     /// @notice function is the same formula as in ERC4626 implementation, but totalAssets is passed as a parameter of the function
     /// @notice we are using this function because totalAssets may change before we are able to calculate asset(equity) amount;
