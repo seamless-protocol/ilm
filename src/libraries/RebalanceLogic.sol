@@ -76,7 +76,7 @@ library RebalanceLogic {
         uint256 count;
 
         do {
-            // debt to reach max LTV in USD
+            // maximum borrowable amount in USD
             uint256 borrowAmountUSD = LoanLogic.getMaxBorrowUSD(
                 $.lendingPool,
                 $.assets.debt,

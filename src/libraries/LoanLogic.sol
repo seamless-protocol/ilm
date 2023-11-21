@@ -3,13 +3,16 @@
 pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
+import { IERC20Metadata } from
+    "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
-import { IVariableDebtToken } from "@aave/contracts/interfaces/IVariableDebtToken.sol";
-import { ReserveConfiguration } from "@aave/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { IVariableDebtToken } from
+    "@aave/contracts/interfaces/IVariableDebtToken.sol";
+import { ReserveConfiguration } from
+    "@aave/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import { PercentageMath } from
@@ -23,7 +26,7 @@ import { LoanState, LendingPool } from "../types/DataTypes.sol";
 /// @dev represents the strategy vault contract.
 library LoanLogic {
     using USDWadRayMath for uint256;
-    using ReserveConfiguration for DataTypes.ReserveConfigurationMap; 
+    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /// @dev used for availableBorrowsBase and maxWithdrawAmount to decrease them by 0.01%
     /// @dev because precision issues on converting to asset amounts can revert borrow/withdraw on lending pool
@@ -104,7 +107,8 @@ library LoanLogic {
         (
             uint256 totalCollateralUSD,
             uint256 totalDebtUSD,
-            uint256 availableBorrowsUSD,
+            /* availableBorrowsUSD */
+            ,
             /* currentLiquidationThreshold */
             ,
             uint256 ltv,
@@ -115,23 +119,19 @@ library LoanLogic {
             return LoanState({
                 collateralUSD: 0,
                 debtUSD: 0,
-                maxBorrowAmount: 0,
                 maxWithdrawAmount: 0
             });
         }
-        
+
         uint256 maxWithdrawAmount =
             totalCollateralUSD - PercentageMath.percentDiv(totalDebtUSD, ltv);
 
-        availableBorrowsUSD =
-            PercentageMath.percentMul(availableBorrowsUSD, MAX_AMOUNT_PERCENT);
         maxWithdrawAmount =
             PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);
 
         return LoanState({
             collateralUSD: totalCollateralUSD,
             debtUSD: totalDebtUSD,
-            maxBorrowAmount: availableBorrowsUSD,
             maxWithdrawAmount: maxWithdrawAmount
         });
     }
@@ -140,29 +140,41 @@ library LoanLogic {
     /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
     /// @param asset asset for which the available supply is returned
     /// @return availableAssetSupply available supply
-    function getAvailableAssetSupply(LendingPool memory lendingPool, IERC20 asset) internal view returns (uint256 availableAssetSupply) {
-        DataTypes.ReserveData memory reserveData = lendingPool.pool.getReserveData(address(asset));
+    function getAvailableAssetSupply(
+        LendingPool memory lendingPool,
+        IERC20 asset
+    ) internal view returns (uint256 availableAssetSupply) {
+        DataTypes.ReserveData memory reserveData =
+            lendingPool.pool.getReserveData(address(asset));
 
         uint256 totalBorrow = _getTotalBorrow(reserveData);
         uint256 borrowCap = reserveData.configuration.getBorrowCap();
         uint256 assetUnit = 10 ** reserveData.configuration.getDecimals();
-        uint256 avilableUntilBorrowCap = 
-            (borrowCap * assetUnit > totalBorrow) ? borrowCap * assetUnit - totalBorrow : 0;
+        uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow)
+            ? borrowCap * assetUnit - totalBorrow
+            : 0;
 
-        uint256 availableLiquidityBase = asset.balanceOf(reserveData.aTokenAddress);
+        uint256 availableLiquidityBase =
+            asset.balanceOf(reserveData.aTokenAddress);
 
-        availableAssetSupply = Math.min(avilableUntilBorrowCap, availableLiquidityBase);
+        availableAssetSupply =
+            Math.min(avilableUntilBorrowCap, availableLiquidityBase);
         return availableAssetSupply;
     }
 
     /// @notice returns the total amount of borrow for given asset reserve data
     /// @param reserveData reserve data (external aave type) for the asset
     /// @return totalBorrow total borrowed amount
-    function _getTotalBorrow(DataTypes.ReserveData memory reserveData) internal view returns (uint256 totalBorrow) {
+    function _getTotalBorrow(DataTypes.ReserveData memory reserveData)
+        internal
+        view
+        returns (uint256 totalBorrow)
+    {
         uint256 currScaledVariableDebt = IVariableDebtToken(
             reserveData.variableDebtTokenAddress
         ).scaledTotalSupply();
-        totalBorrow = currScaledVariableDebt.rayMul(reserveData.variableBorrowIndex);
+        totalBorrow =
+            currScaledVariableDebt.rayMul(reserveData.variableBorrowIndex);
         return totalBorrow;
     }
 
@@ -171,14 +183,22 @@ library LoanLogic {
     /// @param debtAsset asset for wich max borrow is returned
     /// @param debtAssetPrice price of the asset
     /// @return maxBorrowUSD maximum available borrow
-    function getMaxBorrowUSD(LendingPool memory lendingPool, IERC20 debtAsset, uint256 debtAssetPrice) internal view returns(uint256 maxBorrowUSD) {
-        uint256 availableAssetSupply = getAvailableAssetSupply(lendingPool, debtAsset);
+    function getMaxBorrowUSD(
+        LendingPool memory lendingPool,
+        IERC20 debtAsset,
+        uint256 debtAssetPrice
+    ) internal view returns (uint256 maxBorrowUSD) {
+        uint256 availableAssetSupply =
+            getAvailableAssetSupply(lendingPool, debtAsset);
         uint256 assetDecimals = IERC20Metadata(address(debtAsset)).decimals();
-        uint256 availableAssetSupplyUSD = availableAssetSupply * debtAssetPrice / (10 ** assetDecimals);
+        uint256 availableAssetSupplyUSD =
+            availableAssetSupply * debtAssetPrice / (10 ** assetDecimals);
 
-        (,,uint256 availableBorrowsUSD,,,) = lendingPool.pool.getUserAccountData(address(this));
+        (,, uint256 availableBorrowsUSD,,,) =
+            lendingPool.pool.getUserAccountData(address(this));
         maxBorrowUSD = Math.min(availableBorrowsUSD, availableAssetSupplyUSD);
-        maxBorrowUSD = PercentageMath.percentMul(maxBorrowUSD, MAX_AMOUNT_PERCENT);
+        maxBorrowUSD =
+            PercentageMath.percentMul(maxBorrowUSD, MAX_AMOUNT_PERCENT);
         return maxBorrowUSD;
     }
 }

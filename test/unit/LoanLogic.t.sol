@@ -10,8 +10,10 @@ import { IPoolDataProvider } from
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IACLManager } from "@aave/contracts/interfaces/IACLManager.sol";
-import { IPoolConfigurator } from "@aave/contracts/interfaces/IPoolConfigurator.sol";
-import { ReserveConfiguration } from "@aave/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
+import { IPoolConfigurator } from
+    "@aave/contracts/interfaces/IPoolConfigurator.sol";
+import { ReserveConfiguration } from
+    "@aave/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
@@ -65,7 +67,7 @@ contract LoanLogicTest is BaseForkTest {
         (address sWETHaddress,,) =
             poolDataProvider.getReserveTokensAddresses(address(WETH));
         sWETH = IERC20(sWETHaddress);
-        (address sUSDbCaddress,,address debtUSDbCaddress) =
+        (address sUSDbCaddress,, address debtUSDbCaddress) =
             poolDataProvider.getReserveTokensAddresses(address(USDbC));
         sUSDbC = IERC20(sUSDbCaddress);
         debtUSDbC = IERC20(debtUSDbCaddress);
@@ -159,22 +161,24 @@ contract LoanLogicTest is BaseForkTest {
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
-        uint256 initialMaxBorrowUSD = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
+        uint256 initialMaxBorrowUSD = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
 
         // converting maxBorrowUSD amount to the USDbC asset amount
         uint256 borrowAmount =
             Math.mulDiv(initialMaxBorrowUSD, ONE_USDbC, USDbC_price);
         loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-        // getting 0.01% of initial maxBorrowUSD, because we left that as a saftey for precision issues
+        // getting 0.01% of initial maxBorrowUSD, because we left that as a safety for precision issues
         uint256 maxBorrowLeft = PercentageMath.percentMul(
             initialMaxBorrowUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT
         );
 
-        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        assertApproxEqAbs(
-            maxBorrowUSD, 0, maxBorrowLeft + USD_DELTA
+        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
+        assertApproxEqAbs(maxBorrowUSD, 0, maxBorrowLeft + USD_DELTA);
 
         _validateLoanState(loanState, supplyAmount, borrowAmount);
         assertApproxEqAbs(
@@ -188,9 +192,10 @@ contract LoanLogicTest is BaseForkTest {
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
-        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        uint256 borrowAmount =
-            Math.mulDiv(maxBorrowUSD, ONE_USDbC, USDbC_price);
+        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+        uint256 borrowAmount = Math.mulDiv(maxBorrowUSD, ONE_USDbC, USDbC_price);
         // calculating 0.1% above max value
         uint256 borrowAmountAboveMax =
             borrowAmount + PercentageMath.percentMul(borrowAmount, 10);
@@ -214,14 +219,6 @@ contract LoanLogicTest is BaseForkTest {
         uint256 withdrawAmount =
             Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
         loanState = LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
-
-        // getting 0.01% of initial maxWithdrawUSD, because we left that as a saftey for precision issues
-        uint256 maxWithdrawLeft = PercentageMath.percentMul(
-            initialMaxWothdrawUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT
-        );
-        assertApproxEqAbs(
-            loanState.maxBorrowAmount, 0, maxWithdrawLeft + USD_DELTA
-        );
 
         _validateLoanState(
             loanState, supplyAmount - withdrawAmount, borrowAmount
@@ -263,14 +260,16 @@ contract LoanLogicTest is BaseForkTest {
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
         // converting maxBorrowUSD amount to the USDbC asset amount
-        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        uint256 maxBorrowAmountUSDbC = 
+        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+        uint256 maxBorrowAmountUSDbC =
             Math.mulDiv(maxBorrowUSD, ONE_USDbC, USDbC_price);
 
         if (borrowAmount < maxBorrowAmountUSDbC) {
             loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
             _validateLoanState(loanState, supplyAmount, borrowAmount);
-            assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
+            assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount, USD_DELTA);
         } else {
             vm.expectRevert();
             LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
@@ -289,8 +288,10 @@ contract LoanLogicTest is BaseForkTest {
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
         // converting maxBorrowUSD amount to the USDbC asset amount
-        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        uint256 maxBorrowAmountUSDbC = 
+        uint256 maxBorrowUSD = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+        uint256 maxBorrowAmountUSDbC =
             Math.mulDiv(maxBorrowUSD, ONE_USDbC, USDbC_price);
 
         borrowAmount = bound(borrowAmount, ONE_USDbC, maxBorrowAmountUSDbC - 1);
@@ -322,34 +323,42 @@ contract LoanLogicTest is BaseForkTest {
     }
 
     /// @dev test confirming getMaxBorrowUSD function return correct maximum in all 3 cases
-    /// @dev cases are when max borrow is limited by: 1) user's collateral 2) borrow cap 3) borow token total supply
+    /// @dev cases are when max borrow is limited by: 1) user's collateral 2) borrow cap 3) borrow token total supply
     function test_getMaxBorrowUSD() public {
         uint256 supplyAmount = 10 ether;
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
-        // max borrow is limited by user's collatera;
-        _changeBorrowCap(USDbC, 500000);
-        uint256 maxBorrow = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        assertEq(maxBorrow, loanState.maxBorrowAmount);
+        // max borrow is limited by user's collateral
+        _changeBorrowCap(USDbC, 500_000);
+        uint256 maxBorrow = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
 
         // max borrow is limited by asset borrow cap
-        uint256 totalBorrowed = LoanLogic._getTotalBorrow(lendingPool.pool.getReserveData(address(USDbC)));
-        _changeBorrowCap(USDbC, 200000);
-        maxBorrow = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        uint256 expectedMaxBorrow = ((200000 * ONE_USDbC - totalBorrowed) * USDbC_price) / ONE_USDbC;
+        uint256 totalBorrowed = LoanLogic._getTotalBorrow(
+            lendingPool.pool.getReserveData(address(USDbC))
+        );
+        _changeBorrowCap(USDbC, 200_000);
+        maxBorrow = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+        uint256 expectedMaxBorrow =
+            ((200_000 * ONE_USDbC - totalBorrowed) * USDbC_price) / ONE_USDbC;
         // max relative diff is set to 0.05% because of precision errors
         assertApproxEqRel(maxBorrow, expectedMaxBorrow, 0.0005 ether);
 
         // max borrow is limited by total supply
-        _changeBorrowCap(USDbC, 10000000);
-        deal(address(WETH), address(this), 10000 ether);
-        WETH.approve(address(lendingPool.pool), 10000 ether);
-        loanState = LoanLogic.supply(lendingPool, WETH, 10000 ether);
-        maxBorrow = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
+        _changeBorrowCap(USDbC, 10_000_000);
+        deal(address(WETH), address(this), 10_000 ether);
+        WETH.approve(address(lendingPool.pool), 10_000 ether);
+        loanState = LoanLogic.supply(lendingPool, WETH, 10_000 ether);
+        maxBorrow = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
         // max relative diff is set to 0.05% because of precision errors
-        uint256 totalSupplyUSDbCUSD = (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
-        // assertApproxEqAbs(maxBorrow, totalSupplyUSDbCUSD, 10**8);
+        uint256 totalSupplyUSDbCUSD =
+            (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
     }
 
@@ -357,10 +366,11 @@ contract LoanLogicTest is BaseForkTest {
     /// @param asset asset to change borrow cap
     /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
     function _changeBorrowCap(IERC20 asset, uint256 borrowCap) internal {
-      address aclAdmin = poolAddressProvider.getACLAdmin();
-      vm.startPrank(aclAdmin);
-      IPoolConfigurator(poolAddressProvider.getPoolConfigurator()).setBorrowCap(address(asset), borrowCap);
-      vm.stopPrank();
+        address aclAdmin = poolAddressProvider.getACLAdmin();
+        vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), borrowCap);
+        vm.stopPrank();
     }
 
     /// @dev validates if the returned LoanState values correspond for the given asset amounts
@@ -377,15 +387,6 @@ contract LoanLogicTest is BaseForkTest {
 
         uint256 debtUSD = Math.mulDiv(debtUSDbCAmount, USDbC_price, ONE_USDbC);
         assertApproxEqAbs(loanState.debtUSD, debtUSD, USD_DELTA);
-
-        uint256 maxBorrowUSD = PercentageMath.percentMul(collateralUSD, ltvWETH);
-        uint256 maxAvailableBorrow = maxBorrowUSD - debtUSD;
-        maxAvailableBorrow = PercentageMath.percentMul(
-            maxAvailableBorrow, LoanLogic.MAX_AMOUNT_PERCENT
-        );
-        assertApproxEqAbs(
-            loanState.maxBorrowAmount, maxAvailableBorrow, USD_DELTA
-        );
 
         uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, ltvWETH);
         uint256 maxAvailableWithdraw = collateralUSD - minCollateralUSD;

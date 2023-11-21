@@ -8,9 +8,9 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
-/// @title RebalanceLogicTest
-/// @dev RebalanceLogicTest contract which exposes RebalanceLogic library functions
-contract RebalanceLogicTest is RebalanceLogicContext {
+/// @title RebalanceLogicHarness
+/// @dev RebalanceLogicHarness contract which exposes RebalanceLogic library functions
+contract RebalanceLogicHarness is RebalanceLogicContext {
     using USDWadRayMath for uint256;
 
     uint256 targetCR;
@@ -59,9 +59,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // more than one iteration to reach targetCR of 1.45e8
         uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
-            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
-            USDbC_price,
-            6
+            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price), USDbC_price, 6
         );
 
         state =
@@ -104,9 +102,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // one iteration to reach targetCR of  1.8555e8
         uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
-            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
-            USDbC_price,
-            6
+            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price), USDbC_price, 6
         );
 
         state =
