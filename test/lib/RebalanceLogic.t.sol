@@ -59,7 +59,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // more than one iteration to reach targetCR of 1.45e8
         uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
-            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price), USDbC_price, 6
+            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
+            USDbC_price,
+            6
         );
 
         state =
@@ -102,7 +104,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // one iteration to reach targetCR of  1.8555e8
         uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
-            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price), USDbC_price, 6
+            LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
+            USDbC_price,
+            6
         );
 
         state =
