@@ -47,14 +47,12 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         assert(sharesReceived > 0);
         assertEq(sharesReceived, sharesReturned);
 
-        uint256 shouldReceive = (depositAmount * (USDWadRayMath.USD - swapOffset)) / USDWadRayMath.USD;
+        uint256 shouldReceive = (
+            depositAmount * (USDWadRayMath.USD - swapOffset)
+        ) / USDWadRayMath.USD;
 
         // the biggest acceptable loss set to be 1%
-        assertApproxEqRel(
-            sharesReceived,
-            shouldReceive,
-            0.01 ether
-        );
+        assertApproxEqRel(sharesReceived, shouldReceive, 0.01 ether);
 
         assertEq(strategy.totalAssets(), sharesReceived);
         assertEq(strategy.equity(), sharesReceived);
