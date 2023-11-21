@@ -17,7 +17,7 @@ interface ILoopStrategy is IERC4626 {
 
     /// @notice reverts when rebalance function is called but collateral ratio is in the target range
     error RebalanceNotNeeded();
-    
+
     /// @notice reverts when shares received by user on deposit is lower than given minimum
     /// @param sharesReceived amount of shares received
     /// @param minSharesReceived minimum defined by caller
