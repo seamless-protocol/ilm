@@ -54,5 +54,6 @@ interface ISwapper {
     /// @return offset factor between 0 - 1e18 to represent offset (1e18 is 100% offset so 0 value returned)
     function offsetFactor(IERC20 from, IERC20 to)
         external
+        view
         returns (uint256 offset);
 }

@@ -213,8 +213,6 @@ contract LoanLogicTest is BaseForkTest {
         LoanState memory loanState;
         loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-        uint256 initialMaxWothdrawUSD = loanState.maxWithdrawAmount;
-
         // converting loanState.maxWithdrawAmount (USD) amount to the WETH asset amount
         uint256 withdrawAmount =
             Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
@@ -269,7 +267,9 @@ contract LoanLogicTest is BaseForkTest {
         if (borrowAmount < maxBorrowAmountUSDbC) {
             loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
             _validateLoanState(loanState, supplyAmount, borrowAmount);
-            assertApproxEqAbs(debtUSDbC.balanceOf(address(this)), borrowAmount, USD_DELTA);
+            assertApproxEqAbs(
+                debtUSDbC.balanceOf(address(this)), borrowAmount, USD_DELTA
+            );
         } else {
             vm.expectRevert();
             LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
