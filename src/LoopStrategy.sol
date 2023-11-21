@@ -14,7 +14,7 @@ import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { ILoopStrategy, IERC4626 } from "./interfaces/ILoopStrategy.sol";
 import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
-import { LoopStrategyStorage } from "./storage/LoopStrategyStorage.sol";
+import { LoopStrategyStorage as Storage } from "./storage/LoopStrategyStorage.sol";
 import { CollateralRatio, LoanState, LendingPool, StrategyAssets } from "./types/DataTypes.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -46,7 +46,7 @@ contract LoopStrategy is
       __ERC4626_init(_strategyAssets.collateral);
       __Pausable_init();
 
-      LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+      Storage.Layout storage $ = Storage.layout();
       $.assets = _strategyAssets;
       $.collateralRatioTargets = _collateralRatioTargets;
       $.poolAddressProvider = _poolAddressProvider;
@@ -76,46 +76,38 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function setInterestRateMode(uint256 _interestRateMode) external override onlyOwner {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.lendingPool.interestRateMode = _interestRateMode;
+        Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
 
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(CollateralRatio memory _collateralRatioTargets) external override onlyOwner {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        $.collateralRatioTargets = _collateralRatioTargets;
+        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
     function getCollateralRatioTargets() external view override returns (CollateralRatio memory ratio) {
-        return LoopStrategyStorage.layout().collateralRatioTargets;
+        return Storage.layout().collateralRatioTargets;
     }
 
     /// @inheritdoc ILoopStrategy
     function equity() public override view returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function debt() external override view returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return state.debtUSD;
+        return LoanLogic.getLoanState(Storage.layout().lendingPool).debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external override view returns (uint256 amount) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return state.collateralUSD;
+        return LoanLogic.getLoanState(Storage.layout().lendingPool).collateralUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function currentCollateralRatio() external override view returns (uint256 ratio) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
@@ -124,17 +116,22 @@ contract LoopStrategy is
         if (!rebalanceNeeded()) {
             revert RebalanceNotNeeded();
         }
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
+        Storage.Layout storage $ = Storage.layout();
+        return RebalanceLogic.rebalanceTo(
+            $, 
+            LoanLogic.getLoanState($.lendingPool), 
+            $.collateralRatioTargets.target
+        );
     }
 
     /// @inheritdoc ILoopStrategy
     function rebalanceNeeded() public view override returns(bool shouldRebalance) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 collateralRatio = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
-        return _shouldRebalance(collateralRatio, $.collateralRatioTargets);
+        return _shouldRebalance(
+            _collateralRatioUSD(state.collateralUSD, state.debtUSD), 
+            $.collateralRatioTargets
+        );
     }
 
     /// @inheritdoc IERC4626
@@ -154,7 +151,7 @@ contract LoopStrategy is
 
     /// @inheritdoc IERC4626
     function previewDeposit(uint256 assets) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         uint256 currentCR = _collateralRatioUSD(state.collateralUSD, state.debtUSD);
         uint256 estimateTargetCR;
@@ -231,7 +228,7 @@ contract LoopStrategy is
     /// @param minSharesReceived required minimum of equity received
     /// @return shares number of received shares
     function _deposit(uint256 assets, address receiver, uint256 minSharesReceived) internal returns (uint256 shares) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         SafeERC20.safeTransferFrom($.assets.underlying, msg.sender, address(this), assets);
 
         assets = _convertUnderlyingToCollateralAsset($.assets, assets);
@@ -308,7 +305,7 @@ contract LoopStrategy is
     }
 
     function maxBorrowUSD() external view returns(uint256) {
-        LoopStrategyStorage.Layout storage $ = LoopStrategyStorage.layout();
+        Storage.Layout storage $ = Storage.layout();
         return LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, $.oracle.getAssetPrice(address($.assets.debt)));
     }
 }
