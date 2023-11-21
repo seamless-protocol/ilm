@@ -44,8 +44,6 @@ struct LoanState {
     uint256 collateralUSD;
     /// @dev debt value in underlying (USD)
     uint256 debtUSD;
-    /// @dev max amount of borrowedAsset borrowable based on maxLTV
-    uint256 maxBorrowAmount;
     /// @dev max amount of collateralAsset which can be withdrawn based on maxLTV to
     /// avoid health of loan ratio entering liquidation zone
     uint256 maxWithdrawAmount;

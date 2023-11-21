@@ -219,9 +219,6 @@ contract LoanLogicTest is BaseForkTest {
         uint256 maxWithdrawLeft = PercentageMath.percentMul(
             initialMaxWothdrawUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT
         );
-        assertApproxEqAbs(
-            loanState.maxBorrowAmount, 0, maxWithdrawLeft + USD_DELTA
-        );
 
         _validateLoanState(
             loanState, supplyAmount - withdrawAmount, borrowAmount
@@ -331,7 +328,6 @@ contract LoanLogicTest is BaseForkTest {
         // max borrow is limited by user's collateral
         _changeBorrowCap(USDbC, 500000);
         uint256 maxBorrow = LoanLogic.getMaxBorrowUSD(lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC)));
-        assertEq(maxBorrow, loanState.maxBorrowAmount);
 
         // max borrow is limited by asset borrow cap
         uint256 totalBorrowed = LoanLogic._getTotalBorrow(lendingPool.pool.getReserveData(address(USDbC)));
@@ -376,15 +372,6 @@ contract LoanLogicTest is BaseForkTest {
 
         uint256 debtUSD = Math.mulDiv(debtUSDbCAmount, USDbC_price, ONE_USDbC);
         assertApproxEqAbs(loanState.debtUSD, debtUSD, USD_DELTA);
-
-        uint256 maxBorrowUSD = PercentageMath.percentMul(collateralUSD, ltvWETH);
-        uint256 maxAvailableBorrow = maxBorrowUSD - debtUSD;
-        maxAvailableBorrow = PercentageMath.percentMul(
-            maxAvailableBorrow, LoanLogic.MAX_AMOUNT_PERCENT
-        );
-        assertApproxEqAbs(
-            loanState.maxBorrowAmount, maxAvailableBorrow, USD_DELTA
-        );
 
         uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, ltvWETH);
         uint256 maxAvailableWithdraw = collateralUSD - minCollateralUSD;
