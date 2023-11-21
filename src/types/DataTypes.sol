@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.18;
 
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 /// @title DataTypes
 /// @notice Contains all structs used in the Integrated Liquidity Market contract suite
