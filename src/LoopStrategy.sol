@@ -43,7 +43,7 @@ contract LoopStrategy is
       uint16 _maxIterations
     ) external initializer {
       __Ownable_init(_initialOwner);
-      __ERC4626_init(_strategyAssets.collateral);
+      __ERC4626_init(_strategyAssets.underlying);
       __Pausable_init();
 
       Storage.Layout storage $ = Storage.layout();
@@ -90,9 +90,20 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function equity() public override view returns (uint256 amount) {
+    function equityUSD() public override view returns (uint256 amount) {
         LoanState memory state = LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function equity() public override view returns (uint256 amount) {
+        Storage.Layout storage $ = Storage.layout();
+        // get underlying price and decimals
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals = IERC20Metadata(address($.assets.underlying)).decimals();
+
+        return RebalanceLogic.convertUSDToAsset(equityUSD(), underlyingPriceUSD, underlyingDecimals);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -269,8 +280,6 @@ contract LoopStrategy is
         emit Deposit(msg.sender, receiver, assets, shares);
         return shares;
     }
-
-    // TODO: change this funciton !!!
 
     /// @notice function is the same formula as in ERC4626 implementation, but totalAssets is passed as a parameter of the function
     /// @notice we are using this function because totalAssets may change before we are able to calculate asset(equity) amount;

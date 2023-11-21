@@ -146,7 +146,6 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         vm.stopPrank();
     }
 
-    // test allow deposit when borrow cap / supply is reached ! ! !
     /// @dev test confimrs that deposit is allowed once max supply or borrow cap is reached
     function test_deposit_maxSupplyReached() public {
         uint256 depositAlice = 3 ether;
