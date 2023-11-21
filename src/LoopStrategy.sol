@@ -280,7 +280,16 @@ contract LoopStrategy is
             estimateTargetCR, assetsUSD, 0, offsetFactor
         );
         uint256 collateralAfterUSD = borrowAmount.usdMul(estimateTargetCR);
-        uint256 estimatedEquity = collateralAfterUSD - borrowAmount;
+        uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmount;
+
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
+
+        uint256 estimatedEquity = RebalanceLogic.convertUSDToAsset(
+            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
+        );
         return _convertToShares(estimatedEquity, totalAssets());
     }
 
