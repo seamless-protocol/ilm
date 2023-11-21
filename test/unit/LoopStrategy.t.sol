@@ -55,6 +55,9 @@ contract LoopStrategyTest is BaseForkTest {
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
     WrappedCbETH public wrappedCbETH;
 
+    uint256 COLLATERAL_PRICE = 2000 * 1e8;
+    uint256 DEBT_PRICE = 1e8;
+
     uint256 swapOffset;
 
     address alice = makeAddr("alice");
@@ -74,8 +77,8 @@ contract LoopStrategyTest is BaseForkTest {
         vm.etch(poolAddressProvider.getPriceOracle(), mockOracleCode);
         priceOracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
 
-        _changePrice(USDbC, 1e8);
-        _changePrice(CbETH, 2000 * 1e8);
+        _changePrice(USDbC, DEBT_PRICE);
+        _changePrice(CbETH, COLLATERAL_PRICE);
 
         wrappedCbETH =
             new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
