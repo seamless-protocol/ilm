@@ -76,8 +76,12 @@ library RebalanceLogic {
         uint256 count;
 
         do {
-            // debt to reach max LTV in USD
-            uint256 borrowAmountUSD = _state.maxBorrowAmount;
+            // maximum borrowable amount in USD
+            uint256 borrowAmountUSD = LoanLogic.getMaxBorrowUSD(
+                $.lendingPool,
+                $.assets.debt,
+                $.oracle.getAssetPrice(address($.assets.debt))
+            );
 
             {
                 // calculate how much borrow amount in USD is needed to reach
