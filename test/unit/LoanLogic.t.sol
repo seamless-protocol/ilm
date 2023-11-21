@@ -81,8 +81,8 @@ contract LoanLogicTest is BaseForkTest {
     /// @dev test confirming that loan state is valid after withdrawing
     /// @dev and that we get correct amount of WETH and sWETH tokens
     function test_supply() public {
-        uint256 wethAmountBefore = WETH.balanceOf(address(this));
-        uint256 supplyAmount = 10 ether;
+      uint256 wethAmountBefore = WETH.balanceOf(address(this));
+      uint256 supplyAmount = 3 ether;
 
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
@@ -250,7 +250,7 @@ contract LoanLogicTest is BaseForkTest {
     function testFuzz_borrow(uint256 borrowAmount) public {
         vm.assume(borrowAmount > 0);
 
-        uint256 supplyAmount = 10 ether;
+        uint256 supplyAmount = 3 ether;
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
