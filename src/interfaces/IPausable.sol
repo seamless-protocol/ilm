@@ -6,7 +6,7 @@ pragma solidity ^0.8.18;
 /// @notice interface for Pausable functionality
 interface IPausable {
     /// @notice set paused state to true
-    function pause() external view;
+    function pause() external;
 
     /// @notice set paused state to false
     function unpause() external view;
