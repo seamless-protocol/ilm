@@ -213,8 +213,6 @@ contract LoanLogicTest is BaseForkTest {
         LoanState memory loanState;
         loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-        uint256 initialMaxWothdrawUSD = loanState.maxWithdrawAmount;
-
         // converting loanState.maxWithdrawAmount (USD) amount to the WETH asset amount
         uint256 withdrawAmount =
             Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
