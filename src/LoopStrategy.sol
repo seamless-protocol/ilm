@@ -464,7 +464,7 @@ contract LoopStrategy is
 
         if (prevCollateralRatio == type(uint256).max) {
             collateralRatio = RebalanceLogic.rebalanceTo(
-                 $, state, 0, $.collateralRatioTargets.target
+                $, state, 0, $.collateralRatioTargets.target
             );
         } else if (
             afterCollateralRatio
