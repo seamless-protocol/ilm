@@ -265,4 +265,29 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // after the strategy-wide rebalance within an error margin of 0.0001%
         assertApproxEqRel(strategy.currentCollateralRatio(), expectedCR, MARGIN);
     }
+
+    /// @dev ensures that the predicted assets returned by the preview redeem call
+    /// match the amount returned by the actual call
+    function test_previewRedeem_accurateEquityPrediction() public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+
+        // assert post-deposit state
+        assert(
+            strategy.totalSupply() == aliceShares
+                && strategy.balanceOf(alice) == aliceShares
+        );
+        assertApproxEqRel(
+            strategy.currentCollateralRatio(),
+            collateralRatioTargets.target,
+            MARGIN
+        );
+
+        uint256 redeemAmount = aliceShares / 2;
+        uint256 predictedAliceAssets = strategy.previewRedeem(redeemAmount);
+        uint256 actualAliceAssets = strategy.redeem(redeemAmount, alice, alice);
+
+        assertEq(predictedAliceAssets, actualAliceAssets);
+    }
 }

@@ -364,9 +364,14 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
-            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(USDWadRayMath.USD - $.swapper.offsetFactor($.assets.collateral, $.assets.debt));
-        
-            shareEquityUSD -= collateralNeededUSD.usdMul($.swapper.offsetFactor($.assets.collateral, $.assets.debt));
+            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
+                USDWadRayMath.USD
+                    - $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+            );
+
+            shareEquityUSD -= collateralNeededUSD.usdMul(
+                $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+            );
         }
 
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
