@@ -318,11 +318,11 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
 
-        // get collateral price and decimals
-        uint256 collateralPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.collateral));
-        uint256 collateralDecimals =
-            IERC20Metadata(address($.assets.collateral)).decimals();
+        // get underlying price and decimals
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
 
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
@@ -340,7 +340,7 @@ contract LoopStrategy is
                 $.collateralRatioTargets.target,
                 state.collateralUSD,
                 state.debtUSD,
-                $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
 
             // calculate new debt and collateral values after collateral has been exchanged
@@ -348,7 +348,7 @@ contract LoopStrategy is
             state.collateralUSD -= neededCollateralUSD;
             state.debtUSD -= RebalanceLogic.offsetUSDAmountDown(
                 neededCollateralUSD,
-                $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
         }
 
@@ -366,16 +366,16 @@ contract LoopStrategy is
         ) {
             uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
                 USDWadRayMath.USD
-                    - $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+                    - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
 
             shareEquityUSD -= collateralNeededUSD.usdMul(
-                $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
         }
 
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, collateralPriceUSD, collateralDecimals
+            shareEquityUSD, underlyingPriceUSD, underlyingDecimals
         );
 
         return shareEquityAsset;
@@ -476,9 +476,9 @@ contract LoopStrategy is
     //     _burn(owner, shares);
 
     //     // get collateral price and decimals
-    //     uint256 collateralPriceUSD =
+    //     uint256 underlyingPriceUSD =
     //         $.oracle.getAssetPrice(address($.assets.collateral));
-    //     uint256 collateralDecimals =
+    //     uint256 underlyingDecimals =
     //         IERC20Metadata(address($.assets.collateral)).decimals();
 
     //     // get current loan state and calculate initial collateral ratio
@@ -531,8 +531,8 @@ contract LoopStrategy is
     //                             )
     //                     )
     //             ),
-    //             collateralPriceUSD,
-    //             collateralDecimals
+    //             underlyingPriceUSD,
+    //             underlyingDecimals
     //         );
 
     //         debtRepaidUSD = initialDebtUSD - state.debtUSD;
@@ -591,7 +591,7 @@ contract LoopStrategy is
     //     // Can there be a case where withdrawing the amount left over is too great to withdraw at once?
     //     // convert to collateral asset and transfer
     //     uint256 netShareCollateralAsset = RebalanceLogic.convertUSDToAsset(
-    //         netShareEquityUSD, collateralPriceUSD, collateralDecimals
+    //         netShareEquityUSD, underlyingPriceUSD, underlyingDecimals
     //     );
 
     //     LoanLogic.withdraw(
@@ -619,11 +619,11 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        // get collateral price and decimals
-        uint256 collateralPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.collateral));
-        uint256 collateralDecimals =
-            IERC20Metadata(address($.assets.collateral)).decimals();
+        // get underlying price and decimals
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
 
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
@@ -663,7 +663,7 @@ contract LoopStrategy is
                 $,
                 state,
                 RebalanceLogic.convertUSDToAsset(
-                    shareDebtUSD, collateralPriceUSD, collateralDecimals
+                    shareDebtUSD, underlyingPriceUSD, underlyingDecimals
                 ),
                 initialCR
             );
@@ -676,7 +676,7 @@ contract LoopStrategy is
         }
 
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, collateralPriceUSD, collateralDecimals
+            shareEquityUSD, underlyingPriceUSD, underlyingDecimals
         );
 
         if (shareEquityAsset < minCollateralAsset) {
@@ -687,7 +687,7 @@ contract LoopStrategy is
 
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
-        $.assets.collateral.transferFrom(
+        $.assets.underlying.transferFrom(
             address(this), receiver, shareEquityAsset
         );
 
@@ -711,10 +711,10 @@ contract LoopStrategy is
 
         //TODO: change to underlying price + decimals; this will(should?) revert otherwise!!!
         // get collateral price and decimals
-        uint256 collateralPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.collateral));
-        uint256 collateralDecimals =
-            IERC20Metadata(address($.assets.collateral)).decimals();
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
 
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
@@ -765,7 +765,7 @@ contract LoopStrategy is
 
         // convert equity to collateral asset
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, collateralPriceUSD, collateralDecimals
+            shareEquityUSD, underlyingPriceUSD, underlyingDecimals
         );
 
         // ensure equity in asset terms to be received is larger than
@@ -779,7 +779,9 @@ contract LoopStrategy is
         // withdraw and transfer equity asset amount
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
-        $.assets.collateral.transfer(receiver, shareEquityAsset);
+        $.assets.underlying.transfer(
+            receiver, _unwrapCollateral($.assets, shareEquityAsset)
+        );
 
         return shareEquityAsset;
     }
@@ -855,20 +857,22 @@ contract LoopStrategy is
         );
     }
 
-    /// @notice converts collateral asset to the underlying asset if those are different
+    /// @notice unwrap collateral asset to the underlying asset, if those are different
     /// @param assets struct which contain underlying asset address and collateral asset address
-    /// @param assetAmount amount of assets to convert
-    /// @return receivedAssets amount of received underlying assets
-    function _convertCollateralToUnderlyingAsset(
+    /// @param collateralAmountAsset amount of collateral asset to unwrap
+    /// @return underlyingAmountAsset amount of received underlying assets
+    function _unwrapCollateral(
         StrategyAssets storage assets,
-        uint256 assetAmount
-    ) internal virtual returns (uint256 receivedAssets) {
+        uint256 collateralAmountAsset
+    ) internal virtual returns (uint256 underlyingAmountAsset) {
         if (assets.underlying != assets.collateral) {
-            assets.collateral.approve(address(assets.underlying), assetAmount);
+            assets.collateral.approve(
+                address(assets.underlying), collateralAmountAsset
+            );
             IWrappedERC20PermissionedDeposit(address(assets.underlying))
-                .withdraw(assetAmount);
+                .withdraw(collateralAmountAsset);
         }
-        receivedAssets = assetAmount;
+        underlyingAmountAsset = collateralAmountAsset;
     }
 
     /// @notice calculates the collateral, debt, and equity corresponding to an amount of shares
@@ -895,101 +899,5 @@ contract LoopStrategy is
             USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
         );
         equityUSD = collateralUSD - debtUSD;
-    }
-
-    function _withdrawalRebalance(
-        Storage.Layout storage $,
-        LoanState memory state,
-        uint256 projectedCR,
-        uint256 collateralPriceUSD,
-        uint256 collateralDecimals,
-        uint256 initialCR,
-        uint256 initialEquityUSD,
-        uint256 shareEquityUSD,
-        uint256 shareDebtUSD
-    ) internal returns (uint256 remainingShareEquityUSD) {
-        remainingShareEquityUSD = shareEquityUSD;
-
-        // check if withdrawing the shareEquity in USD value would lead to a collateral ratio
-        // below the minimum limit for a rebalance after a withdrawal
-        if (projectedCR < $.collateralRatioTargets.minForWithdrawRebalance) {
-            // calculate collateral needed to repay share debt
-            uint256 collateralForRepayment = RebalanceLogic.convertUSDToAsset(
-                shareDebtUSD, collateralPriceUSD, collateralDecimals
-            );
-
-            // rebalance to initial CR
-            RebalanceLogic.rebalanceTo(
-                $, state, collateralForRepayment, initialCR
-            );
-
-            // since a rebalance occured, value is extracted by the DEX from swapping,
-            // meaning that an amount of equity was lost:
-            // lostEquity = initialEquity - finalEquity
-            // so adjust shareEquityUSD accordingly since withdrawal is cause for rebalance
-            remainingShareEquityUSD -= initialEquityUSD - equity();
-        }
-    }
-
-    function _enforceMinimumCollateralAsset(
-        uint256 shareEquityUSD,
-        uint256 collateralPriceUSD,
-        uint256 collateralDecimals,
-        uint256 minCollateralAsset
-    ) internal pure returns (uint256 shareEquityAsset) {
-        shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, collateralPriceUSD, collateralDecimals
-        );
-
-        if (shareEquityAsset < minCollateralAsset) {
-            revert CollateralReceivedBelowMinimum(
-                shareEquityAsset, minCollateralAsset
-            );
-        }
-    }
-
-    function _withdrawTo(
-        Storage.Layout memory $,
-        address receiver,
-        uint256 amount
-    ) internal {
-        LoanLogic.withdraw($.lendingPool, $.assets.collateral, amount);
-
-        $.assets.collateral.transferFrom(address(this), receiver, amount);
-    }
-
-    /// TODO: might not need
-    /// @notice repays an amount of debt with collateral
-    /// @param $ storage layout
-    /// @param debtUSD amount of debt to repay in USD
-    /// @param collateralPriceUSD price of collateral in USD
-    /// @param collateralDecimals decimals of collateral asset
-    function _repayDebtWithCollateral(
-        Storage.Layout memory $,
-        uint256 debtUSD,
-        uint256 collateralPriceUSD,
-        uint256 collateralDecimals
-    ) internal returns (LoanState memory state) {
-        // convert debt USD value to collateral asset amount
-        uint256 withdrawAmountAsset = RebalanceLogic.convertUSDToAsset(
-            debtUSD, collateralPriceUSD, collateralDecimals
-        );
-
-        state = LoanLogic.withdraw(
-            $.lendingPool, $.assets.collateral, withdrawAmountAsset
-        );
-
-        $.assets.collateral.approve(address($.swapper), withdrawAmountAsset);
-
-        // exchange withdrawAmountAsset of collateral tokens for debt tokens to repay
-        uint256 repayAmountAsset = $.swapper.swap(
-            $.assets.collateral,
-            $.assets.debt,
-            withdrawAmountAsset,
-            payable(address(this))
-        );
-
-        // repay debt
-        state = LoanLogic.repay($.lendingPool, $.assets.debt, repayAmountAsset);
     }
 }
