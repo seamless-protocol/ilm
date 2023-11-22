@@ -316,7 +316,64 @@ contract LoopStrategy is
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        // TODO: static call redeem() and return the expected withdrawal amount
+        Storage.Layout storage $ = Storage.layout();
+
+        // get collateral price and decimals
+        uint256 collateralPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.collateral));
+        uint256 collateralDecimals =
+            IERC20Metadata(address($.assets.collateral)).decimals();
+
+        // get current loan state and calculate initial collateral ratio
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        // check if collateralRatio is outside range, so user participates in potential rebalance
+        if (
+            _shouldRebalance(
+                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                $.collateralRatioTargets
+            )
+        ) {
+            // calculate amount of collateral needed to bring the collateral ratio
+            // to target
+            uint256 neededCollateralUSD = RebalanceLogic.requiredCollateralUSD(
+                $.collateralRatioTargets.target,
+                state.collateralUSD,
+                state.debtUSD,
+                $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+            );
+
+            // calculate new debt and collateral values after collateral has been exchanged
+            // for rebalance
+            state.collateralUSD -= neededCollateralUSD;
+            state.debtUSD -= RebalanceLogic.offsetUSDAmountDown(
+                neededCollateralUSD,
+                $.swapper.offsetFactor($.assets.collateral, $.assets.debt)
+            );
+        }
+
+        // calculate amount of collateral, debt and equity corresponding to shares in USD value
+        (
+            uint256 shareCollateralUSD,
+            uint256 shareDebtUSD,
+            uint256 shareEquityUSD
+        ) = _shareCDE(state, shares, totalSupply());
+
+        if (
+            _collateralRatioUSD(
+                state.collateralUSD - shareEquityUSD, state.debtUSD
+            ) < $.collateralRatioTargets.minForWithdrawRebalance
+        ) {
+            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(USDWadRayMath.USD - $.swapper.offsetFactor($.assets.collateral, $.assets.debt));
+        
+            shareEquityUSD -= collateralNeededUSD.usdMul($.swapper.offsetFactor($.assets.collateral, $.assets.debt));
+        }
+
+        uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
+            shareEquityUSD, collateralPriceUSD, collateralDecimals
+        );
+
+        return shareEquityAsset;
     }
 
     /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
@@ -647,6 +704,7 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
+        //TODO: change to underlying price + decimals; this will(should?) revert otherwise!!!
         // get collateral price and decimals
         uint256 collateralPriceUSD =
             $.oracle.getAssetPrice(address($.assets.collateral));
@@ -873,7 +931,7 @@ contract LoopStrategy is
         uint256 collateralPriceUSD,
         uint256 collateralDecimals,
         uint256 minCollateralAsset
-    ) internal returns (uint256 shareEquityAsset) {
+    ) internal pure returns (uint256 shareEquityAsset) {
         shareEquityAsset = RebalanceLogic.convertUSDToAsset(
             shareEquityUSD, collateralPriceUSD, collateralDecimals
         );
