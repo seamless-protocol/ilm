@@ -381,11 +381,8 @@ contract LoopStrategy is
         }
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        (
-            ,
-            uint256 shareDebtUSD,
-            uint256 shareEquityUSD
-        ) = _shareCDE(state, shares, totalSupply());
+        (, uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            _shareCDE(state, shares, totalSupply());
 
         if (
             _collateralRatioUSD(
@@ -533,11 +530,8 @@ contract LoopStrategy is
         uint256 initialEquityUSD = equityUSD();
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        (
-            ,
-            uint256 shareDebtUSD,
-            uint256 shareEquityUSD
-        ) = _shareCDE(state, shares, totalSupply());
+        (, uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            _shareCDE(state, shares, totalSupply());
 
         // burn shares from the owner
         _burn(owner, shares);
@@ -580,7 +574,8 @@ contract LoopStrategy is
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
         $.assets.underlying.transfer(
-            receiver, _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
+            receiver,
+            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
         );
 
         return shareEquityAsset;
@@ -628,11 +623,8 @@ contract LoopStrategy is
         uint256 initialEquityUSD = equityUSD();
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        (
-            ,
-            uint256 shareDebtUSD,
-            uint256 shareEquityUSD
-        ) = _shareCDE(state, shares, totalSupply());
+        (, uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            _shareCDE(state, shares, totalSupply());
 
         // burn shares from the owner after all calculations are done
         _burn(owner, shares);
@@ -671,7 +663,8 @@ contract LoopStrategy is
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
         $.assets.underlying.transfer(
-            receiver, _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
+            receiver,
+            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
         );
 
         return shareEquityAsset;
