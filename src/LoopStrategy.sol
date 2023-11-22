@@ -382,7 +382,7 @@ contract LoopStrategy is
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
         (
-            uint256 shareCollateralUSD,
+            ,
             uint256 shareDebtUSD,
             uint256 shareEquityUSD
         ) = _shareCDE(state, shares, totalSupply());
@@ -495,145 +495,6 @@ contract LoopStrategy is
         return shares;
     }
 
-    // function _redeem(
-    //     uint256 shares,
-    //     address receiver,
-    //     address owner,
-    //     uint256 minEquityReceivedUSD
-    // ) internal returns (uint256 assets, uint256 equityReceived) {
-    //     Storage.Layout storage $ = Storage.layout();
-    //     // burn shares from the owner
-    //     _burn(owner, shares);
-
-    //     // get collateral price and decimals
-    //     uint256 underlyingPriceUSD =
-    //         $.oracle.getAssetPrice(address($.assets.collateral));
-    //     uint256 underlyingDecimals =
-    //         IERC20Metadata(address($.assets.collateral)).decimals();
-
-    //     // get current loan state and calculate initial collateral ratio
-    //     LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-    //     uint256 initialCR =
-    //         _collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-    //     // check if collateralRatio is outside range, so user participates in potential rebalance
-    //     if (_shouldRebalance(initialCR, $.collateralRatioTargets)) {
-    //         initialCR = RebalanceLogic.rebalanceTo(
-    //             $, state, 0, $.collateralRatioTargets.target
-    //         );
-
-    //         state = LoanLogic.getLoanState($.lendingPool);
-    //     }
-    //     // 300 cUSD
-    //     // 200 dUSD
-    //     // rebal as if 50 cUSD, so 50 cUSD leftover
-
-    //     // calculate amount of collateral, debt and equity corresponding to shares in USD value
-    //     uint256 shareCollateralUSD = state.collateralUSD.usdMul(
-    //         USDWadRayMath.wadToUSD(shares.wadDiv(totalSupply()))
-    //     );
-    //     uint256 shareDebtUSD = state.debtUSD.usdMul(
-    //         USDWadRayMath.wadToUSD(shares.wadDiv(totalSupply()))
-    //     );
-    //     uint256 shareEquityUSD = shareCollateralUSD - shareDebtUSD;
-
-    //     uint256 initialDebtUSD = state.debtUSD;
-    //     uint256 initialEquityUSD = equity();
-    //     uint256 remainingDebtUSD = shareDebtUSD;
-    //     uint256 debtRepaidUSD;
-
-    //     // check beforehand CR effects
-
-    //     // while there is outstanding debt on the user shares, rebalance downwards to repay debt
-    //     while (0 < remainingDebtUSD) {
-    //         // calculate collateral token withdraw amount by selecting the smaller of
-    //         // the maximum withdrawable and remaining debt USD amounts and repay selected
-    //         // debt amount
-    //         state = _repayDebtWithCollateral(
-    //             $,
-    //             Math.min(
-    //                 state.maxWithdrawAmount,
-    //                 (remainingDebtUSD * USDWadRayMath.USD)
-    //                     / (
-    //                         USDWadRayMath.USD
-    //                             - $.swapper.offsetFactor(
-    //                                 $.assets.collateral, $.assets.debt
-    //                             )
-    //                     )
-    //             ),
-    //             underlyingPriceUSD,
-    //             underlyingDecimals
-    //         );
-
-    //         debtRepaidUSD = initialDebtUSD - state.debtUSD;
-    //         remainingDebtUSD =
-    //             debtRepaidUSD < shareDebtUSD ? shareDebtUSD - debtRepaidUSD : 0;
-    //     }
-
-    //     // MIGHT CANCEL OUT WITH REBALANCE?
-    //     // account for any excess debt
-    //     uint256 excessRepaidUSD;
-    //     if (debtRepaidUSD > shareDebtUSD) {
-    //         excessRepaidUSD = debtRepaidUSD - shareDebtUSD;
-    //     }
-
-    //     // calculate bet share equity in USD value
-    //     uint256 netShareEquityUSD = shareEquityUSD + excessRepaidUSD;
-
-    //     // check if this variable is needed
-    //     uint256 currentCR =
-    //         _collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-    //     // QUESTION:
-    //     // 1. Can there be a situation where the rebalancing causes more fees than users left over equity?
-    //     // 2. How to anticipate & handle?
-    //     // if under the minimum for withdraw rebalance limit rebalance upwards
-    //     if (currentCR > $.collateralRatioTargets.minForWithdrawRebalance) {
-    //         uint256 preRebalanceDebtUSD = state.debtUSD;
-    //         // NOTE: this is not accurate because the final amount of asset withdrawal
-    //         // is actually less than the original accounted amount. How to fix?
-    //         // calculate the collateral ratio to rebalance up to so that when
-    //         // collateral is withdrawn, the initialCR is attained
-    //         uint256 targetCR = (
-    //             initialCR.usdMul(preRebalanceDebtUSD) + netShareEquityUSD
-    //         ).usdDiv(preRebalanceDebtUSD);
-
-    //         RebalanceLogic.rebalanceTo($, state, 0, targetCR);
-
-    //         state = LoanLogic.getLoanState($.lendingPool);
-    //     }
-
-    //     // adjust netShareEquityUSD based on additional equity lost from swapping operations
-    //     // Question:
-    //     // 1. Is it possible for this to be overall negative? ie netShareEquityUSD < initialEquityUSD - equity()
-    //     // 2. If yes, how to handle?
-    //     // NOTE: this should be calculated with equity changes, not debt
-    //     netShareEquityUSD -= (initialEquityUSD - equity());
-
-    //     // // make this check cbETH
-    //     // if (netShareEquityUSD < minEquityReceivedUSD) {
-    //     //     revert EquityReceivedBelowMinimum(
-    //     //         netShareEquityUSD, minEquityReceivedUSD
-    //     //     );
-    //     // }
-
-    //     // QUESTION:
-    //     // Can there be a case where withdrawing the amount left over is too great to withdraw at once?
-    //     // convert to collateral asset and transfer
-    //     uint256 netShareCollateralAsset = RebalanceLogic.convertUSDToAsset(
-    //         netShareEquityUSD, underlyingPriceUSD, underlyingDecimals
-    //     );
-
-    //     LoanLogic.withdraw(
-    //         $.lendingPool, $.assets.collateral, netShareCollateralAsset
-    //     );
-    //     $.assets.collateral.transferFrom(
-    //         address(this), receiver, netShareCollateralAsset
-    //     );
-
-    //     return (netShareCollateralAsset, netShareEquityUSD);
-    // }
-
     /// @notice redeems an amount of shares by burning shares from the owner, and rewarding the receiver with
     /// the share value
     /// @param shares amount of shares to burn
@@ -669,11 +530,11 @@ contract LoopStrategy is
             state = LoanLogic.getLoanState($.lendingPool);
         }
 
-        uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
+        uint256 initialEquityUSD = equityUSD();
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
         (
-            uint256 shareCollateralUSD,
+            ,
             uint256 shareDebtUSD,
             uint256 shareEquityUSD
         ) = _shareCDE(state, shares, totalSupply());
@@ -692,17 +553,18 @@ contract LoopStrategy is
             RebalanceLogic.rebalanceTo(
                 $,
                 state,
-                RebalanceLogic.convertUSDToAsset(
-                    shareDebtUSD, underlyingPriceUSD, underlyingDecimals
-                ),
-                initialCR
+                0,
+                RebalanceLogic.collateralRatioUSD(
+                    state.collateralUSD - shareDebtUSD.usdDiv(995e5), // TODO: to remove hardcoding, must fix stack too deep
+                    state.debtUSD - shareDebtUSD
+                )
             );
 
             // since a rebalance occured, value is extracted by the DEX from swapping,
             // meaning that an amount of equity was lost:
             // lostEquity = initialEquity - finalEquity
             // so adjust shareEquityUSD accordingly since withdrawal is cause for rebalance
-            shareEquityUSD -= initialEquityUSD - equity();
+            shareEquityUSD -= initialEquityUSD - equityUSD();
         }
 
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
@@ -717,11 +579,11 @@ contract LoopStrategy is
 
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
-        $.assets.underlying.transferFrom(
-            address(this), receiver, shareEquityAsset
+        $.assets.underlying.transfer(
+            receiver, _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
         );
 
-        return shareEquityUSD;
+        return shareEquityAsset;
     }
 
     /// @notice redeems an amount of shares by burning shares from the owner, and rewarding the receiver with
@@ -739,7 +601,6 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        //TODO: change to underlying price + decimals; this will(should?) revert otherwise!!!
         // get collateral price and decimals
         uint256 underlyingPriceUSD =
             $.oracle.getAssetPrice(address($.assets.underlying));
@@ -768,7 +629,7 @@ contract LoopStrategy is
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
         (
-            uint256 shareCollateralUSD,
+            ,
             uint256 shareDebtUSD,
             uint256 shareEquityUSD
         ) = _shareCDE(state, shares, totalSupply());
@@ -810,7 +671,7 @@ contract LoopStrategy is
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
         $.assets.underlying.transfer(
-            receiver, _unwrapCollateral($.assets, shareEquityAsset)
+            receiver, _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
         );
 
         return shareEquityAsset;
@@ -891,7 +752,7 @@ contract LoopStrategy is
     /// @param assets struct which contain underlying asset address and collateral asset address
     /// @param collateralAmountAsset amount of collateral asset to unwrap
     /// @return underlyingAmountAsset amount of received underlying assets
-    function _unwrapCollateral(
+    function _convertCollateralToUnderlyingAsset(
         StrategyAssets storage assets,
         uint256 collateralAmountAsset
     ) internal virtual returns (uint256 underlyingAmountAsset) {

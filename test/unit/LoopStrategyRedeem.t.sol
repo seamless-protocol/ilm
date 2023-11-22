@@ -58,7 +58,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             collateralRatioTargets.target,
             MARGIN
         );
-
+        
         uint256 redeemAmount = aliceShares / 2;
         uint256 initialTotalSupply = strategy.totalSupply();
         uint256 oldBalance = strategy.balanceOf(alice);
