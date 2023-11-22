@@ -41,18 +41,16 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         uint256 sharesReturned = _depositFor(alice, depositAmount);
         _validateCollateralRatio(collateralRatioTargets.target);
 
-        uint256 cbETHPrice = priceOracle.getAssetPrice(address(CbETH));
-        uint256 depositValue = Math.mulDiv(depositAmount, cbETHPrice, 1 ether);
-
         uint256 sharesReceived = IERC20(address(strategy)).balanceOf(alice);
         assert(sharesReceived > 0);
         assertEq(sharesReceived, sharesReturned);
+
+        uint256 shouldReceive = (
+            depositAmount * (USDWadRayMath.USD - swapOffset)
+        ) / USDWadRayMath.USD;
+
         // the biggest acceptable loss set to be 1%
-        assertApproxEqRel(
-            sharesReceived,
-            RebalanceLogic.offsetUSDAmountDown(depositValue, swapOffset),
-            0.01 ether
-        );
+        assertApproxEqRel(sharesReceived, shouldReceive, 0.01 ether);
 
         assertEq(strategy.totalAssets(), sharesReceived);
         assertEq(strategy.equity(), sharesReceived);
@@ -122,9 +120,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         _changePrice(CbETH, 1900 * 1e8);
 
         uint256 depositBob = 0.2 ether;
-        uint256 depositBobUSD =
-            depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
-        uint256 expectedShares = strategy.convertToShares(depositBobUSD);
+        uint256 expectedShares = strategy.convertToShares(depositBob);
         uint256 sharesBob = _depositFor(bob, depositBob);
         assertEq(sharesBob, expectedShares);
     }
@@ -137,9 +133,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         _changePrice(CbETH, 1900 * 1e8);
 
         uint256 depositBob = 0.2 ether;
-        uint256 depositBobUSD =
-            depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
-        uint256 expectedShares = strategy.convertToShares(depositBobUSD);
+        uint256 expectedShares = strategy.convertToShares(depositBob);
         // set min to receive to 0.01% above expected
         uint256 minSharesAboveExpexted =
             PercentageMath.percentMul(expectedShares, 10_001);
@@ -159,7 +153,6 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         vm.stopPrank();
     }
 
-    // test allow deposit when borrow cap / supply is reached ! ! !
     /// @dev test confimrs that deposit is allowed once max supply or borrow cap is reached
     function test_deposit_maxSupplyReached() public {
         uint256 depositAlice = 3 ether;
@@ -170,9 +163,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         uint256 beforeCR = strategy.currentCollateralRatio();
 
         uint256 depositBob = 5 ether;
-        uint256 depositBobUSD =
-            depositBob * priceOracle.getAssetPrice(address(CbETH)) / 1 ether;
-        uint256 expectedShares = strategy.convertToShares(depositBobUSD);
+        uint256 expectedShares = strategy.convertToShares(depositBob);
         uint256 sharesBob = _depositFor(bob, depositBob);
 
         uint256 afterCR = strategy.currentCollateralRatio();

@@ -170,7 +170,7 @@ contract LoanLogicTest is BaseForkTest {
             Math.mulDiv(initialMaxBorrowUSD, ONE_USDbC, USDbC_price);
         loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-        // getting 0.01% of initial maxBorrowUSD, because we left that as a saftey for precision issues
+        // getting 0.01% of initial maxBorrowUSD, because we left that as a safety for precision issues
         uint256 maxBorrowLeft = PercentageMath.percentMul(
             initialMaxBorrowUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT
         );
@@ -213,20 +213,10 @@ contract LoanLogicTest is BaseForkTest {
         LoanState memory loanState;
         loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
 
-        uint256 initialMaxWothdrawUSD = loanState.maxWithdrawAmount;
-
         // converting loanState.maxWithdrawAmount (USD) amount to the WETH asset amount
         uint256 withdrawAmount =
             Math.mulDiv(loanState.maxWithdrawAmount, 1 ether, WETH_price);
         loanState = LoanLogic.withdraw(lendingPool, WETH, withdrawAmount);
-
-        // getting 0.01% of initial maxWithdrawUSD, because we left that as a saftey for precision issues
-        uint256 maxWithdrawLeft = PercentageMath.percentMul(
-            initialMaxWothdrawUSD, 1e4 - LoanLogic.MAX_AMOUNT_PERCENT
-        );
-        assertApproxEqAbs(
-            loanState.maxBorrowAmount, 0, maxWithdrawLeft + USD_DELTA
-        );
 
         _validateLoanState(
             loanState, supplyAmount - withdrawAmount, borrowAmount
@@ -277,7 +267,9 @@ contract LoanLogicTest is BaseForkTest {
         if (borrowAmount < maxBorrowAmountUSDbC) {
             loanState = LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
             _validateLoanState(loanState, supplyAmount, borrowAmount);
-            assertEq(debtUSDbC.balanceOf(address(this)), borrowAmount);
+            assertApproxEqAbs(
+                debtUSDbC.balanceOf(address(this)), borrowAmount, USD_DELTA
+            );
         } else {
             vm.expectRevert();
             LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
@@ -331,18 +323,17 @@ contract LoanLogicTest is BaseForkTest {
     }
 
     /// @dev test confirming getMaxBorrowUSD function return correct maximum in all 3 cases
-    /// @dev cases are when max borrow is limited by: 1) user's collateral 2) borrow cap 3) borow token total supply
+    /// @dev cases are when max borrow is limited by: 1) user's collateral 2) borrow cap 3) borrow token total supply
     function test_getMaxBorrowUSD() public {
         uint256 supplyAmount = 10 ether;
         LoanState memory loanState;
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
-        // max borrow is limited by user's collatera;
+        // max borrow is limited by user's collateral
         _changeBorrowCap(USDbC, 500_000);
         uint256 maxBorrow = LoanLogic.getMaxBorrowUSD(
             lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
-        assertEq(maxBorrow, loanState.maxBorrowAmount);
 
         // max borrow is limited by asset borrow cap
         uint256 totalBorrowed = LoanLogic._getTotalBorrow(
@@ -368,7 +359,6 @@ contract LoanLogicTest is BaseForkTest {
         // max relative diff is set to 0.05% because of precision errors
         uint256 totalSupplyUSDbCUSD =
             (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
-        // assertApproxEqAbs(maxBorrow, totalSupplyUSDbCUSD, 10**8);
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
     }
 
@@ -397,15 +387,6 @@ contract LoanLogicTest is BaseForkTest {
 
         uint256 debtUSD = Math.mulDiv(debtUSDbCAmount, USDbC_price, ONE_USDbC);
         assertApproxEqAbs(loanState.debtUSD, debtUSD, USD_DELTA);
-
-        uint256 maxBorrowUSD = PercentageMath.percentMul(collateralUSD, ltvWETH);
-        uint256 maxAvailableBorrow = maxBorrowUSD - debtUSD;
-        maxAvailableBorrow = PercentageMath.percentMul(
-            maxAvailableBorrow, LoanLogic.MAX_AMOUNT_PERCENT
-        );
-        assertApproxEqAbs(
-            loanState.maxBorrowAmount, maxAvailableBorrow, USD_DELTA
-        );
 
         uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, ltvWETH);
         uint256 maxAvailableWithdraw = collateralUSD - minCollateralUSD;

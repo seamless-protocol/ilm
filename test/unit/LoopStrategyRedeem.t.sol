@@ -66,7 +66,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // grab pre-redeem key parameters of strategy/user state
         uint256 oldCollateralUSD = strategy.collateral();
         uint256 oldDebtUSD = strategy.debt();
-        uint256 oldEquityUSD = strategy.equity();
+        uint256 oldEquityUSD = strategy.equityUSD();
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
 
         // redeem half of alice's shares
@@ -85,7 +85,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         );
         assertApproxEqRel(oldDebtUSD - strategy.debt(), oldDebtUSD / 2, MARGIN);
         assertApproxEqRel(
-            oldEquityUSD - strategy.equity(), oldEquityUSD / 2, MARGIN
+            oldEquityUSD - strategy.equityUSD(), oldEquityUSD / 2, MARGIN
         );
 
         // ensure that 50% of the total equity of the strategy was transferred to Alice, minus the rebalancing cost,
@@ -96,7 +96,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         ).usdMul(swapOffset);
 
         uint256 expectedTransferedTokens = RebalanceLogic.convertUSDToAsset(
-            (oldEquityUSD - strategy.equity() - expectedRebalanceCostUSD),
+            (oldEquityUSD - strategy.equityUSD() - expectedRebalanceCostUSD),
             COLLATERAL_PRICE,
             18
         );
@@ -137,7 +137,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // // grab pre-redeem key parameters of strategy/user state
         uint256 oldCollateralUSD = strategy.collateral();
-        uint256 oldEquityUSD = strategy.equity();
+        uint256 oldEquityUSD = strategy.equityUSD();
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
 
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
@@ -156,14 +156,14 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             0.015 ether
         );
         assertApproxEqRel(
-            oldEquityUSD - strategy.equity(),
+            oldEquityUSD - strategy.equityUSD(),
             oldEquityUSD * redeemAmount / initialTotalSupply,
             0.015 ether
         );
 
         // ensure that redeemAmount / initialTotalSupply of the total equity of the strategy was transferred to Alice in the form of collateral asset, with a 0.0001% margin
         uint256 expectedTransferedTokens = RebalanceLogic.convertUSDToAsset(
-            oldEquityUSD - strategy.equity(), COLLATERAL_PRICE, 18
+            oldEquityUSD - strategy.equityUSD(), COLLATERAL_PRICE, 18
         );
         assertApproxEqRel(receivedCollateral, expectedTransferedTokens, MARGIN);
         assertApproxEqRel(
@@ -244,7 +244,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             0.015 ether
         );
         assertApproxEqRel(
-            oldEquityUSD - strategy.equity(),
+            oldEquityUSD - strategy.equityUSD(),
             oldEquityUSD * redeemAmount / initialTotalSupply,
             0.015 ether
         );
@@ -252,7 +252,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // ensure that redeemAmount / initialTotalSupply of the total equity of the strategy
         // was transferred to Alice in the form of collateral asset, with a 0.0001% margin
         uint256 expectedTransferedTokens = RebalanceLogic.convertUSDToAsset(
-            oldEquityUSD - strategy.equity(), DROPPED_COLLATERAL_PRICE, 18
+            oldEquityUSD - strategy.equityUSD(), DROPPED_COLLATERAL_PRICE, 18
         );
         assertApproxEqRel(receivedCollateral, expectedTransferedTokens, MARGIN);
         assertApproxEqRel(

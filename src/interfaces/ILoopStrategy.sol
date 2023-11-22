@@ -34,9 +34,14 @@ interface ILoopStrategy is IERC4626 {
     );
 
     /// @notice returns the amount of equity belonging to the strategy
-    /// in underlying value (USD)
+    /// in underlying token value
     /// @return amount equity amount
     function equity() external view returns (uint256 amount);
+
+    /// @notice returns the amount of equity belonging to the strategy
+    /// in USD value
+    /// @return amount equity amount
+    function equityUSD() external view returns (uint256 amount);
 
     /// @notice returns the amount of debt belonging to the strategy
     /// in underlying value (USD)

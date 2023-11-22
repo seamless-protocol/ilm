@@ -107,7 +107,8 @@ library LoanLogic {
         (
             uint256 totalCollateralUSD,
             uint256 totalDebtUSD,
-            uint256 availableBorrowsUSD,
+            /* availableBorrowsUSD */
+            ,
             /* currentLiquidationThreshold */
             ,
             uint256 ltv,
@@ -118,7 +119,6 @@ library LoanLogic {
             return LoanState({
                 collateralUSD: 0,
                 debtUSD: 0,
-                maxBorrowAmount: 0,
                 maxWithdrawAmount: 0
             });
         }
@@ -126,15 +126,12 @@ library LoanLogic {
         uint256 maxWithdrawAmount =
             totalCollateralUSD - PercentageMath.percentDiv(totalDebtUSD, ltv);
 
-        availableBorrowsUSD =
-            PercentageMath.percentMul(availableBorrowsUSD, MAX_AMOUNT_PERCENT);
         maxWithdrawAmount =
             PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);
 
         return LoanState({
             collateralUSD: totalCollateralUSD,
             debtUSD: totalDebtUSD,
-            maxBorrowAmount: availableBorrowsUSD,
             maxWithdrawAmount: maxWithdrawAmount
         });
     }

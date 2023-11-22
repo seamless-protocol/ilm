@@ -58,7 +58,7 @@ contract LoopStrategy is
         uint16 _maxIterations
     ) external initializer {
         __Ownable_init(_initialOwner);
-        __ERC4626_init(_strategyAssets.collateral);
+        __ERC4626_init(_strategyAssets.underlying);
         __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
@@ -118,24 +118,35 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function equity() public view override returns (uint256 amount) {
+    function equityUSD() public view override returns (uint256 amount) {
         LoanState memory state =
             LoanLogic.getLoanState(Storage.layout().lendingPool);
         return state.collateralUSD - state.debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
+    function equity() public view override returns (uint256 amount) {
+        Storage.Layout storage $ = Storage.layout();
+        // get underlying price and decimals
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
+
+        return RebalanceLogic.convertUSDToAsset(
+            equityUSD(), underlyingPriceUSD, underlyingDecimals
+        );
+    }
+
+    /// @inheritdoc ILoopStrategy
     function debt() external view override returns (uint256 amount) {
-        LoanState memory state =
-            LoanLogic.getLoanState(Storage.layout().lendingPool);
-        return state.debtUSD;
+        return LoanLogic.getLoanState(Storage.layout().lendingPool).debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
     function collateral() external view override returns (uint256 amount) {
-        LoanState memory state =
-            LoanLogic.getLoanState(Storage.layout().lendingPool);
-        return state.collateralUSD;
+        return
+            LoanLogic.getLoanState(Storage.layout().lendingPool).collateralUSD;
     }
 
     /// @inheritdoc ILoopStrategy
@@ -147,7 +158,9 @@ contract LoopStrategy is
     {
         LoanState memory state =
             LoanLogic.getLoanState(Storage.layout().lendingPool);
-        return _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        return RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
     }
 
     /// @inheritdoc ILoopStrategy
@@ -161,9 +174,11 @@ contract LoopStrategy is
             revert RebalanceNotNeeded();
         }
         Storage.Layout storage $ = Storage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         return RebalanceLogic.rebalanceTo(
-            $, state, 0, $.collateralRatioTargets.target
+            $,
+            LoanLogic.getLoanState($.lendingPool),
+            0,
+            $.collateralRatioTargets.target
         );
     }
 
@@ -176,9 +191,12 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 collateralRatio =
-            _collateralRatioUSD(state.collateralUSD, state.debtUSD);
-        return _shouldRebalance(collateralRatio, $.collateralRatioTargets);
+        return _shouldRebalance(
+            RebalanceLogic.collateralRatioUSD(
+                state.collateralUSD, state.debtUSD
+            ),
+            $.collateralRatioTargets
+        );
     }
 
     /// @inheritdoc IERC4626
@@ -219,8 +237,9 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR =
-            _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
         uint256 estimateTargetCR;
 
         uint256 underlyingPrice =
@@ -231,14 +250,14 @@ contract LoopStrategy is
             IERC20Metadata(address($.assets.underlying)).decimals()
         );
 
-        if (currentCR == 0) {
+        if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
             if (_shouldRebalance(currentCR, $.collateralRatioTargets)) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
-            uint256 afterCR = _collateralRatioUSD(
+            uint256 afterCR = RebalanceLogic.collateralRatioUSD(
                 state.collateralUSD + assetsUSD, state.debtUSD
             );
             if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
@@ -261,7 +280,16 @@ contract LoopStrategy is
             estimateTargetCR, assetsUSD, 0, offsetFactor
         );
         uint256 collateralAfterUSD = borrowAmount.usdMul(estimateTargetCR);
-        uint256 estimatedEquity = collateralAfterUSD - borrowAmount;
+        uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmount;
+
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
+
+        uint256 estimatedEquity = RebalanceLogic.convertUSDToAsset(
+            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
+        );
         return _convertToShares(estimatedEquity, totalAssets());
     }
 
@@ -413,11 +441,12 @@ contract LoopStrategy is
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
-        uint256 collateralRatio =
-            _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 collateralRatio = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
         if (
-            collateralRatio != 0
+            collateralRatio != type(uint256).max
                 && _shouldRebalance(collateralRatio, $.collateralRatioTargets)
         ) {
             collateralRatio = RebalanceLogic.rebalanceTo(
@@ -429,12 +458,13 @@ contract LoopStrategy is
         uint256 prevCollateralRatio = collateralRatio;
 
         state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
-        uint256 afterCollateralRatio =
-            _collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 afterCollateralRatio = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
-        if (prevCollateralRatio == 0) {
+        if (prevCollateralRatio == type(uint256).max) {
             collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
+                 $, state, 0, $.collateralRatioTargets.target
             );
         } else if (
             afterCollateralRatio
@@ -734,7 +764,7 @@ contract LoopStrategy is
         }
 
         // initial equity prior to any actions specific for handling withdrawal
-        uint256 initialEquityUSD = equity();
+        uint256 initialEquityUSD = equityUSD();
 
         // calculate amount of collateral, debt and equity corresponding to shares in USD value
         (
@@ -760,7 +790,7 @@ contract LoopStrategy is
             );
 
             // calculate remaining equity after rebalance cost
-            shareEquityUSD -= initialEquityUSD - equity();
+            shareEquityUSD -= initialEquityUSD - equityUSD();
         }
 
         // convert equity to collateral asset
