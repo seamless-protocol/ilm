@@ -610,15 +610,10 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
+        // ensure that only owner can redeem owner's shares
         if (receiver != owner && msg.sender != owner) {
             revert RedeemerNotOwner();
         }
-
-        // get collateral price and decimals
-        uint256 collateralPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.collateral));
-        uint256 collateralDecimals =
-            IERC20Metadata(address($.assets.collateral)).decimals();
 
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
@@ -666,7 +661,9 @@ contract LoopStrategy is
 
         // convert equity to collateral asset
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, collateralPriceUSD, collateralDecimals
+            shareEquityUSD,
+            $.oracle.getAssetPrice(address($.assets.collateral)),
+            IERC20Metadata(address($.assets.collateral)).decimals()
         );
 
         // withdraw and transfer equity asset amount
