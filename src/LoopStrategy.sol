@@ -610,6 +610,10 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
+        if(receiver != owner && msg.sender != owner) {
+            revert RedeemerNotOwner();
+        }
+
         // get collateral price and decimals
         uint256 collateralPriceUSD =
             $.oracle.getAssetPrice(address($.assets.collateral));

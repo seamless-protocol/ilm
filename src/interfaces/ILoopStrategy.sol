@@ -33,6 +33,10 @@ interface ILoopStrategy is IERC4626 {
         uint256 underlyingReceived, uint256 minUnderlyingReceived
     );
 
+    /// @notice thrown when the caller of the redeem function is not the owner of the 
+    /// shares to be redeemed
+    error RedeemerNotOwner();
+
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
     /// @return amount equity amount
