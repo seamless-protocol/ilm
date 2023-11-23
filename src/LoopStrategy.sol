@@ -344,7 +344,7 @@ contract LoopStrategy is
         address owner,
         uint256 minUnderlyingAsset
     ) public whenNotPaused returns (uint256 assets) {
-        return _redeemV3(shares, receiver, owner, minUnderlyingAsset);
+        return _redeemV2(shares, receiver, owner, minUnderlyingAsset);
     }
 
     /// @inheritdoc IERC4626
@@ -517,20 +517,22 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        // get collateral price and decimals
-        uint256 collateralPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.collateral));
-        uint256 collateralDecimals =
-            IERC20Metadata(address($.assets.collateral)).decimals();
+        // ensure that only owner can redeem owner's shares
+        if (receiver != owner && msg.sender != owner) {
+            revert RedeemerNotOwner();
+        }
 
-        // get current loan state and calculate initial collateral ratio
+        // get current loan state
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 initialCR =
-            _collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         // check if collateralRatio is outside range, so user participates in potential rebalance
-        if (_shouldRebalance(initialCR, $.collateralRatioTargets)) {
-            initialCR = RebalanceLogic.rebalanceTo(
+        if (
+            _shouldRebalance(
+                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                $.collateralRatioTargets
+            )
+        ) {
+            RebalanceLogic.rebalanceTo(
                 $, state, 0, $.collateralRatioTargets.target
             );
 
@@ -559,7 +561,13 @@ contract LoopStrategy is
                 state,
                 0,
                 RebalanceLogic.collateralRatioUSD(
-                    state.collateralUSD - shareDebtUSD.usdDiv(995e5), // TODO: to remove hardcoding, must fix stack too deep
+                    state.collateralUSD
+                        - shareDebtUSD.usdDiv(
+                            USDWadRayMath.USD
+                                - $.swapper.offsetFactor(
+                                    $.assets.collateral, $.assets.debt
+                                )
+                        ), // TODO: to remove hardcoding, must fix stack too deep
                     state.debtUSD - shareDebtUSD
                 )
             );
@@ -573,7 +581,9 @@ contract LoopStrategy is
 
         // convert equity to collateral asset
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, collateralPriceUSD, collateralDecimals
+            shareEquityUSD,
+            $.oracle.getAssetPrice(address($.assets.collateral)),
+            IERC20Metadata(address($.assets.collateral)).decimals()
         );
 
         // withdraw and transfer equity asset amount
