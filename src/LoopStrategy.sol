@@ -610,7 +610,7 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        if(receiver != owner && msg.sender != owner) {
+        if (receiver != owner && msg.sender != owner) {
             revert RedeemerNotOwner();
         }
 
