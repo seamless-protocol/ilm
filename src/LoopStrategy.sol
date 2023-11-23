@@ -507,21 +507,21 @@ contract LoopStrategy is
     /// @param shares amount of shares to burn
     /// @param receiver address to receive share value
     /// @param owner address of share owner
-    /// @param minCollateralAsset minimum amount of collateral asset to receive
-    /// @return assets amount of collateral asset received
+    /// @param minUnderlyingAsset minimum amount of underlying asset to receive
+    /// @return assets amount of underlying asset received
     function _redeemV2(
         uint256 shares,
         address receiver,
         address owner,
-        uint256 minCollateralAsset
+        uint256 minUnderlyingAsset
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        // get underlying price and decimals
-        uint256 underlyingPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.underlying));
-        uint256 underlyingDecimals =
-            IERC20Metadata(address($.assets.underlying)).decimals();
+        // get collateral price and decimals
+        uint256 collateralPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.collateral));
+        uint256 collateralDecimals =
+            IERC20Metadata(address($.assets.collateral)).decimals();
 
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
@@ -571,24 +571,28 @@ contract LoopStrategy is
             shareEquityUSD -= initialEquityUSD - equityUSD();
         }
 
+         // convert equity to collateral asset
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, underlyingPriceUSD, underlyingDecimals
+            shareEquityUSD, collateralPriceUSD, collateralDecimals
         );
 
-        if (shareEquityAsset < minCollateralAsset) {
-            revert CollateralReceivedBelowMinimum(
-                shareEquityAsset, minCollateralAsset
+        // withdraw and transfer equity asset amount
+        LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
+
+        uint256 shareUnderlyingAsset =
+            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset);
+
+        // ensure equity in asset terms to be received is larger than
+        // minimum acceptable amount
+        if (shareUnderlyingAsset < minUnderlyingAsset) {
+            revert UnderlyingReceivedBelowMinimum(
+                shareUnderlyingAsset, minUnderlyingAsset
             );
         }
 
-        LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
+        $.assets.underlying.transfer(receiver, shareUnderlyingAsset);
 
-        $.assets.underlying.transfer(
-            receiver,
-            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
-        );
-
-        return shareEquityAsset;
+        return shareUnderlyingAsset;
     }
 
     /// @notice redeems an amount of shares by burning shares from the owner, and rewarding the receiver with
@@ -607,10 +611,10 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
 
         // get collateral price and decimals
-        uint256 underlyingPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.underlying));
-        uint256 underlyingDecimals =
-            IERC20Metadata(address($.assets.underlying)).decimals();
+        uint256 collateralPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.collateral));
+        uint256 collateralDecimals =
+            IERC20Metadata(address($.assets.collateral)).decimals();
 
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
@@ -658,7 +662,7 @@ contract LoopStrategy is
 
         // convert equity to collateral asset
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, underlyingPriceUSD, underlyingDecimals
+            shareEquityUSD, collateralPriceUSD, collateralDecimals
         );
 
         // withdraw and transfer equity asset amount
@@ -670,7 +674,7 @@ contract LoopStrategy is
         // ensure equity in asset terms to be received is larger than
         // minimum acceptable amount
         if (shareUnderlyingAsset < minUnderlyingAsset) {
-            revert CollateralReceivedBelowMinimum(
+            revert UnderlyingReceivedBelowMinimum(
                 shareUnderlyingAsset, minUnderlyingAsset
             );
         }
