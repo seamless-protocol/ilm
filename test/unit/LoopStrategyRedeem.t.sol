@@ -315,4 +315,21 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         strategy.redeem(redeemAmount, alice, alice, minUnderlyingAssets);
     }
+
+    /// @dev tests that if the receiver is not the owner, and the caller is not the owner,
+    /// then the redeem transaction should revert
+    function test_redeem_revertsWhen_receiverIsNotOwnerAndCallerIsNotOwner()
+        public
+    {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+
+        uint256 redeemAmount = aliceShares / 2;
+
+        vm.expectRevert(ILoopStrategy.RedeemerNotOwner.selector);
+
+        vm.prank(bob);
+        strategy.redeem(redeemAmount, bob, alice);
+    }
 }
