@@ -95,4 +95,18 @@ interface ILoopStrategy is IERC4626 {
         address receiver,
         uint256 minSharesReceived
     ) external returns (uint256 shares);
+
+    /// @notice redeems an amount of shares by burning shares from the owner, and rewarding the receiver with
+    /// the share value
+    /// @param shares amount of shares to burn
+    /// @param receiver address to receive share value
+    /// @param owner address of share owner
+    /// @param minUnderlyingAsset minimum amount of underlying asset to receive
+    /// @return assets amount of underlying asset received
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 minUnderlyingAsset
+    ) external returns (uint256 assets);
 }

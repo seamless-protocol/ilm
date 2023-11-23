@@ -337,6 +337,16 @@ contract LoopStrategy is
         return _redeemV3(shares, receiver, owner, 0);
     }
 
+    /// @inheritdoc ILoopStrategy
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 minUnderlyingAsset
+    ) public whenNotPaused returns (uint256 assets) {
+        return _redeemV3(shares, receiver, owner, minUnderlyingAsset);
+    }
+
     /// @inheritdoc IERC4626
     function previewRedeem(uint256 shares)
         public
@@ -586,13 +596,13 @@ contract LoopStrategy is
     /// @param shares amount of shares to burn
     /// @param receiver address to receive share value
     /// @param owner address of share owner
-    /// @param minCollateralAsset minimum amount of collateral asset to receive
-    /// @return assets amount of collateral asset received
+    /// @param minUnderlyingAsset minimum amount of underlying asset to receive
+    /// @return assets amount of underlying asset received
     function _redeemV3(
         uint256 shares,
         address receiver,
         address owner,
-        uint256 minCollateralAsset
+        uint256 minUnderlyingAsset
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
@@ -651,23 +661,23 @@ contract LoopStrategy is
             shareEquityUSD, underlyingPriceUSD, underlyingDecimals
         );
 
-        // ensure equity in asset terms to be received is larger than
-        // minimum acceptable amount
-        if (shareEquityAsset < minCollateralAsset) {
-            revert CollateralReceivedBelowMinimum(
-                shareEquityAsset, minCollateralAsset
-            );
-        }
-
         // withdraw and transfer equity asset amount
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
 
-        $.assets.underlying.transfer(
-            receiver,
-            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset)
-        );
+        uint256 shareUnderlyingAsset =
+            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset);
 
-        return shareEquityAsset;
+        // ensure equity in asset terms to be received is larger than
+        // minimum acceptable amount
+        if (shareUnderlyingAsset < minUnderlyingAsset) {
+            revert CollateralReceivedBelowMinimum(
+                shareUnderlyingAsset, minUnderlyingAsset
+            );
+        }
+
+        $.assets.underlying.transfer(receiver, shareUnderlyingAsset);
+
+        return shareUnderlyingAsset;
     }
 
     /// @notice helper function to calculate collateral ratio
