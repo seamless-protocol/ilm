@@ -571,7 +571,7 @@ contract LoopStrategy is
             shareEquityUSD -= initialEquityUSD - equityUSD();
         }
 
-         // convert equity to collateral asset
+        // convert equity to collateral asset
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
             shareEquityUSD, collateralPriceUSD, collateralDecimals
         );

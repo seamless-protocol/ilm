@@ -290,4 +290,29 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         assertEq(predictedAliceAssets, actualAliceAssets);
     }
+
+    /// @dev tests that if less than the minimum requested underlying assets are received,
+    /// the redeem call reverts
+    function test_redeem_revertsWhen_underlyingAssetReceivedIsLessThanMinimum()
+        public
+    {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+
+        uint256 minUnderlyingAssets = type(uint256).max;
+
+        uint256 redeemAmount = aliceShares / 2;
+        uint256 predictedAliceAssets = strategy.previewRedeem(redeemAmount);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ILoopStrategy.UnderlyingReceivedBelowMinimum.selector,
+                predictedAliceAssets,
+                minUnderlyingAssets
+            )
+        );
+
+        strategy.redeem(redeemAmount, alice, alice, minUnderlyingAssets);
+    }
 }
