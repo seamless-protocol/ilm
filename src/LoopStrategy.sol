@@ -470,13 +470,4 @@ contract LoopStrategy is
         }
         receivedAssets = assets;
     }
-
-    function maxBorrowUSD() external view returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return LoanLogic.getMaxBorrowUSD(
-            $.lendingPool,
-            $.assets.debt,
-            $.oracle.getAssetPrice(address($.assets.debt))
-        );
-    }
 }
