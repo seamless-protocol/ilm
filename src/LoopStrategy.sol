@@ -727,18 +727,6 @@ contract LoopStrategy is
         );
     }
 
-    /// @notice converts an amount of shares to underlying assets
-    /// @param _shares amount of shares to convert
-    /// @return assets shares converted to assets
-    function _convertToAssets(uint256 _shares)
-        internal
-        view
-        virtual
-        returns (uint256 assets)
-    {
-        assets = Math.mulDiv(equity(), _shares, totalSupply());
-    }
-
     /// @notice converts underlying asset to the collateral asset if those are different
     /// @param strategyAssets struct which contain underlying asset address and collateral asset address
     /// @param assets amount of assets to convert
