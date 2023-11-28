@@ -344,7 +344,7 @@ contract LoopStrategy is
         address owner,
         uint256 minUnderlyingAsset
     ) public whenNotPaused returns (uint256 assets) {
-        return _redeemV2(shares, receiver, owner, minUnderlyingAsset);
+        return _redeemV3(shares, receiver, owner, minUnderlyingAsset);
     }
 
     /// @inheritdoc IERC4626
@@ -522,31 +522,12 @@ contract LoopStrategy is
             revert RedeemerNotOwner();
         }
 
-        // get current loan state
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        // check if collateralRatio is outside range, so user participates in potential rebalance
-        if (
-            _shouldRebalance(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
-                $.collateralRatioTargets
-            )
-        ) {
-            RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-
-            state = LoanLogic.getLoanState($.lendingPool);
-        }
-
-        uint256 initialEquityUSD = equityUSD();
+        // get loan state
+        LoanState memory state = _updatedState($);
 
         // calculate amount of debt and equity corresponding to shares in USD value
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             _shareDebtAndEquity(state, shares, totalSupply());
-
-        // burn shares from the owner
-        _burn(owner, shares);
 
         // check if withdrawing the shareEquity in USD value would lead to a collateral ratio
         // below the minimum limit for a rebalance after a withdrawal
@@ -555,6 +536,8 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
+            uint256 initialEquityUSD = equityUSD();
+
             // rebalance to initial CR
             RebalanceLogic.rebalanceTo(
                 $,
@@ -600,7 +583,8 @@ contract LoopStrategy is
             );
         }
 
-        $.assets.underlying.transfer(receiver, shareUnderlyingAsset);
+        // burn shares from owner and send corresponding underlying asset ammount to receiver
+        _withdraw(_msgSender(), receiver, owner, shareUnderlyingAsset, shares);
 
         return shareUnderlyingAsset;
     }
@@ -621,36 +605,16 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
 
         // ensure that only owner can redeem owner's shares
-        if (msg.sender != owner) {
+        if (_msgSender() != owner) {
             revert RedeemerNotOwner();
         }
 
-        // get current loan state and calculate initial collateral ratio
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        // check if collateralRatio is outside range, so user participates in potential rebalance
-        if (
-            _shouldRebalance(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
-                $.collateralRatioTargets
-            )
-        ) {
-            RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-
-            state = LoanLogic.getLoanState($.lendingPool);
-        }
-
-        // initial equity prior to any actions specific for handling withdrawal
-        uint256 initialEquityUSD = equityUSD();
+        // get loan state
+        LoanState memory state = _updatedState($);
 
         // calculate amount of debt and equity corresponding to shares in USD value
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             _shareDebtAndEquity(state, shares, totalSupply());
-
-        // burn shares from the owner after all calculations are done
-        _burn(owner, shares);
 
         // check if withdrawal would lead to a collateral below minimum acceptable level
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
@@ -660,6 +624,9 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
+            // initial equity prior to any rebalancing specific for handling withdrawal
+            uint256 initialEquityUSD = equityUSD();
+
             // pay back the debt corresponding to the shares
             RebalanceLogic.rebalanceDownToDebt(
                 $, state, state.debtUSD - shareDebtUSD
@@ -690,7 +657,8 @@ contract LoopStrategy is
             );
         }
 
-        $.assets.underlying.transfer(receiver, shareUnderlyingAsset);
+        // burn shares from owner and send corresponding underlying asset ammount to receiver
+        _withdraw(_msgSender(), receiver, owner, shareUnderlyingAsset, shares);
 
         return shareUnderlyingAsset;
     }
@@ -789,5 +757,31 @@ contract LoopStrategy is
         shareEquityUSD = state.collateralUSD.usdMul(
             USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
         ) - shareDebtUSD;
+    }
+
+    /// @notice performs a rebalance if necessary and returns the updated state after
+    /// the potential rebalance
+    /// @param $ Storage.Layout struct
+    /// @return state current LoanState of strategy
+    function _updatedState(Storage.Layout storage $)
+        internal
+        returns (LoanState memory state)
+    {
+        // get current loan state and calculate initial collateral ratio
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        // check if collateralRatio is outside range, so user participates in potential rebalance
+        if (
+            _shouldRebalance(
+                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                $.collateralRatioTargets
+            )
+        ) {
+            RebalanceLogic.rebalanceTo(
+                $, state, 0, $.collateralRatioTargets.target
+            );
+
+            state = LoanLogic.getLoanState($.lendingPool);
+        }
     }
 }
