@@ -763,9 +763,6 @@ contract LoopStrategy is
         uint256 collateralAmountAsset
     ) internal virtual returns (uint256 underlyingAmountAsset) {
         if (assets.underlying != assets.collateral) {
-            assets.collateral.approve(
-                address(assets.underlying), collateralAmountAsset
-            );
             IWrappedERC20PermissionedDeposit(address(assets.underlying))
                 .withdraw(collateralAmountAsset);
         }
