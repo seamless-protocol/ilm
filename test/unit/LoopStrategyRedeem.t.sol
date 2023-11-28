@@ -70,6 +70,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
 
         // redeem half of alice's shares
+        vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
 
         // assert that the expected amount of shares has been burnt
@@ -140,6 +141,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 oldEquityUSD = strategy.equityUSD();
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
 
+        vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
 
         // assert that the expected amount of shares has been burnt
@@ -227,6 +229,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 oldEquityUSD = expectedCollateralUSD - expectedDebtUSD;
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
 
+        vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
 
         // assert that the expected amount of shares has been burnt
@@ -286,6 +289,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         uint256 redeemAmount = aliceShares / 2;
         uint256 predictedAliceAssets = strategy.previewRedeem(redeemAmount);
+        vm.prank(alice);
         uint256 actualAliceAssets = strategy.redeem(redeemAmount, alice, alice);
 
         assertEq(predictedAliceAssets, actualAliceAssets);
@@ -313,6 +317,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             )
         );
 
+        vm.prank(alice);
         strategy.redeem(redeemAmount, alice, alice, minUnderlyingAssets);
     }
 
