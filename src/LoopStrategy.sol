@@ -356,12 +356,6 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
 
-        // get underlying price and decimals
-        uint256 underlyingPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.underlying));
-        uint256 underlyingDecimals =
-            IERC20Metadata(address($.assets.underlying)).decimals();
-
         // get current loan state and calculate initial collateral ratio
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
@@ -410,7 +404,9 @@ contract LoopStrategy is
         }
 
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD, underlyingPriceUSD, underlyingDecimals
+            shareEquityUSD,
+            $.oracle.getAssetPrice(address($.assets.underlying)),
+            IERC20Metadata(address($.assets.underlying)).decimals()
         );
 
         return shareEquityAsset;
