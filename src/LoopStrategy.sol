@@ -390,9 +390,9 @@ contract LoopStrategy is
             );
         }
 
-        // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        (, uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareCDE(state, shares, totalSupply());
+        // calculate amount of debt and equity corresponding to shares in USD value
+        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            _shareDebtAndEquity(state, shares, totalSupply());
 
         if (
             _collateralRatioUSD(
@@ -541,9 +541,9 @@ contract LoopStrategy is
 
         uint256 initialEquityUSD = equityUSD();
 
-        // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        (, uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareCDE(state, shares, totalSupply());
+        // calculate amount of debt and equity corresponding to shares in USD value
+        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            _shareDebtAndEquity(state, shares, totalSupply());
 
         // burn shares from the owner
         _burn(owner, shares);
@@ -645,9 +645,9 @@ contract LoopStrategy is
         // initial equity prior to any actions specific for handling withdrawal
         uint256 initialEquityUSD = equityUSD();
 
-        // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        (, uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareCDE(state, shares, totalSupply());
+        // calculate amount of debt and equity corresponding to shares in USD value
+        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            _shareDebtAndEquity(state, shares, totalSupply());
 
         // burn shares from the owner after all calculations are done
         _burn(owner, shares);
@@ -772,29 +772,25 @@ contract LoopStrategy is
         underlyingAmountAsset = collateralAmountAsset;
     }
 
-    /// @notice calculates the collateral, debt, and equity corresponding to an amount of shares
+    /// @notice calculates the debt, and equity corresponding to an amount of shares
+    /// @dev collateral corresponding to shares is just sum of debt and equity
     /// @param state loan state of strategy
     /// @param shares amount of shares
     /// @param totalShares total supply of shares
-    /// @return collateralUSD amount of collateral in USD corresponding to shares
-    /// @return debtUSD amount of debt in USD corresponding to shares
-    /// @return equityUSD amount of equity in USD corresponding to shares
-    function _shareCDE(
+    /// @return shareDebtUSD amount of debt in USD corresponding to shares
+    /// @return shareEquityUSD amount of equity in USD corresponding to shares
+    function _shareDebtAndEquity(
         LoanState memory state,
         uint256 shares,
         uint256 totalShares
-    )
-        internal
-        pure
-        returns (uint256 collateralUSD, uint256 debtUSD, uint256 equityUSD)
-    {
-        // calculate amount of collateral, debt and equity corresponding to shares in USD value
-        collateralUSD = state.collateralUSD.usdMul(
+    ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
+        // calculate amount of debt and equity corresponding to shares in USD value
+        shareDebtUSD = state.debtUSD.usdMul(
             USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
         );
-        debtUSD = state.debtUSD.usdMul(
+        // to calculate equity, first collateral is calculated, and debt is subtracted from it
+        shareEquityUSD = state.collateralUSD.usdMul(
             USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-        );
-        equityUSD = collateralUSD - debtUSD;
+        ) - shareDebtUSD;
     }
 }
