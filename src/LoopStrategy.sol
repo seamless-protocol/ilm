@@ -518,7 +518,7 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
 
         // ensure that only owner can redeem owner's shares
-        if (receiver != owner && msg.sender != owner) {
+        if (msg.sender != owner) {
             revert RedeemerNotOwner();
         }
 
@@ -567,7 +567,7 @@ contract LoopStrategy is
                                 - $.swapper.offsetFactor(
                                     $.assets.collateral, $.assets.debt
                                 )
-                        ), // TODO: to remove hardcoding, must fix stack too deep
+                        ),
                     state.debtUSD - shareDebtUSD
                 )
             );
@@ -621,7 +621,7 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
 
         // ensure that only owner can redeem owner's shares
-        if (receiver != owner && msg.sender != owner) {
+        if (msg.sender != owner) {
             revert RedeemerNotOwner();
         }
 
