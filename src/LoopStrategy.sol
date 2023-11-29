@@ -334,7 +334,7 @@ contract LoopStrategy is
         whenNotPaused
         returns (uint256)
     {
-        return _redeemV3(shares, receiver, owner, 0);
+        return _redeem(shares, receiver, owner, 0);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -344,7 +344,7 @@ contract LoopStrategy is
         address owner,
         uint256 minUnderlyingAsset
     ) public whenNotPaused returns (uint256 assets) {
-        return _redeemV3(shares, receiver, owner, minUnderlyingAsset);
+        return _redeem(shares, receiver, owner, minUnderlyingAsset);
     }
 
     /// @inheritdoc IERC4626
@@ -505,94 +505,7 @@ contract LoopStrategy is
     /// @param owner address of share owner
     /// @param minUnderlyingAsset minimum amount of underlying asset to receive
     /// @return assets amount of underlying asset received
-    function _redeemV2(
-        uint256 shares,
-        address receiver,
-        address owner,
-        uint256 minUnderlyingAsset
-    ) internal returns (uint256 assets) {
-        Storage.Layout storage $ = Storage.layout();
-
-        // ensure that only owner can redeem owner's shares
-        if (msg.sender != owner) {
-            revert RedeemerNotOwner();
-        }
-
-        // get loan state
-        LoanState memory state = _updatedState($);
-
-        // calculate amount of debt and equity corresponding to shares in USD value
-        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareDebtAndEquity(state, shares, totalSupply());
-
-        // check if withdrawing the shareEquity in USD value would lead to a collateral ratio
-        // below the minimum limit for a rebalance after a withdrawal
-        if (
-            _collateralRatioUSD(
-                state.collateralUSD - shareEquityUSD, state.debtUSD
-            ) < $.collateralRatioTargets.minForWithdrawRebalance
-        ) {
-            uint256 initialEquityUSD = equityUSD();
-
-            // rebalance to initial CR
-            RebalanceLogic.rebalanceTo(
-                $,
-                state,
-                0,
-                RebalanceLogic.collateralRatioUSD(
-                    state.collateralUSD
-                        - shareDebtUSD.usdDiv(
-                            USDWadRayMath.USD
-                                - $.swapper.offsetFactor(
-                                    $.assets.collateral, $.assets.debt
-                                )
-                        ),
-                    state.debtUSD - shareDebtUSD
-                )
-            );
-
-            // since a rebalance occured, value is extracted by the DEX from swapping,
-            // meaning that an amount of equity was lost:
-            // lostEquity = initialEquity - finalEquity
-            // so adjust shareEquityUSD accordingly since withdrawal is cause for rebalance
-            shareEquityUSD -= initialEquityUSD - equityUSD();
-        }
-
-        // convert equity to collateral asset
-        uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD,
-            $.oracle.getAssetPrice(address($.assets.collateral)),
-            IERC20Metadata(address($.assets.collateral)).decimals()
-        );
-
-        // withdraw and transfer equity asset amount
-        LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
-
-        uint256 shareUnderlyingAsset =
-            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset);
-
-        // ensure equity in asset terms to be received is larger than
-        // minimum acceptable amount
-        if (shareUnderlyingAsset < minUnderlyingAsset) {
-            revert UnderlyingReceivedBelowMinimum(
-                shareUnderlyingAsset, minUnderlyingAsset
-            );
-        }
-
-        // burn shares from owner and send corresponding underlying asset ammount to receiver
-        _withdraw(_msgSender(), receiver, owner, shareUnderlyingAsset, shares);
-
-        return shareUnderlyingAsset;
-    }
-
-    /// @notice redeems an amount of shares by burning shares from the owner, and rewarding the receiver with
-    /// the share value
-    /// @param shares amount of shares to burn
-    /// @param receiver address to receive share value
-    /// @param owner address of share owner
-    /// @param minUnderlyingAsset minimum amount of underlying asset to receive
-    /// @return assets amount of underlying asset received
-    function _redeemV3(
+    function _redeem(
         uint256 shares,
         address receiver,
         address owner,
@@ -635,7 +548,7 @@ contract LoopStrategy is
 
             // present excess collateral is in the form of equity, of which
             // some belongs to the shares.
-            // the equity belonging to the shares is the smaller between excess collateral 
+            // the equity belonging to the shares is the smaller between excess collateral
             // or the initial share equity minus the lost equity due to DEX fees
             shareEquityUSD = Math.min(
                 state.collateralUSD - targetRatio.usdMul(state.debtUSD),
