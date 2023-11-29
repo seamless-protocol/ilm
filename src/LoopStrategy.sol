@@ -600,11 +600,6 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        // ensure that only owner can redeem owner's shares
-        if (_msgSender() != owner) {
-            revert RedeemerNotOwner();
-        }
-
         // get loan state
         LoanState memory state = _updatedState($);
 
@@ -620,16 +615,32 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
-            // initial equity prior to any rebalancing specific for handling withdrawal
             uint256 initialEquityUSD = equityUSD();
+            // if the ratio prior to redeeming shares is less than the target ratio,
+            // the redeemer incurs the cost of returning the pool back to said ratio.
+            // if the ratio prior to redeeming is larger than the target ratio, then the redeemer
+            // assists the pool by removing collateral, so the redeemer will incur less cost
+            // for the share redemption, by rebalancing only up to the target ratio.
+            uint256 targetRatio = Math.min(
+                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                $.collateralRatioTargets.target
+            );
 
             // pay back the debt corresponding to the shares
             RebalanceLogic.rebalanceDownToDebt(
                 $, state, state.debtUSD - shareDebtUSD
             );
 
-            // calculate remaining equity after rebalance cost
-            shareEquityUSD -= initialEquityUSD - equityUSD();
+            state = LoanLogic.getLoanState($.lendingPool);
+
+            // present excess collateral is in the form of equity, of which
+            // some belongs to the shares.
+            // the equity belonging to the shares is the smaller between excess collateral 
+            // or the initial share equity minus the lost equity due to DEX fees
+            shareEquityUSD = Math.min(
+                state.collateralUSD - targetRatio.usdMul(state.debtUSD),
+                shareEquityUSD -= initialEquityUSD - equityUSD()
+            );
         }
 
         // convert equity to collateral asset
@@ -692,21 +703,22 @@ contract LoopStrategy is
     }
 
     /// @notice converts underlying asset to the collateral asset if those are different
-    /// @param strategyAssets struct which contain underlying asset address and collateral asset address
-    /// @param assets amount of assets to convert
+    /// @param assets struct which contain underlying asset address and collateral asset address
+    /// @param collateralAmountAsset amount of collateral to convert
     /// @return receivedAssets amount of received collateral assets
     function _convertUnderlyingToCollateralAsset(
-        StrategyAssets storage strategyAssets,
-        uint256 assets
+        StrategyAssets storage assets,
+        uint256 collateralAmountAsset
     ) internal virtual returns (uint256 receivedAssets) {
-        if (strategyAssets.underlying != strategyAssets.collateral) {
-            strategyAssets.underlying.approve(
-                address(strategyAssets.collateral), assets
+        if (assets.underlying != assets.collateral) {
+            assets.underlying.approve(
+                address(assets.collateral), collateralAmountAsset
             );
-            IWrappedERC20PermissionedDeposit(address(strategyAssets.collateral))
-                .deposit(assets);
+            IWrappedERC20PermissionedDeposit(address(assets.collateral)).deposit(
+                collateralAmountAsset
+            );
         }
-        receivedAssets = assets;
+        receivedAssets = collateralAmountAsset;
     }
 
     function maxBorrowUSD() external view returns (uint256) {
