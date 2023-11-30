@@ -393,14 +393,22 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
+            // amount of collateral needed for repaying debt of shares
             uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
                 USDWadRayMath.USD
                     - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
 
-            shareEquityUSD -= collateralNeededUSD.usdMul(
-                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
+            // if the collateral ratio prior to redeeming was more than target ratio, strategy will incur
+            // equity lost as DEX fees
+            if (
+                _collateralRatioUSD(state.collateralUSD, state.debtUSD)
+                    <= $.collateralRatioTargets.target
+            ) {
+                shareEquityUSD -= collateralNeededUSD.usdMul(
+                    $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+                );
+            }
         }
 
         uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
@@ -528,32 +536,22 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
+            // grab initial collateral ratio and equity in case
+            // redeemer has to pay for rebalance costs
+            uint256 initialCR =
+                _collateralRatioUSD(state.collateralUSD, state.debtUSD);
             uint256 initialEquityUSD = equityUSD();
-            // if the ratio prior to redeeming shares is less than the target ratio,
-            // the redeemer incurs the cost of returning the pool back to said ratio.
-            // if the ratio prior to redeeming is larger than the target ratio, then the redeemer
-            // assists the pool by removing collateral, so the redeemer will incur less cost
-            // for the share redemption, by rebalancing only up to the target ratio.
-            uint256 targetRatio = Math.min(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
-                $.collateralRatioTargets.target
-            );
 
             // pay back the debt corresponding to the shares
             RebalanceLogic.rebalanceDownToDebt(
                 $, state, state.debtUSD - shareDebtUSD
             );
 
-            state = LoanLogic.getLoanState($.lendingPool);
-
-            // present excess collateral is in the form of equity, of which
-            // some belongs to the shares.
-            // the equity belonging to the shares is the smaller between excess collateral
-            // or the initial share equity minus the lost equity due to DEX fees
-            shareEquityUSD = Math.min(
-                state.collateralUSD - targetRatio.usdMul(state.debtUSD),
-                shareEquityUSD -= initialEquityUSD - equityUSD()
-            );
+            // if the initial collateral ratio prior to paying back the debt was above the target ratio,
+            // then the strategy will incur the equity cost due to rebalancing via the DEXs
+            if (initialCR <= $.collateralRatioTargets.target) {
+                shareEquityUSD -= initialEquityUSD - equityUSD();
+            }
         }
 
         // convert equity to collateral asset
