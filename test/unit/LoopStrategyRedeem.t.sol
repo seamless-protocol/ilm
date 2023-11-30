@@ -33,6 +33,8 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
+import "forge-std/console.sol";
+
 /// @notice Unit tests for the LoopStrategy redeem flow
 contract LoopStrategyRedeemTest is LoopStrategyTest {
     using USDWadRayMath for uint256;
@@ -43,7 +45,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
     /// @dev tests the case where the redeemer has to pay with equity for a rebalance
     /// caused from throwing the strategy out of acceptable ranges from their
     /// redemption
-    function test_redeem_redeemerHasToPerformRebalance() public {
+    function test_redeem_redeemerHasToPerformRebalance_whenPreviousCollateralRatioSmallerThanOrEqualToTarget(
+    ) public {
         assertEq(strategy.totalSupply(), 0);
         uint256 depositAmount = 1 ether;
         uint256 aliceShares = _depositFor(alice, depositAmount);
@@ -118,6 +121,107 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         );
     }
 
+    /// @dev tests the case where the redeemer has to pay with equity for a rebalance
+    /// caused from throwing the strategy out of acceptable ranges from their
+    /// redemption
+    function test_redeem_redeemerHasToPerformRebalance_whenPreviousCollateralRatioLargerThanTarget(
+    ) public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+        _depositFor(bob, depositAmount / 100);
+
+        uint256 initialCR = strategy.currentCollateralRatio();
+
+        // assert post-deposit state
+        // CR should be less than what is needed to rebalance upon deposit,
+        // but larger than target
+        assert(initialCR > collateralRatioTargets.target);
+        assert(initialCR < collateralRatioTargets.maxForDepositRebalance);
+
+        uint256 redeemAmount = aliceShares / 2;
+        uint256 initialTotalSupply = strategy.totalSupply();
+        uint256 oldBalance = strategy.balanceOf(alice);
+
+        // grab pre-redeem key parameters of strategy/user state
+        uint256 oldCollateralUSD = strategy.collateral();
+        uint256 oldDebtUSD = strategy.debt();
+        uint256 oldEquityUSD = strategy.equityUSD();
+        uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
+
+        // redeem half of alice's shares
+        vm.prank(alice);
+        uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
+
+        // assert that the expected amount of shares has been burnt
+        assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
+        assert(oldBalance - redeemAmount == strategy.balanceOf(alice));
+
+        uint256 finalCR = strategy.currentCollateralRatio();
+
+        // ensure collateral ratio has been moved closer to the target,
+        // in comparison to the initialCR, since initially the strategy
+        // was above collateral ratio target prior to redemption
+        assert(collateralRatioTargets.target <= finalCR);
+        assert(finalCR <= initialCR);
+
+        // calculate the expected values of share debt and equity in USD
+        // these are both calculated based on the percentage of total supply
+        // that the shares correspond to
+        uint256 expectedShareDebtUSD = oldDebtUSD.usdMul(
+            USDWadRayMath.wadToUSD(redeemAmount.wadDiv(initialTotalSupply))
+        );
+        uint256 expectedShareEquityUSD = oldCollateralUSD.usdMul(
+            USDWadRayMath.wadToUSD(redeemAmount.wadDiv(initialTotalSupply))
+        ) - expectedShareDebtUSD;
+
+        // cost for rebalance should be equal to the share debt needed to be repaid,
+        // multiplied by the DEX fees
+        uint256 expectedRebalanceCostUSD = (
+            expectedShareDebtUSD.usdMul(USDWadRayMath.USD + swapOffset).usdDiv(
+                USDWadRayMath.USD
+            )
+        ).usdMul(swapOffset);
+
+        // since the redemption _should_ have moved the collateral ratio closer to target,
+        // the strategy is burdened with the cost of rebalancing, and the redeemer receives
+        // the full value of their shares, within a 0.0001% error margin
+        assertApproxEqRel(
+            oldEquityUSD - strategy.equityUSD(),
+            expectedShareEquityUSD + expectedRebalanceCostUSD,
+            MARGIN
+        );
+        // change in collateral should corresponding to the sum of the change
+        // in equity and change in debt, withing a 0.0001% error margin
+        assertApproxEqRel(
+            oldCollateralUSD - strategy.collateral(),
+            expectedShareDebtUSD + expectedShareEquityUSD
+                + expectedRebalanceCostUSD,
+            MARGIN
+        );
+        // repaid debt should be the amount corresponding to the shares, within a 0.0001% error margin
+        assertApproxEqRel(
+            oldDebtUSD - strategy.debt(), expectedShareDebtUSD, MARGIN
+        );
+
+        // ensure that the change in equity, minus the cost for rebalancing,
+        // was transferred to Alice from the strategy,
+        // in the form of collateral asset, with a 0.0001% margin
+        uint256 expectedTransferedTokens = RebalanceLogic.convertUSDToAsset(
+            (oldEquityUSD - strategy.equityUSD() - expectedRebalanceCostUSD),
+            COLLATERAL_PRICE,
+            18
+        );
+
+        assertApproxEqRel(receivedCollateral, expectedTransferedTokens, MARGIN);
+
+        assertApproxEqRel(
+            CbETH.balanceOf(alice) - oldCollateralAssetBalance,
+            expectedTransferedTokens,
+            MARGIN
+        );
+    }
+
     /// @dev tests the case where no rebalance paid by the redeemer
     /// has to occur
     function test_redeem_noRedeemerRebalanceNecessary() public {
@@ -188,6 +292,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         uint256 aliceShares = _depositFor(alice, depositAmount);
         _depositFor(bob, depositAmount * 100); // deposit for bob, no need to account for their shares
+
         // ensure Alices's redeem is small enough to not need a rebalance after a redemption
         uint256 redeemAmount = aliceShares / 100_000;
         uint256 initialCR = strategy.currentCollateralRatio();
@@ -270,8 +375,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
     }
 
     /// @dev ensures that the predicted assets returned by the preview redeem call
-    /// match the amount returned by the actual call
-    function test_previewRedeem_accurateEquityPrediction() public {
+    /// match the amount returned by the actual call when the collateral ratio prior to redemption
+    /// is less than the target collateral ratio
+    function test_previewRedeem_accurateEquityPrediction_whenInitialCollateralRatioBelowOrEqualToTarget(
+    ) public {
         assertEq(strategy.totalSupply(), 0);
         uint256 depositAmount = 1 ether;
         uint256 aliceShares = _depositFor(alice, depositAmount);
@@ -286,6 +393,32 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             collateralRatioTargets.target,
             MARGIN
         );
+
+        uint256 redeemAmount = aliceShares / 2;
+        uint256 predictedAliceAssets = strategy.previewRedeem(redeemAmount);
+        vm.prank(alice);
+        uint256 actualAliceAssets = strategy.redeem(redeemAmount, alice, alice);
+
+        assertEq(predictedAliceAssets, actualAliceAssets);
+    }
+
+    /// @dev ensures that the predicted assets returned by the preview redeem call
+    /// match the amount returned by the actual call when the collateral ratio prior to redemption
+    /// is larger than the target collateral ratio
+    function test_previewRedeem_accurateEquityPrediction_whenInitialCollateralRatioAboveTarget(
+    ) public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+        _depositFor(bob, depositAmount / 100);
+
+        uint256 initialCR = strategy.currentCollateralRatio();
+
+        // assert post-deposit state
+        // CR should be less than what is needed to rebalance upon deposit,
+        // but larger than target
+        assert(initialCR > collateralRatioTargets.target);
+        assert(initialCR < collateralRatioTargets.maxForDepositRebalance);
 
         uint256 redeemAmount = aliceShares / 2;
         uint256 predictedAliceAssets = strategy.previewRedeem(redeemAmount);
@@ -323,16 +456,15 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
     /// @dev tests that if the receiver is not the owner, and the caller is not the owner,
     /// then the redeem transaction should revert
-    function test_redeem_revertsWhen_receiverIsNotOwnerAndCallerIsNotOwner()
-        public
-    {
+    function test_redeem_revertsWhen_receiverCallerIsNotOwnerAndCallerDoesNotHaveEnoughAllowance(
+    ) public {
         assertEq(strategy.totalSupply(), 0);
         uint256 depositAmount = 1 ether;
         uint256 aliceShares = _depositFor(alice, depositAmount);
 
         uint256 redeemAmount = aliceShares / 2;
 
-        vm.expectRevert(ILoopStrategy.RedeemerNotOwner.selector);
+        vm.expectRevert();
 
         vm.prank(bob);
         strategy.redeem(redeemAmount, bob, alice);
