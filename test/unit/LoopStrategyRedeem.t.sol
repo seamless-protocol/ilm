@@ -471,7 +471,9 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
     /// @dev ensures that the predicted assets returned by the preview redeem call
     /// match the amount returned by the actual call when the redemption is for all
     /// the remaining shares
-    function test_previewRedeem_accurateEquityPredicition_whenBurningAllShares() public {
+    function test_previewRedeem_accurateEquityPredicition_whenBurningAllShares()
+        public
+    {
         assertEq(strategy.totalSupply(), 0);
         uint256 depositAmount = 1 ether;
         uint256 aliceShares = _depositFor(alice, depositAmount);
