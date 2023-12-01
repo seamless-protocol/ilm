@@ -391,7 +391,17 @@ contract LoopStrategy is
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             _shareDebtAndEquity(state, shares, totalSupply());
 
-        if (
+        // case when redeemer is redeeming all remaining shares
+        if (state.debtUSD == shareDebtUSD) {
+            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
+                USDWadRayMath.USD
+                    - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+
+            shareEquityUSD -= collateralNeededUSD.usdMul(
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+        } else if (
             _collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
@@ -543,6 +553,9 @@ contract LoopStrategy is
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             _shareDebtAndEquity(state, shares, totalSupply());
 
+        // if all shares are being withdrawn, then their debt is the strategy debt
+        // so in that case the redeemer incurs the full cost of paying back the debt
+        // and is left with the remaining equity
         if (state.debtUSD == shareDebtUSD) {
             // pay back the debt corresponding to the shares
             RebalanceLogic.rebalanceDownToDebt(

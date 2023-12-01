@@ -468,6 +468,34 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         );
     }
 
+    /// @dev ensures that the predicted assets returned by the preview redeem call
+    /// match the amount returned by the actual call when the redemption is for all
+    /// the remaining shares
+    function test_previewRedeem_accurateEquityPredicition_whenBurningAllShares() public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+
+        // ensure strategy is above minForWithdrawRebalance limit
+        assert(
+            strategy.totalSupply() == aliceShares
+                && strategy.balanceOf(alice) == aliceShares
+        );
+        assert(
+            targets.minForWithdrawRebalance <= strategy.currentCollateralRatio()
+        );
+        assertApproxEqRel(
+            strategy.currentCollateralRatio(), targets.target, MARGIN
+        );
+
+        uint256 expectedReceivedAssets = strategy.previewRedeem(aliceShares);
+
+        vm.prank(alice);
+        uint256 receivedAssets = strategy.redeem(aliceShares, alice, alice);
+
+        assertEq(receivedAssets, expectedReceivedAssets);
+    }
+
     /// @dev tests that if less than the minimum requested underlying assets are received,
     /// the redeem call reverts
     function test_redeem_revertsWhen_underlyingAssetReceivedIsLessThanMinimum()
