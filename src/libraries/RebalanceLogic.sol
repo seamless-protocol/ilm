@@ -30,21 +30,23 @@ library RebalanceLogic {
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param $ the storage state of LendingStrategyStorage
-    /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param _targetCR target value of collateral ratio to reach
+    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param withdrawalUSD amount of USD withdrawn - used to project post-collateral-withdrawal collateral ratios (useful in strategy share redemptions)
+    /// @param targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceTo(
         Storage.Layout storage $,
-        LoanState memory _state,
-        uint256 _targetCR
+        LoanState memory state,
+        uint256 withdrawalUSD,
+        uint256 targetCR
     ) public returns (uint256 ratio) {
         // current collateral ratio
-        ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
+        ratio = collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        if (ratio > _targetCR) {
-            return rebalanceUp($, _state, ratio, _targetCR);
+        if (ratio > targetCR) {
+            return rebalanceUp($, state, ratio, targetCR);
         } else {
-            return rebalanceDown($, _state, ratio, _targetCR);
+            return rebalanceDown($, state, withdrawalUSD, ratio, targetCR);
         }
     }
 
@@ -93,7 +95,7 @@ library RebalanceLogic {
                     offsetFactor
                 );
 
-                // if less than the max borrow amount possible is needed to reach LTV,
+                // if less than the max borrow amount possible is needed,
                 // use the amount that is required to reach targetCR
                 borrowAmountUSD = borrowAmountUSD < neededBorrowUSD
                     ? borrowAmountUSD
@@ -144,15 +146,17 @@ library RebalanceLogic {
     /// @dev "downards" in this context means increasing collateral ratio, thereby _decreasing_ exposure
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param $ the storage state of LendingStrategyStorage
-    /// @param _state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param _currentCR current value of collateral ratio
-    /// @param _targetCR target value of collateral ratio to reach
+    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param withdrawalUSD amount of USD withdrawn - used to project post-collateral-withdrawal collateral ratios (useful in strategy share redemptions)
+    /// @param currentCR current value of collateral ratio
+    /// @param targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceDown(
         Storage.Layout storage $,
-        LoanState memory _state,
-        uint256 _currentCR,
-        uint256 _targetCR
+        LoanState memory state,
+        uint256 withdrawalUSD,
+        uint256 currentCR,
+        uint256 targetCR
     ) public returns (uint256 ratio) {
         uint256 collateralPriceUSD =
             $.oracle.getAssetPrice(address($.assets.collateral));
@@ -164,75 +168,105 @@ library RebalanceLogic {
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
 
-        uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
+        uint256 margin = targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
+
+        // adjust collateralUSD in state by withdrawalUSD
+        state.collateralUSD -= withdrawalUSD;
 
         do {
             // current collateral ratio
-            ratio = _currentCR;
+            ratio = currentCR;
 
-            // maximum amount of collateral to not jeopardize loan health in USD
-            uint256 collateralAmountUSD = _state.maxWithdrawAmount;
-
-            // handle cases where debt is less than maxWithdrawAmount possible
-            if (_state.debtUSD < _state.maxWithdrawAmount) {
-                collateralAmountUSD = _state.debtUSD;
-            }
-
-            // check if repaying max collateral will lead to the collateralRatio being more than target, and adjust
-            // collateralAmount if so
-            if (
-                collateralRatioUSD(
-                    _state.collateralUSD - collateralAmountUSD,
-                    _state.debtUSD
-                        - offsetUSDAmountDown(collateralAmountUSD, offsetFactor)
-                ) > _targetCR
-            ) {
-                collateralAmountUSD = (
-                    _targetCR.usdMul(_state.debtUSD) - _state.collateralUSD
-                ).usdDiv(_targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD);
-            }
-
-            uint256 collateralAmountAsset = convertUSDToAsset(
-                collateralAmountUSD, collateralPriceUSD, collateralDecimals
+            uint256 collateralAmountAsset = calculateCollateralAsset(
+                state,
+                requiredCollateralUSD(
+                    targetCR, state.collateralUSD, state.debtUSD, offsetFactor
+                ),
+                collateralPriceUSD,
+                collateralDecimals
             );
 
             if (collateralAmountAsset == 0) {
                 break;
             }
 
-            // withdraw collateral tokens from Aave _pool
-            LoanLogic.withdraw(
-                $.lendingPool, $.assets.collateral, collateralAmountAsset
-            );
-
-            // approve _swapper contract to swap asset
-            $.assets.collateral.approve(
-                address($.swapper), collateralAmountAsset
-            );
-
-            // exchange collateralAmount of collateral tokens for borrow tokens
-            uint256 borrowAmountAsset = $.swapper.swap(
-                $.assets.collateral,
-                $.assets.debt,
-                collateralAmountAsset,
-                payable(address(this))
-            );
+            uint256 borrowAmountAsset =
+                withdrawAndSwapCollateral($, collateralAmountAsset);
 
             if (borrowAmountAsset == 0) {
                 break;
             }
 
             // repay debt to AaveV3 _pool
-            _state =
+            state =
                 LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
 
+            // adjust collateralUSD in state by withdrawalUSD
+            state.collateralUSD -= withdrawalUSD;
+
             // update collateral ratio value
-            ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
+            ratio = collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
             if (++count > $.maxIterations) {
                 break;
             }
-        } while (ratio + margin < _targetCR);
+        } while (ratio + margin < targetCR);
+    }
+
+    /// @notice rebalances downwards until a debt amount is reached
+    /// @param $ the storage state of LendingStrategyStorage
+    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param targetDebtUSD target debt value in USD to reach
+    function rebalanceDownToDebt(
+        Storage.Layout storage $,
+        LoanState memory state,
+        uint256 targetDebtUSD
+    ) public {
+        uint256 collateralPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.collateral));
+
+        uint8 collateralDecimals =
+            IERC20Metadata(address($.assets.collateral)).decimals();
+
+        // get offset caused by DEX fees + slippage
+        uint256 offsetFactor =
+            $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+
+        uint256 remainingDebtUSD = state.debtUSD - targetDebtUSD;
+        uint256 count;
+
+        do {
+            uint256 collateralAmountAsset = calculateCollateralAsset(
+                state,
+                remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor),
+                collateralPriceUSD,
+                collateralDecimals
+            );
+
+            if (collateralAmountAsset == 0) {
+                break;
+            }
+
+            uint256 borrowAmountAsset =
+                withdrawAndSwapCollateral($, collateralAmountAsset);
+
+            if (borrowAmountAsset == 0) {
+                break;
+            }
+
+            // repay debt to AaveV3 _pool
+            state =
+                LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
+
+            remainingDebtUSD = state.debtUSD > targetDebtUSD
+                ? state.debtUSD - targetDebtUSD
+                : 0;
+
+            if (++count > $.maxIterations) {
+                break;
+            }
+        } while (targetDebtUSD < state.debtUSD);
     }
 
     /// @notice helper function to calculate collateral ratio
@@ -295,19 +329,95 @@ library RebalanceLogic {
     }
 
     /// @notice calculates the total required borrow amount in order to reach a target collateral ratio value
-    /// @param _targetCR target collateral ratio value
-    /// @param _collateralUSD current collateral value in USD
-    /// @param _debtUSD current debt value in USD
-    /// @param _offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
+    /// @param targetCR target collateral ratio value
+    /// @param collateralUSD current collateral value in USD
+    /// @param debtUSD current debt value in USD
+    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
     /// @return amount required borrow amount
     function requiredBorrowUSD(
-        uint256 _targetCR,
-        uint256 _collateralUSD,
-        uint256 _debtUSD,
-        uint256 _offsetFactor
+        uint256 targetCR,
+        uint256 collateralUSD,
+        uint256 debtUSD,
+        uint256 offsetFactor
     ) public pure returns (uint256 amount) {
-        return (_collateralUSD - _targetCR.usdMul(_debtUSD)).usdDiv(
-            _targetCR - (ONE_USD - _offsetFactor)
+        return (collateralUSD - targetCR.usdMul(debtUSD)).usdDiv(
+            targetCR - (ONE_USD - offsetFactor)
+        );
+    }
+
+    /// @notice calculates the total required collateral amount in order to reach a target collateral ratio value
+    /// @param targetCR target collateral ratio value
+    /// @param collateralUSD current collateral value in USD
+    /// @param debtUSD current debt value in USD
+    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
+    /// @return amount required collateral amount
+    function requiredCollateralUSD(
+        uint256 targetCR,
+        uint256 collateralUSD,
+        uint256 debtUSD,
+        uint256 offsetFactor
+    ) public pure returns (uint256 amount) {
+        return (
+            amount = (targetCR.usdMul(debtUSD) - collateralUSD).usdDiv(
+                targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD
+            )
+        );
+    }
+
+    /// @notice determines the collateral asset amount needed for a rebalance down cycle
+    /// @param state loan state
+    /// @param neededCollateralUSD collateral needed for overall operation in USD
+    /// @param collateralPriceUSD price of collateral in USD
+    /// @param collateralDecimals decimals of collateral token
+    /// @return collateralAmountAsset amount of collateral asset needed fo the current rebalance down cycle
+    function calculateCollateralAsset(
+        LoanState memory state,
+        uint256 neededCollateralUSD,
+        uint256 collateralPriceUSD,
+        uint256 collateralDecimals
+    ) public pure returns (uint256 collateralAmountAsset) {
+        // maximum amount of collateral to not jeopardize loan health in USD
+        uint256 collateralAmountUSD = state.maxWithdrawAmount;
+
+        // handle cases where debt is less than maxWithdrawAmount possible
+        if (state.debtUSD < state.maxWithdrawAmount) {
+            collateralAmountUSD = state.debtUSD;
+        }
+
+        // if less than the max collateral amount possible is needed,
+        // use the amount that is required to reach targetCR
+        collateralAmountUSD = collateralAmountUSD < neededCollateralUSD
+            ? collateralAmountUSD
+            : neededCollateralUSD;
+
+        return convertUSDToAsset(
+            collateralAmountUSD, collateralPriceUSD, collateralDecimals
+        );
+    }
+
+    /// @notice withrdraws an amount of collateral asset and exchanges it for an
+    /// amount of debt asset
+    /// @param $ the storage state of LendingStrategyStorage
+    /// @param collateralAmountAsset amount of collateral asset to withdraw and swap
+    /// @return borrowAmountAsset amount of borrow asset received from swap
+    function withdrawAndSwapCollateral(
+        Storage.Layout storage $,
+        uint256 collateralAmountAsset
+    ) public returns (uint256 borrowAmountAsset) {
+        // withdraw collateral tokens from Aave _pool
+        LoanLogic.withdraw(
+            $.lendingPool, $.assets.collateral, collateralAmountAsset
+        );
+
+        // approve swapper contract to swap asset
+        $.assets.collateral.approve(address($.swapper), collateralAmountAsset);
+
+        // exchange collateralAmount of collateral tokens for borrow tokens
+        return $.swapper.swap(
+            $.assets.collateral,
+            $.assets.debt,
+            collateralAmountAsset,
+            payable(address(this))
         );
     }
 }

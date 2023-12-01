@@ -163,7 +163,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             state.collateralUSD, state.debtUSD
         );
 
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -197,7 +197,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             state.collateralUSD, state.debtUSD
         );
 
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -257,7 +257,7 @@ contract RebalanceLogicHarness is RebalanceLogicContext {
             state.collateralUSD, state.debtUSD
         );
 
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
