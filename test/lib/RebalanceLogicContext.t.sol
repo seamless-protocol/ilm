@@ -67,6 +67,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         });
         $.oracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
         $.ratioMargin = 100_000; // 1e2 / 1e8 = 0.001%
+        $.usdMargin = 100_000; // 1e2 / 1e8 = 0.001%
         $.collateralRatioTargets = CollateralRatio({
             target: TARGET_CR,
             minForRebalance: MIN_FOR_REBALANCE_CR,

@@ -11,16 +11,31 @@ import { CollateralRatio } from "../types/DataTypes.sol";
 interface ILoopStrategy is IERC4626 {
     /// @notice mint function from IERC4626 is disabled
     error MintDisabled();
+
     /// @notice reverts when deposit staticcal from previewDeposit reverts
     error DepositStaticcallReverted();
+
     /// @notice reverts when rebalance function is called but collateral ratio is in the target range
     error RebalanceNotNeeded();
+
     /// @notice reverts when shares received by user on deposit is lower than given minimum
     /// @param sharesReceived amount of shares received
     /// @param minSharesReceived minimum defined by caller
     error SharesReceivedBelowMinimum(
         uint256 sharesReceived, uint256 minSharesReceived
     );
+
+    /// @notice thrown when underlying received upon share redemption or asset withdrawing is
+    /// less than given minimum limit
+    /// @param underlyingReceived amount of underlying received
+    /// @param minUnderlyingReceived minimum amount of underlying to receive
+    error UnderlyingReceivedBelowMinimum(
+        uint256 underlyingReceived, uint256 minUnderlyingReceived
+    );
+
+    /// @notice thrown when the caller of the redeem function is not the owner of the
+    /// shares to be redeemed
+    error RedeemerNotOwner();
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
@@ -84,4 +99,18 @@ interface ILoopStrategy is IERC4626 {
         address receiver,
         uint256 minSharesReceived
     ) external returns (uint256 shares);
+
+    /// @notice redeems an amount of shares by burning shares from the owner, and rewarding the receiver with
+    /// the share value
+    /// @param shares amount of shares to burn
+    /// @param receiver address to receive share value
+    /// @param owner address of share owner
+    /// @param minUnderlyingAsset minimum amount of underlying asset to receive
+    /// @return assets amount of underlying asset received
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner,
+        uint256 minUnderlyingAsset
+    ) external returns (uint256 assets);
 }

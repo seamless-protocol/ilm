@@ -33,8 +33,6 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Unit tests for the LoopStrategy deposit flow
 contract LoopStrategyDepositTest is LoopStrategyTest {
     /// @dev test confirms that initial deposit works as itended and the correct amount of shares is issued equal to the equity
