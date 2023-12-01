@@ -679,15 +679,6 @@ contract LoopStrategy is
         receivedAssets = collateralAmountAsset;
     }
 
-    function maxBorrowUSD() external view returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return LoanLogic.getMaxBorrowUSD(
-            $.lendingPool,
-            $.assets.debt,
-            $.oracle.getAssetPrice(address($.assets.debt))
-        );
-    }
-
     /// @notice unwrap collateral asset to the underlying asset, if those are different
     /// @param assets struct which contain underlying asset address and collateral asset address
     /// @param collateralAmountAsset amount of collateral asset to unwrap
