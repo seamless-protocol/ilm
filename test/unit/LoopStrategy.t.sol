@@ -64,7 +64,7 @@ contract LoopStrategyTest is BaseForkTest {
     address bob = makeAddr("bob");
     address charlie = makeAddr("charlie");
 
-    function setUp() public {
+    function setUp() public virtual {
         lendingPool = LendingPool({
             pool: IPool(poolAddressProvider.getPool()),
             // variable interest rate mode is 2
