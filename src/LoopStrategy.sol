@@ -543,10 +543,18 @@ contract LoopStrategy is
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             _shareDebtAndEquity(state, shares, totalSupply());
 
-        // check if withdrawal would lead to a collateral below minimum acceptable level
+        if (state.debtUSD == shareDebtUSD) {
+            // pay back the debt corresponding to the shares
+            RebalanceLogic.rebalanceDownToDebt(
+                $, state, state.debtUSD - shareDebtUSD
+            );
+
+            shareEquityUSD = equityUSD();
+        }
+        //check if withdrawal would lead to a collateral below minimum acceptable level
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
         // by equity cost of rebalance
-        if (
+        else if (
             _collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
@@ -563,9 +571,10 @@ contract LoopStrategy is
             // adjust share debt to account for the free equity - since
             // some equity may be withdrawn freely, not all the debt has to be
             // repaid
-            shareDebtUSD = shareDebtUSD - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                shareEquityUSD + shareDebtUSD - freeEquityUSD
-            );
+            shareDebtUSD = shareDebtUSD
+                - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
+                    shareEquityUSD + shareDebtUSD - freeEquityUSD
+                );
 
             uint256 initialEquityUSD = equityUSD();
 
