@@ -11,6 +11,7 @@ import { IERC20Metadata } from
     "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
+import { Step } from "../../src/types/DataTypes.sol";
 
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
@@ -77,16 +78,14 @@ contract SwapperMock is Test, ISwapper {
 
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
-    function getRoute(address _from, address _to)
+    function getRoute(IERC20 _from, IERC20 _to)
         external
         returns (Step[] memory steps)
     { }
 
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
-    function setRoute(address from, address to, Step[] calldata steps)
-        external
-    { }
+    function setRoute(IERC20 from, IERC20 to, Step[] calldata steps) external { }
 
     function setOffsets(
         uint256 _borrowToCollateralOffset,

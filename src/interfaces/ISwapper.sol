@@ -4,27 +4,31 @@ pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import { ISwapAdapter } from "./ISwapAdapter.sol";
+import { Step } from "../types/DataTypes.sol";
 
 /// @title ISwapper
 /// @notice interface for Swapper contract
 /// @dev Swapper contract functions as registry and router for Swapper Adapters
 interface ISwapper {
-    /// @dev struc to encapsulate a single swap step for a given swap route
-    struct Step {
-        /// @dev from address of token to swap from
-        IERC20 from;
-        /// @dev to address of token to swap to
-        IERC20 to;
-        /// @dev cast address of swap adapter
-        ISwapAdapter adapter;
-    }
+    /// @notice emitted when a route is set for a given swap
+    /// @param from address of token to swap from
+    /// @param to address of token to swap to
+    /// @param steps array of Step structs needed to perform swap
+    event RouteSet(IERC20 indexed from, IERC20 indexed to, Step[] steps);
+
+    /// @notice emitted when the offsetFactor of a route is set for a given swap
+    /// @param from address of token to swap from
+    /// @param to address of token to swap to
+    /// @param offsetUSD offsetFactor from 0 - 1e8
+    event OffsetFactorSet(
+        IERC20 indexed from, IERC20 indexed to, uint256 offsetUSD
+    );
 
     /// @notice returns the steps of a swap route
     /// @param from address of token to swap from
     /// @param to address of token to swap to
     /// @return steps array of swap steps needed to end up with `to` token from `from` token
-    function getRoute(address from, address to)
+    function getRoute(IERC20 from, IERC20 to)
         external
         returns (Step[] memory steps);
 
@@ -32,8 +36,7 @@ interface ISwapper {
     /// @param from address of token to swap from
     /// @param to address of token to swap to
     /// @param steps  array of swap steps needed to end up with `to` token from `from` token
-    function setRoute(address from, address to, Step[] calldata steps)
-        external;
+    function setRoute(IERC20 from, IERC20 to, Step[] calldata steps) external;
 
     /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
     /// @param from address of token to swap from
@@ -51,9 +54,16 @@ interface ISwapper {
     /// @notice calculates the offset factor for the entire swap route from `from` token to `to` token
     /// @param from address of `from` token
     /// @param to address of `to` token
-    /// @return offset factor between 0 - 1e18 to represent offset (1e18 is 100% offset so 0 value returned)
+    /// @return offsetUSD factor between 0 - 1e8 to represent offset (1e8 is 100% offset so 0 value returned)
     function offsetFactor(IERC20 from, IERC20 to)
         external
         view
-        returns (uint256 offset);
+        returns (uint256 offsetUSD);
+
+    /// @notice sets the offset factor for the entire swap route from `from` token to `to` token
+    /// @param from address of `from` token
+    /// @param to address of `to` token
+    /// @param offsetUSD factor between 0 - 1e8 to represent offset (1e8 is 100% offset so 0 value returned)
+    function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
+        external;
 }

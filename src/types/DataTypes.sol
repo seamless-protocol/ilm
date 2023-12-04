@@ -5,8 +5,14 @@ pragma solidity ^0.8.18;
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+import { ISwapAdapter } from "../interfaces/ISwapAdapter.sol";
+
 /// @title DataTypes
 /// @notice Contains all structs used in the Integrated Liquidity Market contract suite
+
+/////////////////////
+/// LOOP STRATEGY ///
+/////////////////////
 
 /// @dev contains all data relating to the collateral ratio
 struct CollateralRatio {
@@ -51,4 +57,18 @@ struct LoanState {
     /// @dev max amount of collateralAsset which can be withdrawn based on maxLTV to
     /// avoid health of loan ratio entering liquidation zone
     uint256 maxWithdrawAmount;
+}
+
+/////////////////////
+///    SWAPPER    ///
+/////////////////////
+
+/// @dev struc to encapsulate a single swap step for a given swap route
+struct Step {
+    /// @dev from address of token to swap from
+    IERC20 from;
+    /// @dev to address of token to swap to
+    IERC20 to;
+    /// @dev cast address of swap adapter
+    ISwapAdapter adapter;
 }
