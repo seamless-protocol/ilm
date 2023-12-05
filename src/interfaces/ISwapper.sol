@@ -10,33 +10,51 @@ import { Step } from "../types/DataTypes.sol";
 /// @notice interface for Swapper contract
 /// @dev Swapper contract functions as registry and router for Swapper Adapters
 interface ISwapper {
+    /// @notice thrown when attempting to set an offsetUSD factor which is equal to 0
+    /// or larger than ONE_USD (1e8)
+    error OffsetOutsideRange();
+
+    /// @notice thrown when attempting to set a route which has the zero-address as
+    /// the address of the adapter
+    error InvalidAddress();
+
     /// @notice emitted when a route is set for a given swap
-    /// @param from address of token to swap from
-    /// @param to address of token to swap to
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
     /// @param steps array of Step structs needed to perform swap
     event RouteSet(IERC20 indexed from, IERC20 indexed to, Step[] steps);
 
     /// @notice emitted when the offsetFactor of a route is set for a given swap
-    /// @param from address of token to swap from
-    /// @param to address of token to swap to
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
     /// @param offsetUSD offsetFactor from 0 - 1e8
     event OffsetFactorSet(
         IERC20 indexed from, IERC20 indexed to, uint256 offsetUSD
     );
 
+    /// @notice emitted when a route is removed
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
+    event RouteRemoved(IERC20 indexed from, IERC20 indexed to);
+
     /// @notice returns the steps of a swap route
-    /// @param from address of token to swap from
-    /// @param to address of token to swap to
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
     /// @return steps array of swap steps needed to end up with `to` token from `from` token
     function getRoute(IERC20 from, IERC20 to)
         external
         returns (Step[] memory steps);
 
     /// @notice sets the a steps of a swap route
-    /// @param from address of token to swap from
-    /// @param to address of token to swap to
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
     /// @param steps  array of swap steps needed to end up with `to` token from `from` token
     function setRoute(IERC20 from, IERC20 to, Step[] calldata steps) external;
+
+    /// @notice deletes an existing route
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
+    function removeRoute(IERC20 from, IERC20 to) external;
 
     /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
     /// @param from address of token to swap from
