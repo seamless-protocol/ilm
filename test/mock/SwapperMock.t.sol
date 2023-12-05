@@ -87,6 +87,16 @@ contract SwapperMock is Test, ISwapper {
     /// @dev unimplemented in mock
     function setRoute(IERC20 from, IERC20 to, Step[] calldata steps) external { }
 
+    /// @inheritdoc ISwapper
+    /// @dev unimplemented in mock
+    function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
+        external
+    { }
+
+    /// @inheritdoc ISwapper
+    /// @dev unimplemented in mock
+    function removeRoute(IERC20 from, IERC20 to) external { }
+
     function setOffsets(
         uint256 _borrowToCollateralOffset,
         uint256 _collateralToBorrowOffset
