@@ -38,7 +38,10 @@ interface IRouter {
     ) external view returns (uint256 reserveA, uint256 reserveB);
 
     /// @notice Perform chained getAmountOut calculations on any number of pools
-    function getAmountsOut(uint256 amountIn, Route[] memory routes) external view returns (uint256[] memory amounts);
+    function getAmountsOut(uint256 amountIn, Route[] memory routes)
+        external
+        view
+        returns (uint256[] memory amounts);
 
     // **** SWAP ****
 

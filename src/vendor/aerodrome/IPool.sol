@@ -17,7 +17,12 @@ interface IPool {
 
     event Fees(address indexed sender, uint256 amount0, uint256 amount1);
     event Mint(address indexed sender, uint256 amount0, uint256 amount1);
-    event Burn(address indexed sender, address indexed to, uint256 amount0, uint256 amount1);
+    event Burn(
+        address indexed sender,
+        address indexed to,
+        uint256 amount0,
+        uint256 amount1
+    );
     event Swap(
         address indexed sender,
         address indexed to,
@@ -27,7 +32,12 @@ interface IPool {
         uint256 amount1Out
     );
     event Sync(uint256 reserve0, uint256 reserve1);
-    event Claim(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1);
+    event Claim(
+        address indexed sender,
+        address indexed recipient,
+        uint256 amount0,
+        uint256 amount1
+    );
 
     // Struct to capture time period obervations every 30 minutes, used for local oracles
     struct Observation {
@@ -40,7 +50,15 @@ interface IPool {
     function metadata()
         external
         view
-        returns (uint256 dec0, uint256 dec1, uint256 r0, uint256 r1, bool st, address t0, address t1);
+        returns (
+            uint256 dec0,
+            uint256 dec1,
+            uint256 r0,
+            uint256 r1,
+            bool st,
+            address t0,
+            address t1
+        );
 
     /// @notice Claim accumulated but unclaimed fees (claimable0 and claimable1)
     function claimFees() external returns (uint256, uint256);
@@ -122,14 +140,21 @@ interface IPool {
     function currentCumulativePrices()
         external
         view
-        returns (uint256 reserve0Cumulative, uint256 reserve1Cumulative, uint256 blockTimestamp);
+        returns (
+            uint256 reserve0Cumulative,
+            uint256 reserve1Cumulative,
+            uint256 blockTimestamp
+        );
 
     /// @notice Provides twap price with user configured granularity, up to the full window size
     /// @param tokenIn .
     /// @param amountIn .
     /// @param granularity .
     /// @return amountOut .
-    function quote(address tokenIn, uint256 amountIn, uint256 granularity) external view returns (uint256 amountOut);
+    function quote(address tokenIn, uint256 amountIn, uint256 granularity)
+        external
+        view
+        returns (uint256 amountOut);
 
     /// @notice Returns a memory set of TWAP prices
     ///         Same as calling sample(tokenIn, amountIn, points, 1)
@@ -137,7 +162,10 @@ interface IPool {
     /// @param amountIn .
     /// @param points Number of points to return
     /// @return Array of TWAP prices
-    function prices(address tokenIn, uint256 amountIn, uint256 points) external view returns (uint256[] memory);
+    function prices(address tokenIn, uint256 amountIn, uint256 points)
+        external
+        view
+        returns (uint256[] memory);
 
     /// @notice Same as prices with with an additional window argument.
     ///         Window = 2 means 2 * 30min (or 1 hr) between observations
@@ -158,17 +186,32 @@ interface IPool {
     /// @param amount1Out   Amount of token1 to send to `to`
     /// @param to           Address to recieve the swapped output
     /// @param data         Additional calldata for flashloans
-    function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external;
+    function swap(
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address to,
+        bytes calldata data
+    ) external;
 
     /// @notice Update reserves and, on the first call per block, price accumulators
     /// @return _reserve0 .
     /// @return _reserve1 .
     /// @return _blockTimestampLast .
-    function getReserves() external view returns (uint256 _reserve0, uint256 _reserve1, uint256 _blockTimestampLast);
+    function getReserves()
+        external
+        view
+        returns (
+            uint256 _reserve0,
+            uint256 _reserve1,
+            uint256 _blockTimestampLast
+        );
 
     /// @notice Get the amount of tokenOut given the amount of tokenIn
     /// @param amountIn Amount of token in
     /// @param tokenIn  Address of token
     /// @return Amount out
-    function getAmountOut(uint256 amountIn, address tokenIn) external view returns (uint256);
+    function getAmountOut(uint256 amountIn, address tokenIn)
+        external
+        view
+        returns (uint256);
 }
