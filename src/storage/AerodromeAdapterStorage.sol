@@ -10,7 +10,8 @@ library AerodromeAdapterStorage {
     /// @dev struct containing all state for the Swapper contract
     /// @custom:storage-location erc7201:seamless.contracts.storage.Swapper
     struct Layout {
-        mapping(IERC20 from => mapping(IERC20 to => IRouter.Route[] routes)) swapRoutes;
+        mapping(IERC20 from => mapping(IERC20 to => IRouter.Route[] routes))
+            swapRoutes;
         mapping(IERC20 from => mapping(IERC20 to => bool isStable)) isPoolStable;
         mapping(address pair => address factory) pairFactory;
         address router;

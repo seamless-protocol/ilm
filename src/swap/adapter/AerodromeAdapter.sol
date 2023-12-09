@@ -14,11 +14,9 @@ import { AerodromeAdapterStorage as Storage } from
 import { IPoolFactory } from "../../vendor/aerodrome/IPoolFactory.sol";
 import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
 
-
 /// @title AerodromeAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
 contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
-    
     /// @notice emitted when a value whether a pool is stable or not is set
     /// @param from first token of the pool
     /// @param to second token of the pool
@@ -39,11 +37,14 @@ contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
     /// @param routes array of routes for swap
     event RoutesSet(IERC20 from, IERC20 to, IRouter.Route[] routes);
 
-    
-    function AerodromeAdapter__Init(address owner, address router, address factory)  external initializer {
+    function AerodromeAdapter__Init(
+        address owner,
+        address router,
+        address factory
+    ) external initializer {
         __Ownable_init(owner);
 
-        Storage.Layout storage $ =  Storage.layout();
+        Storage.Layout storage $ = Storage.layout();
         $.router = router;
         $.poolFactory = factory;
     }
@@ -64,7 +65,11 @@ contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         console.log($.swapRoutes[from][to].length);
 
         uint256[] memory toAmounts = IRouter($.router).swapExactTokensForTokens(
-            fromAmount, 0, $.swapRoutes[from][to], beneficiary, block.timestamp + 10
+            fromAmount,
+            0,
+            $.swapRoutes[from][to],
+            beneficiary,
+            block.timestamp + 10
         );
 
         toAmount = toAmounts[toAmounts.length - 1];
@@ -77,7 +82,7 @@ contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
     function setIsPoolStable(IERC20 from, IERC20 to, bool status)
         external
         onlyOwner
-    { 
+    {
         Storage.layout().isPoolStable[from][to] = status;
 
         emit IsPoolStableSet(from, to, status);
@@ -99,14 +104,17 @@ contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         emit RouterSet(router);
     }
 
-    function setRoutes(IERC20 from, IERC20 to, IRouter.Route[] memory routes) external onlyOwner {
+    function setRoutes(IERC20 from, IERC20 to, IRouter.Route[] memory routes)
+        external
+        onlyOwner
+    {
         Storage.Layout storage $ = Storage.layout();
 
         if ($.swapRoutes[from][to].length != 0) {
             delete $.swapRoutes[from][to];
         }
 
-        for(uint256 i; i < routes.length; ++i) {
+        for (uint256 i; i < routes.length; ++i) {
             $.swapRoutes[from][to].push(routes[i]);
         }
 

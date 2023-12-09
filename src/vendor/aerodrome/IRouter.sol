@@ -8,7 +8,7 @@ interface IRouter {
         bool stable;
         address factory;
     }
-    
+
     /// @notice Address of FactoryRegistry.sol
     function factoryRegistry() external view returns (address);
 
