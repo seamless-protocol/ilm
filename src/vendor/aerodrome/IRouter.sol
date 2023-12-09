@@ -2,6 +2,13 @@
 pragma solidity ^0.8.0;
 
 interface IRouter {
+    struct Route {
+        address from;
+        address to;
+        bool stable;
+        address factory;
+    }
+    
     /// @notice Address of FactoryRegistry.sol
     function factoryRegistry() external view returns (address);
 
