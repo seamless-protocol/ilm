@@ -261,7 +261,6 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRouter(OWNER);
     }
 
-
     /// @dev ensures setRouter reverts when called by non owner
     function test_setRouter_revertsWhen_CallerIsNotOwner() public {
         vm.prank(NON_OWNER);
@@ -289,7 +288,6 @@ contract AerodromeAdapterTest is BaseForkTest {
 
         adapter.setPoolFactory(OWNER);
     }
-
 
     /// @dev ensures setPoolFactory reverts when called by non owner
     function test_setPoolFactory_revertsWhen_CallerIsNotOwner() public {
