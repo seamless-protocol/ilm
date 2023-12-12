@@ -63,8 +63,12 @@ contract AerodromeAdapterTest is BaseForkTest {
         deal(address(WETH), address(alice), 100 ether);
     }
 
+    /// @dev ensure a swap is executed successully
+    /// note: no token calculations done; this test only ensures
+    /// the tokens are swapped
     function test_executeSwap() public {
-        uint256 oldBalance = CbETH.balanceOf(alice);
+        uint256 oldCbETHBalance = CbETH.balanceOf(alice);
+        uint256 oldWETHBalance = WETH.balanceOf(alice);
 
         IRouter.Route[] memory routes = new IRouter.Route[](1);
 
@@ -84,11 +88,15 @@ contract AerodromeAdapterTest is BaseForkTest {
         vm.prank(alice);
         uint256 receivedCbETH =
             adapter.executeSwap(WETH, CbETH, swapAmount, payable(alice));
-        uint256 newBalance = CbETH.balanceOf(alice);
 
-        assertEq(newBalance - oldBalance, receivedCbETH);
+        uint256 newCbETHBalance = CbETH.balanceOf(alice);
+        uint256 newWETHBalance = WETH.balanceOf(alice);
+
+        assertEq(newCbETHBalance - oldCbETHBalance, receivedCbETH);
+        assertEq(oldWETHBalance - newWETHBalance, swapAmount);
     }
 
+    /// @dev ensures setRoutes sets the new route and emits the appropriate event
     function test_setRoutes_setsRoutesForASwap_and_emitsRoutesSetEvent()
         public
     {
@@ -111,6 +119,8 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRoutes(WETH, CbETH, routes);
     }
 
+    /// @dev ensures setRoutes deletes the previously set routes if one
+    /// was set, and sets the new routes
     function test_setRoutes_deletsPreviousRoute_and_setsRoutesForASwap()
         public
     {
@@ -136,6 +146,7 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRoutes(WETH, CbETH, routes);
     }
 
+    /// @dev ensures setRoutes reverts when called by non owner
     function test_setRoutes_revertsWhen_calledByNonOwner() public {
         IRouter.Route[] memory routes = new IRouter.Route[](1);
 
@@ -156,6 +167,7 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRoutes(WETH, CbETH, routes);
     }
 
+    /// @dev ensures removeRoutes deletes previously set routes and emits the appropriate event
     function test_removeRoutes_removesPreviouslySetRoutes_and_emitsRoutesRemovesEvent(
     ) public {
         IRouter.Route[] memory routes = new IRouter.Route[](1);
@@ -182,6 +194,7 @@ contract AerodromeAdapterTest is BaseForkTest {
         assertEq(adapter.getSwapRoutes(WETH, CbETH).length, 0);
     }
 
+    /// @dev ensures removeRoutes reverts when called by non owner
     function test_removeRoutes_revertsWhen_calledByNonOwner() public {
         IRouter.Route[] memory routes = new IRouter.Route[](1);
 
@@ -203,6 +216,8 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRoutes(WETH, CbETH, routes);
     }
 
+    /// @dev ensures setIsPoolStable sets the value for the stability of a pool
+    /// and emits the appropirate event
     function test_setIsPoolStable_setsValueForIsPoolStableForGivenTokens_andEmitsIsPoolStableSetEvent(
     ) public {
         assertEq(adapter.getIsPoolStable(WETH, CbETH), false);
@@ -217,6 +232,7 @@ contract AerodromeAdapterTest is BaseForkTest {
         assertEq(adapter.getIsPoolStable(WETH, CbETH), true);
     }
 
+    /// @dev ensures setIsPoolStable reverts when called by non owner
     function test_setIsPoolStable_revertsWhen_CallerIsNotOwner() public {
         vm.prank(NON_OWNER);
 
@@ -230,7 +246,9 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setIsPoolStable(WETH, CbETH, true);
     }
 
-    function test_setRouter_setAddressForRouter_andEmitsRouterSetEvent()
+    /// @dev ensures setPoolFactory sets the new address for the Aerodrome router
+    /// and emits the appropirate event
+    function test_setRouter_setAddressForRouter_and_EmitsRouterSetEvent()
         public
     {
         assertEq(adapter.getRouter(), AERODROME_ROUTER);
@@ -243,6 +261,8 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRouter(OWNER);
     }
 
+
+    /// @dev ensures setRouter reverts when called by non owner
     function test_setRouter_revertsWhen_CallerIsNotOwner() public {
         vm.prank(NON_OWNER);
 
@@ -256,6 +276,8 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setRouter(OWNER);
     }
 
+    /// @dev ensures setPoolFactory sets the new address for the Aerodrome pool factory
+    /// and emits the appropirate event
     function test_setPoolFactory_setAddressForPoolFactory_andEmitsPoolFactorySetEvent(
     ) public {
         assertEq(adapter.getPoolFactory(), AERODROME_FACTORY);
@@ -268,6 +290,8 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter.setPoolFactory(OWNER);
     }
 
+
+    /// @dev ensures setPoolFactory reverts when called by non owner
     function test_setPoolFactory_revertsWhen_CallerIsNotOwner() public {
         vm.prank(NON_OWNER);
 
