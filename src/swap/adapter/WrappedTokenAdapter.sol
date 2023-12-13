@@ -11,7 +11,8 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { WrappedTokenAdapterStorage as Storage } from
     "../../storage/WrappedTokenAdapterStorage.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
-import { IWrappedERC20PermissionedDeposit } from "../../interfaces/IWrappedERC20PermissionedDeposit.sol";
+import { IWrappedERC20PermissionedDeposit } from
+    "../../interfaces/IWrappedERC20PermissionedDeposit.sol";
 
 /// @title WrappedTokenAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
@@ -20,18 +21,18 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
     /// @param from token to perform wrapping/unwrapping on
     /// @param to token which will be received after wrapping/unwrapping
     /// @param wrapper WrappedERC20PermissionedDeposit contract
-    event WrapperSet(IERC20 from, IERC20 to, IWrappedERC20PermissionedDeposit wrapper);
+    event WrapperSet(
+        IERC20 from, IERC20 to, IWrappedERC20PermissionedDeposit wrapper
+    );
 
     /// @notice emitted when the wrapper contract for a given WrappedToken is removed
     /// @param from token to perform wrapping/unwrapping on
     /// @param to token which will be received after wrapping/unwrapping
     event WrapperRemoved(IERC20 from, IERC20 to);
-    
+
     /// @notice initializing function of adapter
     /// @param owner address of adapter owner
-    function WrappedTokenAdapter__Init(
-        address owner
-    ) external initializer {
+    function WrappedTokenAdapter__Init(address owner) external initializer {
         __Ownable_init(owner);
     }
 
@@ -60,12 +61,15 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         return fromAmount;
     }
 
-
     /// @notice sets the wrapper contract for a given token pair
     /// @param from token to wrap/unwrap
     /// @param to token received after wrapping/unwrapping
     /// @param wrapper WrappedERC20PermissionedDeposit contract pertaining to from/to tokens
-    function setWrapper(IERC20 from, IERC20 to, IWrappedERC20PermissionedDeposit wrapper) external onlyOwner {
+    function setWrapper(
+        IERC20 from,
+        IERC20 to,
+        IWrappedERC20PermissionedDeposit wrapper
+    ) external onlyOwner {
         Storage.Layout storage $ = Storage.layout();
 
         if (address($.wrappers[from][to]) != address(0)) {
@@ -92,5 +96,4 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
 
         emit WrapperRemoved(from, to);
     }
-    
 }

@@ -4,13 +4,19 @@ pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import { IWrappedERC20PermissionedDeposit } from "../interfaces/IWrappedERC20PermissionedDeposit.sol";
+import { IWrappedERC20PermissionedDeposit } from
+    "../interfaces/IWrappedERC20PermissionedDeposit.sol";
 
 library WrappedTokenAdapterStorage {
     /// @dev struct containing all state for the WrappedTokenAdapter contract
     /// @custom:storage-location erc7201:seamless.contracts.storage.WrappedTokenAdapter
     struct Layout {
-        mapping(IERC20 from => mapping(IERC20 to => IWrappedERC20PermissionedDeposit wrapper)) wrappers;
+        mapping(
+            IERC20 from
+                => mapping(
+                    IERC20 to => IWrappedERC20PermissionedDeposit wrapper
+                )
+            ) wrappers;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.WrappedTokenAdapter")) - 1)) & ~bytes32(uint256(0xff));
