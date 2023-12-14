@@ -41,7 +41,7 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         IERC20 from,
         IERC20 to,
         uint256 fromAmount,
-        address payable // no need for beneficiary param since sent to msg.sender
+        address payable beneficiary
     ) external returns (uint256 toAmount) {
         Storage.Layout storage $ = Storage.layout();
 
@@ -56,6 +56,8 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         } else {
             wrapper.deposit(fromAmount);
         }
+
+        to.transfer(address(beneficiary), fromAmount);
 
         // should always be 1:1 ratio
         return fromAmount;
@@ -77,8 +79,10 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         }
 
         $.wrappers[from][to] = wrapper;
+        $.wrappers[to][from] = wrapper;
 
         emit WrapperSet(from, to, wrapper);
+        emit WrapperSet(to, from, wrapper);
     }
 
     /// @notice removes a previously set wrapper for a given from/to token pair
@@ -93,7 +97,21 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
     /// @param to token received after wrapping/unwrapping
     function _removeWrapper(IERC20 from, IERC20 to) internal {
         delete Storage.layout().wrappers[from][to];
+        delete Storage.layout().wrappers[to][from];
 
         emit WrapperRemoved(from, to);
+        emit WrapperRemoved(to, from);
+    }
+
+    /// @notice returns wrapper contract for a given from/to token pair
+    /// @param from token to wrap/unwrap
+    /// @param to token received after wrapping/unwrapping
+    /// @return wrapper WrappedERC20PermissionedDeposit contract pertaining to from/to tokens
+    function getWrapper(IERC20 from, IERC20 to)
+        external
+        view
+        returns (IWrappedERC20PermissionedDeposit wrapper)
+    {
+        return Storage.layout().wrappers[from][to];
     }
 }
