@@ -18,6 +18,10 @@ interface ISwapper {
     /// the address of the adapter
     error InvalidAddress();
 
+    /// @notice thrown when msg.sender attempting to call executeSwap without being part of the
+    /// strategies enumerable set
+    error NotStrategy();
+
     /// @notice emitted when a route is set for a given swap
     /// @param from address of token route ends with
     /// @param to address of token route starts with

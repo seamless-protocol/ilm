@@ -6,6 +6,7 @@ import {
     Ownable2StepUpgradeable,
     OwnableUpgradeable
 } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from
@@ -21,6 +22,15 @@ import { Step } from "../types/DataTypes.sol";
 /// @title Swapper
 /// @notice Routing contract for swaps across different DEXs
 contract Swapper is Ownable2StepUpgradeable, ISwapper {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    modifier onlyStrategy() {
+        if(!Storage.layout().strategies.contains(msg.sender)) {
+            revert NotStrategy();
+        }
+        _;
+    }
+
     /// @dev initializer function for Swapper contract
     function Swapper_init(address _initialOwner) external initializer {
         __Ownable_init(_initialOwner);
@@ -92,7 +102,7 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
         IERC20 to,
         uint256 fromAmount,
         address payable beneficiary
-    ) external returns (uint256 toAmount) {
+    ) external onlyStrategy returns (uint256 toAmount) {
         Step[] memory steps = Storage.layout().route[from][to];
 
         from.transferFrom(msg.sender, address(this), fromAmount);

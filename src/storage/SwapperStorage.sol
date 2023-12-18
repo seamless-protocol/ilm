@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.18;
 
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { Step } from "../types/DataTypes.sol";
@@ -13,6 +14,7 @@ library SwapperStorage {
         mapping(IERC20 from => mapping(IERC20 to => uint256 offsetUSD))
             offsetUSD;
         mapping(IERC20 from => mapping(IERC20 to => Step[] steps)) route;
+        EnumerableSet.AddressSet strategies;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.Swapper")) - 1)) & ~bytes32(uint256(0xff));
