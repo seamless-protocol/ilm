@@ -6,7 +6,8 @@ import {
     Ownable2StepUpgradeable,
     OwnableUpgradeable
 } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableSet } from
+    "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from
@@ -25,7 +26,7 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     modifier onlyStrategy() {
-        if(!Storage.layout().strategies.contains(msg.sender)) {
+        if (!Storage.layout().strategies.contains(msg.sender)) {
             revert NotStrategy();
         }
         _;

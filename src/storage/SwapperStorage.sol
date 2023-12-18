@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.18;
 
-import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { EnumerableSet } from
+    "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { Step } from "../types/DataTypes.sol";
