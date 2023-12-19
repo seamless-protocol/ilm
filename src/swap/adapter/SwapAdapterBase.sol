@@ -24,16 +24,16 @@ abstract contract SwapAdapterBase is Ownable2StepUpgradeable, ISwapAdapter {
     }
 
     /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
-    ///  param from address of token to swap from
-    ///  param to address of token to swap to
-    ///  param fromAmount amount of from token to swap
-    ///  param beneficiary receiver of final to token amount
+    /// @param from address of token to swap from
+    /// @param to address of token to swap to
+    /// @param fromAmount amount of from token to swap
+    /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
     function _executeSwap(
-        IERC20, //from,
-        IERC20, //to,
-        uint256, //fromAmount,
-        address //payable beneficiary
+        IERC20 from,
+        IERC20 to,
+        uint256 fromAmount,
+        address payable beneficiary
     ) internal virtual returns (uint256 toAmount) {
         // override with adapter specific swap logic
     }

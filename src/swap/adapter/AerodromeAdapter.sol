@@ -5,6 +5,7 @@ pragma solidity ^0.8.18;
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { SwapAdapterBase } from "./SwapAdapterBase.sol";
+import { IAerodromeAdapter } from "../../interfaces/IAerodromeAdapter.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { AerodromeAdapterStorage as Storage } from
     "../../storage/AerodromeAdapterStorage.sol";
@@ -13,36 +14,9 @@ import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
 
 /// @title AerodromeAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
-contract AerodromeAdapter is SwapAdapterBase {
-    /// @notice emitted when a value whether a pool is stable or not is set
-    /// @param from first token of the pool
-    /// @param to second token of the pool
-    /// @param status boolean value indicating pool stability
-    event IsPoolStableSet(IERC20 from, IERC20 to, bool status);
-
-    /// @notice emitted when the poolFactory address is set
-    /// @param factory address of poolFactory
-    event PoolFactorySet(address factory);
-
-    /// @notice emitted when the router address is set
-    /// @param router address of router
-    event RouterSet(address router);
-
-    /// @notice emitted when set routes for a given swap are removed
-    /// @param from address to swap from
-    /// @param to addrses to swap to
-    event RoutesRemoved(IERC20 from, IERC20 to);
-
-    /// @notice emitted when the swap routes for a token pair are set
-    /// @param from first token of the pool
-    /// @param to second token of the pool
-    /// @param routes array of routes for swap
-    event RoutesSet(IERC20 from, IERC20 to, IRouter.Route[] routes);
-
-    /// @notice initializing function of adapter
-    /// @param owner address of adapter owner
-    /// @param router address of Aerodrome router
-    /// @param factory address of Aerodrome pair factory
+contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
+    
+    /// @inheritdoc IAerodromeAdapter
     function AerodromeAdapter__Init(
         address owner,
         address router,
@@ -62,27 +36,10 @@ contract AerodromeAdapter is SwapAdapterBase {
         uint256 fromAmount,
         address payable beneficiary
     ) external onlySwapper returns (uint256 toAmount) {
-        Storage.Layout storage $ = Storage.layout();
-
-        from.transferFrom(msg.sender, address(this), fromAmount);
-
-        from.approve($.router, fromAmount);
-
-        uint256[] memory toAmounts = IRouter($.router).swapExactTokensForTokens(
-            fromAmount,
-            0,
-            $.swapRoutes[from][to],
-            beneficiary,
-            block.timestamp + 10
-        );
-
-        toAmount = toAmounts[toAmounts.length - 1];
+        return _executeSwap(from, to, fromAmount, beneficiary);
     }
 
-    /// @notice sets the `isPoolStable` boolean for a given pair
-    /// @param from address of first token
-    /// @param to address of second token
-    /// @param status value to set `isPoolStable` to
+    /// @inheritdoc IAerodromeAdapter
     function setIsPoolStable(IERC20 from, IERC20 to, bool status)
         external
         onlyOwner
@@ -92,26 +49,21 @@ contract AerodromeAdapter is SwapAdapterBase {
         emit IsPoolStableSet(from, to, status);
     }
 
-    /// @notice sets the poolFactory address
-    /// @param factory poolFactory address
+    /// @inheritdoc IAerodromeAdapter
     function setPoolFactory(address factory) external onlyOwner {
         Storage.layout().poolFactory = factory;
 
         emit PoolFactorySet(factory);
     }
 
-    /// @notice sets the router address
-    /// @param router router address
+    /// @inheritdoc IAerodromeAdapter
     function setRouter(address router) external onlyOwner {
         Storage.layout().router = router;
 
         emit RouterSet(router);
     }
 
-    /// @notice sets routes for a given swap
-    /// @param from address of token to swap from
-    /// @param to address of tokent to swap to
-    /// @param routes routes for the swap
+    /// @inheritdoc IAerodromeAdapter
     function setRoutes(IERC20 from, IERC20 to, IRouter.Route[] memory routes)
         external
         onlyOwner
@@ -129,9 +81,7 @@ contract AerodromeAdapter is SwapAdapterBase {
         emit RoutesSet(from, to, routes);
     }
 
-    /// @notice deletes existing routes for a given swap
-    /// @param from address of token route ends with
-    /// @param to address of token route starts with
+    /// @inheritdoc IAerodromeAdapter
     function removeRoutes(IERC20 from, IERC20 to) external onlyOwner {
         _removeRoutes(from, to);
     }
@@ -146,10 +96,7 @@ contract AerodromeAdapter is SwapAdapterBase {
         return _getSwapper();
     }
 
-    /// @notice fetches the 'stable' status of a pool
-    /// @param from address of `from` token
-    /// @param to address of `to` token
-    /// @return status 'stable' status of pool
+    /// @inheritdoc IAerodromeAdapter
     function getIsPoolStable(IERC20 from, IERC20 to)
         external
         view
@@ -158,22 +105,17 @@ contract AerodromeAdapter is SwapAdapterBase {
         return Storage.layout().isPoolStable[from][to];
     }
 
-    /// @notice fetches the Aerodrome PoolFactory address
-    /// @return factory address of Aerodrome PoolFactory contract
+    /// @inheritdoc IAerodromeAdapter
     function getPoolFactory() external view returns (address factory) {
         return Storage.layout().poolFactory;
     }
 
-    /// @notice fetches the Aerodrome Router address
-    /// @return router address of Aerodrome Router contract
+    //// @inheritdoc IAerodromeAdapter
     function getRouter() external view returns (address router) {
         return Storage.layout().router;
     }
 
-    /// @notice fetches the swap routes for a given token swap
-    /// @param from address of `from` token
-    /// @param to address of `to` token
-    /// @return routes IRouter.Route struct array corresponding to the token swap
+    //// @inheritdoc IAerodromeAdapter
     function getSwapRoutes(IERC20 from, IERC20 to)
         external
         view
@@ -189,5 +131,30 @@ contract AerodromeAdapter is SwapAdapterBase {
         delete Storage.layout().swapRoutes[from][to];
 
         emit RoutesRemoved(from, to);
+    }
+
+    /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
+    /// @dev overridden internal _executeSwap function from SwapAdapterBase contract
+    /// @param from address of token to swap from
+    /// @param to address of token to swap to
+    /// @param fromAmount amount of from token to swap
+    /// @param beneficiary receiver of final to token amount
+    /// @return toAmount amount of to token returned from swapping
+    function _executeSwap(IERC20 from, IERC20 to, uint256 fromAmount, address payable beneficiary) internal override returns (uint256 toAmount) {
+        Storage.Layout storage $ = Storage.layout();
+
+        from.transferFrom(msg.sender, address(this), fromAmount);
+
+        from.approve($.router, fromAmount);
+
+        uint256[] memory toAmounts = IRouter($.router).swapExactTokensForTokens(
+            fromAmount,
+            0,
+            $.swapRoutes[from][to],
+            beneficiary,
+            block.timestamp + 10
+        );
+
+        toAmount = toAmounts[toAmounts.length - 1];
     }
 }
