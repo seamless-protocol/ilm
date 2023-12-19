@@ -96,4 +96,19 @@ interface ISwapper {
     /// @param offsetUSD factor between 0 - 1e8 to represent offset (1e8 is 100% offset so 0 value returned)
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external;
+
+    /// @notice removes a given strategy from strategies enumerable set
+    /// @param strategy address of strategy to remove
+    function addStrategy(address strategy) external;
+
+    /// @notice removes a given strategy from strategies enumerable set
+    /// @param strategy address of strategy to remove
+    function removeStrategy(address strategy) external;
+
+    /// @notice returns all set strategies addresses
+    /// @param strategies addresses of all set strategies
+    function getStrategies()
+        external
+        view
+        returns (address[] memory strategies);
 }
