@@ -27,6 +27,9 @@ contract SwapAdapterMock is Test, ISwapAdapter {
     }
 
     /// @inheritdoc ISwapAdapter
+    function setSwapper(address swapper) external { }
+
+    /// @inheritdoc ISwapAdapter
     function getSwapper() external view returns (address swapper) {
         return address(0);
     }
