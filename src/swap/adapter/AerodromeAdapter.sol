@@ -2,10 +2,6 @@
 
 pragma solidity ^0.8.18;
 
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { SwapAdapterBase } from "./SwapAdapterBase.sol";
