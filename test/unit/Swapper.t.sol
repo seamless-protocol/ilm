@@ -281,4 +281,74 @@ contract SwapperTest is BaseForkTest {
         assertEq(oldWETHBalance - WETH.balanceOf(ALICE), swapAmount);
         assertEq(USDbC.balanceOf(ALICE) - oldUSDbCBalance, swapAmount);
     }
+
+    /// @dev ensures addStrategy call adds specified strategy and emits associated event
+    function test_addStrategy_addsNewStrategyToStrategiesEnumerableSet_and_emitsStrategyAddedEvent(
+    ) public {
+        address[] memory strategies = swapper.getStrategies();
+
+        assertEq(strategies.length, 0);
+
+        vm.expectEmit();
+        emit StrategyAdded(OWNER);
+
+        vm.prank(OWNER);
+        swapper.addStrategy(OWNER);
+
+        strategies = swapper.getStrategies();
+
+        assertEq(strategies.length, 1);
+        assertEq(strategies[0], OWNER);
+    }
+
+    /// @dev ensures addStrategy call reverts if not called by owner
+    function test_addStrategy_revertsWhen_CallerIsNotOwner() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
+                NON_OWNER
+            )
+        );
+
+        vm.prank(NON_OWNER);
+        swapper.addStrategy(OWNER);
+    }
+
+    /// @dev ensures removeStrategy call removes specified strategy and emits associated event
+    function test_removeStrategy_removeStrategyFromStrategiesEnumerableSet_and_emitsStrategyRemovedEvent(
+    ) public {
+        address[] memory strategies = swapper.getStrategies();
+
+        assertEq(strategies.length, 0);
+
+        vm.prank(OWNER);
+        swapper.addStrategy(OWNER);
+
+        strategies = swapper.getStrategies();
+
+        assertEq(strategies.length, 1);
+        assertEq(strategies[0], OWNER);
+
+        vm.expectEmit();
+        emit StrategyRemoved(OWNER);
+
+        vm.prank(OWNER);
+        swapper.removeStrategy(OWNER);
+
+        strategies = swapper.getStrategies();
+        assertEq(strategies.length, 0);
+    }
+
+    /// @dev ensures removeStrategy call reverts if not called by owner
+    function test_removeStrategy_revertsWhen_CallerIsNotOwner() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
+                NON_OWNER
+            )
+        );
+
+        vm.prank(NON_OWNER);
+        swapper.removeStrategy(OWNER);
+    }
 }
