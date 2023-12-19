@@ -15,7 +15,6 @@ import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
 /// @title AerodromeAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
 contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
-    
     /// @inheritdoc IAerodromeAdapter
     function AerodromeAdapter__Init(
         address owner,
@@ -140,7 +139,12 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
     /// @param fromAmount amount of from token to swap
     /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
-    function _executeSwap(IERC20 from, IERC20 to, uint256 fromAmount, address payable beneficiary) internal override returns (uint256 toAmount) {
+    function _executeSwap(
+        IERC20 from,
+        IERC20 to,
+        uint256 fromAmount,
+        address payable beneficiary
+    ) internal override returns (uint256 toAmount) {
         Storage.Layout storage $ = Storage.layout();
 
         from.transferFrom(msg.sender, address(this), fromAmount);
