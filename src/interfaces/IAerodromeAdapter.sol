@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.18;
 
-
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IRouter } from "../vendor/aerodrome/IRouter.sol";
 
@@ -44,14 +43,11 @@ interface IAerodromeAdapter {
         address factory
     ) external;
 
-    
-
     /// @notice sets the `isPoolStable` boolean for a given pair
     /// @param from address of first token
     /// @param to address of second token
     /// @param status value to set `isPoolStable` to
-    function setIsPoolStable(IERC20 from, IERC20 to, bool status)
-        external;
+    function setIsPoolStable(IERC20 from, IERC20 to, bool status) external;
 
     /// @notice sets the poolFactory address
     /// @param factory poolFactory address

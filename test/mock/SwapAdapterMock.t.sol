@@ -11,7 +11,7 @@ import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 /// @title AdapterMock
 /// @dev Mocks the behavior of the SwapAdapter contract
 contract SwapAdapterMock is Test, ISwapAdapter {
-    address SILENCER = makeAddr('silencer');
+    address SILENCER = makeAddr("silencer");
 
     /// @inheritdoc ISwapAdapter
     function executeSwap(
