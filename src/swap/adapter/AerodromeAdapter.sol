@@ -8,6 +8,7 @@ import {
 } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+import { SwapAdapterBase } from "./SwapAdapterBase.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { AerodromeAdapterStorage as Storage } from
     "../../storage/AerodromeAdapterStorage.sol";
@@ -16,7 +17,7 @@ import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
 
 /// @title AerodromeAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
-contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
+contract AerodromeAdapter is SwapAdapterBase {
     /// @notice emitted when a value whether a pool is stable or not is set
     /// @param from first token of the pool
     /// @param to second token of the pool
@@ -64,7 +65,7 @@ contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         IERC20 to,
         uint256 fromAmount,
         address payable beneficiary
-    ) external returns (uint256 toAmount) {
+    ) external onlySwapper returns (uint256 toAmount) {
         Storage.Layout storage $ = Storage.layout();
 
         from.transferFrom(msg.sender, address(this), fromAmount);
@@ -137,6 +138,16 @@ contract AerodromeAdapter is Ownable2StepUpgradeable, ISwapAdapter {
     /// @param to address of token route starts with
     function removeRoutes(IERC20 from, IERC20 to) external onlyOwner {
         _removeRoutes(from, to);
+    }
+
+    /// @inheritdoc ISwapAdapter
+    function setSwapper(address swapper) external onlyOwner {
+        _setSwapper(swapper);
+    }
+
+    /// @inheritdoc ISwapAdapter
+    function getSwapper() external view returns (address swapper) {
+        return _getSwapper();
     }
 
     /// @notice fetches the 'stable' status of a pool
