@@ -41,6 +41,14 @@ interface ISwapper {
     /// @param to address of token route starts with
     event RouteRemoved(IERC20 indexed from, IERC20 indexed to);
 
+    /// @notice emitted when a strategy is added to strategies enumerable set
+    /// @param strategy address of added strategy
+    event StrategyAdded(address strategy);
+
+    /// @notice emitted when a strategy is removed from strategies enumerable set
+    /// @param strategy address of added strategy
+    event StrategyRemoved(address strategy);
+
     /// @notice returns the steps of a swap route
     /// @param from address of token route ends with
     /// @param to address of token route starts with

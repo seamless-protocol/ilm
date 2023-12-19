@@ -97,6 +97,35 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
         emit OffsetFactorSet(from, to, offsetUSD);
     }
 
+    /// @notice removes a given strategy from strategies enumerable set
+    /// @param strategy address of strategy to remove
+    function addStrategy(address strategy) external onlyOwner {
+        Storage.Layout storage $ = Storage.layout();
+
+        if (!$.strategies.contains(strategy)) {
+            $.strategy.add(strategy);
+            emit StrategyAdded(strategy);
+        }
+    }
+
+    /// @notice removes a given strategy from strategies enumerable set
+    /// @param strategy address of strategy to remove
+    function removeStrategy(address strategy) external onlyOwner {
+        Storage.layout().strategies.remove(strategy);
+
+        emit StrategyRemoved(strategy);
+    }
+
+    /// @notice returns all set strategies addresses
+    /// @param strategies addresses of all set strategies
+    function getStrategies()
+        external
+        view
+        returns (address[] memory strategies)
+    {
+        return Storage.layout().strategies.values();
+    }
+
     /// @inheritdoc ISwapper
     function swap(
         IERC20 from,
