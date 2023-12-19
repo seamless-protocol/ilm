@@ -41,6 +41,14 @@ contract SwapperTest is BaseForkTest {
     /// @param to address of token route starts with
     event RouteRemoved(IERC20 indexed from, IERC20 indexed to);
 
+    /// @notice emitted when a strategy is added to strategies enumerable set
+    /// @param strategy address of added strategy
+    event StrategyAdded(address strategy);
+
+    /// @notice emitted when a strategy is removed from strategies enumerable set
+    /// @param strategy address of added strategy
+    event StrategyRemoved(address strategy);
+
     ISwapper swapper;
     ISwapAdapter wethCbETHAdapter;
     ISwapAdapter CbETHUSDbCAdapter;
@@ -226,6 +234,8 @@ contract SwapperTest is BaseForkTest {
 
         vm.prank(OWNER);
         swapper.setRoute(WETH, CbETH, steps);
+        vm.prank(OWNER);
+        swapper.addStrategy(ALICE);
 
         uint256 swapAmount = 1 ether;
 
@@ -253,6 +263,8 @@ contract SwapperTest is BaseForkTest {
 
         vm.prank(OWNER);
         swapper.setRoute(WETH, USDbC, steps);
+        vm.prank(OWNER);
+        swapper.addStrategy(ALICE);
 
         uint256 swapAmount = 1 ether;
 

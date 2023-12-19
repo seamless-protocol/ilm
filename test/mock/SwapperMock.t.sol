@@ -104,4 +104,22 @@ contract SwapperMock is Test, ISwapper {
         borrowToCollateralOffset = _borrowToCollateralOffset;
         collateralToBorrowOffset = _collateralToBorrowOffset;
     }
+
+    /// @inheritdoc ISwapper
+    /// @dev unimplemented in mock
+    function addStrategy(address strategy) external { }
+
+    /// @inheritdoc ISwapper
+    /// @dev unimplemented in mock
+    function removeStrategy(address strategy) external { }
+
+    /// @inheritdoc ISwapper
+    /// @dev unimplemented in mock
+    function getStrategies()
+        external
+        pure
+        returns (address[] memory strategies)
+    {
+        strategies;
+    }
 }
