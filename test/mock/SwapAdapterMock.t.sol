@@ -25,4 +25,9 @@ contract SwapAdapterMock is Test, ISwapAdapter {
         toAmount = fromAmount;
         deal(address(to), beneficiary, to.balanceOf(beneficiary) + toAmount);
     }
+
+    /// @inheritdoc ISwapAdapter
+    function getSwapper() external view returns (address swapper) {
+        return address(0);
+    }
 }

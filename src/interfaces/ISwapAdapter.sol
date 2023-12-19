@@ -21,4 +21,8 @@ interface ISwapAdapter {
         uint256 fromAmount,
         address payable beneficiary
     ) external returns (uint256 toAmount);
+
+    /// @notice returns the address of Swapper contract
+    /// @return swapper address of Swapper contract
+    function getSwapper() external view returns (address swapper);
 }
