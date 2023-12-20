@@ -149,14 +149,10 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
 
-        vm.expectRevert(
-            ISwapAdapter.NotSwapper.selector
-        );
+        vm.expectRevert(ISwapAdapter.NotSwapper.selector);
 
         vm.prank(alice);
-        adapter.executeSwap(
-            mockERC20, wrappedCbETH, swapAmount, payable(alice)
-        );
+        adapter.executeSwap(mockERC20, wrappedCbETH, swapAmount, payable(alice));
     }
 
     /// @dev ensures that setting a wrapper will set it for both orderings (from, to) and (to,from)
