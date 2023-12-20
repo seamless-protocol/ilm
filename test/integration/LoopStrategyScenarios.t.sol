@@ -33,8 +33,6 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "../unit/LoopStrategy.t.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Scenario tests for the LoopStrategy
 /// @notice gsheets models reference: https://docs.google.com/spreadsheets/d/1d9L_uX4qYCo6i7jxQXZjI55ogBsNhNI2q8jbdJ2P6g0
 contract LoopStrategyScenariosTest is LoopStrategyTest {
