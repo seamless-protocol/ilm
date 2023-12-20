@@ -8,6 +8,7 @@ import {
 } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 import { BaseForkTest } from "../BaseForkTest.t.sol";
+import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 import { AerodromeAdapter } from "../../src/swap/adapter/AerodromeAdapter.sol";
 import { IRouter } from "../../src/vendor/aerodrome/IRouter.sol";
 
@@ -81,6 +82,8 @@ contract AerodromeAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setRoutes(WETH, CbETH, routes);
+        vm.prank(OWNER);
+        adapter.setSwapper(alice);
 
         vm.prank(alice);
         WETH.approve(address(adapter), swapAmount);
@@ -94,6 +97,29 @@ contract AerodromeAdapterTest is BaseForkTest {
 
         assertEq(newCbETHBalance - oldCbETHBalance, receivedCbETH);
         assertEq(oldWETHBalance - newWETHBalance, swapAmount);
+    }
+
+    /// @dev ensures that swapping reverts when the caller is not the whitelisted swapper
+    function test_executeSwap_revertsWhen_callerIsNotSwapper() public {
+        IRouter.Route[] memory routes = new IRouter.Route[](1);
+
+        routes[0] = IRouter.Route({
+            from: address(WETH),
+            to: address(CbETH),
+            stable: false,
+            factory: AERODROME_FACTORY
+        });
+
+        vm.prank(OWNER);
+        adapter.setRoutes(WETH, CbETH, routes);
+
+        vm.prank(alice);
+        WETH.approve(address(adapter), swapAmount);
+
+        vm.expectRevert(ISwapAdapter.NotSwapper.selector);
+
+        vm.prank(alice);
+        adapter.executeSwap(WETH, CbETH, swapAmount, payable(alice));
     }
 
     /// @dev ensures setRoutes sets the new route and emits the appropriate event
@@ -301,5 +327,19 @@ contract AerodromeAdapterTest is BaseForkTest {
         );
 
         adapter.setPoolFactory(OWNER);
+    }
+
+    /// @dev ensures that setSwapper reverts if the caller is not the owner
+    function test_setSwapper_revertsWhen_callerNotOwner() public {
+        vm.prank(NON_OWNER);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
+                NON_OWNER
+            )
+        );
+
+        adapter.setSwapper(NON_OWNER);
     }
 }
