@@ -71,7 +71,8 @@ contract LoopStrategyTest is BaseForkTest {
             interestRateMode: 2
         });
 
-        poolDataProvider = IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
+        poolDataProvider =
+            IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
 
         // deploy MockAaveOracle to the address of already existing priceOracle
         MockAaveOracle mockOracle = new MockAaveOracle();
@@ -203,11 +204,18 @@ contract LoopStrategyTest is BaseForkTest {
     /// @param ltv new ltv (from 0 to 100_00 in percents)
     /// @param liquidationThreshold new liquidation treshold (from 0 to 100_00 in percents)
     /// @param liquidationBonus new liquidation bonus (in percents, should be above 100_00)
-    function _changeLtv(IERC20 asset, uint256 ltv, uint256 liquidationThreshold, uint256 liquidationBonus) internal {
+    function _changeLtv(
+        IERC20 asset,
+        uint256 ltv,
+        uint256 liquidationThreshold,
+        uint256 liquidationBonus
+    ) internal {
         address aclAdmin = poolAddressProvider.getACLAdmin();
         vm.startPrank(aclAdmin);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
-            .configureReserveAsCollateral(address(asset), ltv, liquidationThreshold, liquidationBonus);
+            .configureReserveAsCollateral(
+            address(asset), ltv, liquidationThreshold, liquidationBonus
+        );
         vm.stopPrank();
     }
 }

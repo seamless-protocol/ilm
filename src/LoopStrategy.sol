@@ -574,13 +574,18 @@ contract LoopStrategy is
             // the minForWithdrawRebalance limit, thereby not requiring
             // a rebalance operation
             uint256 freeEquityUSD;
-            if(state.collateralUSD < $.collateralRatioTargets.minForWithdrawRebalance.usdMul(state.debtUSD)) {
+            if (
+                state.collateralUSD
+                    < $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                        state.debtUSD
+                    )
+            ) {
                 freeEquityUSD = 0;
             } else {
                 freeEquityUSD = state.collateralUSD
-                - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                    state.debtUSD
-                );
+                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                        state.debtUSD
+                    );
             }
 
             // adjust share debt to account for the free equity - since
