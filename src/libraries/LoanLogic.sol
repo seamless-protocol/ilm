@@ -123,8 +123,15 @@ library LoanLogic {
             });
         }
 
-        uint256 maxWithdrawAmount =
+        uint256 maxWithdrawAmount;
+        // This can happen when the debt is already above ltv 
+        // (due to collateral asset price fall, borrow asset price raise, or interest increase)
+        if (totalCollateralUSD < PercentageMath.percentDiv(totalDebtUSD, ltv)) {
+            maxWithdrawAmount = 0;
+        } else {
+            maxWithdrawAmount =
             totalCollateralUSD - PercentageMath.percentDiv(totalDebtUSD, ltv);
+        }
 
         maxWithdrawAmount =
             PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);

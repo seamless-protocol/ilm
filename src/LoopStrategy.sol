@@ -37,9 +37,6 @@ import { ISwapper } from "./interfaces/ISwapper.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "./interfaces/IWrappedERC20PermissionedDeposit.sol";
 
-// TODO: add function to check loan state from strategy directly
-// TODO: rename all functions with appropriate USD suffix
-
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
 contract LoopStrategy is
@@ -576,10 +573,15 @@ contract LoopStrategy is
             // strategy without driving the collateral ratio below
             // the minForWithdrawRebalance limit, thereby not requiring
             // a rebalance operation
-            uint256 freeEquityUSD = state.collateralUSD
+            uint256 freeEquityUSD;
+            if(state.collateralUSD < $.collateralRatioTargets.minForWithdrawRebalance.usdMul(state.debtUSD)) {
+                freeEquityUSD = 0;
+            } else {
+                freeEquityUSD = state.collateralUSD
                 - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
                     state.debtUSD
                 );
+            }
 
             // adjust share debt to account for the free equity - since
             // some equity may be withdrawn freely, not all the debt has to be
