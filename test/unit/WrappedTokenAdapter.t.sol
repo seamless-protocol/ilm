@@ -9,6 +9,7 @@ import {
 
 import { MockERC20 } from "../mock/MockERC20.sol";
 import { BaseForkTest } from "../BaseForkTest.t.sol";
+import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "../../src/interfaces/IWrappedERC20PermissionedDeposit.sol";
 import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
@@ -72,6 +73,8 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        vm.prank(OWNER);
+        adapter.setSwapper(alice);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
@@ -99,6 +102,8 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        vm.prank(OWNER);
+        adapter.setSwapper(alice);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
@@ -133,6 +138,25 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         assertEq(oldFromBalance - newFromBalance, swapAmount);
         assertEq(newToBalance - oldToBalance, swapAmount);
         assertEq(toAmount, swapAmount);
+    }
+
+    /// @dev ensures that executeSwap call reverts is the caller is not a whitelisted
+    /// swapper
+    function test_executeSwap_revertsWhen_callerIsNotSwapper() public {
+        vm.prank(OWNER);
+        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+
+        vm.prank(alice);
+        mockERC20.approve(address(adapter), swapAmount);
+
+        vm.expectRevert(
+            ISwapAdapter.NotSwapper.selector
+        );
+
+        vm.prank(alice);
+        adapter.executeSwap(
+            mockERC20, wrappedCbETH, swapAmount, payable(alice)
+        );
     }
 
     /// @dev ensures that setting a wrapper will set it for both orderings (from, to) and (to,from)
@@ -234,7 +258,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
     /// @dev ensures that removing a wrapper will revert if called by a
     /// non-owner
-    function test_removeWrapper_revertsWhen_CalledByNonOwner() public {
+    function test_removeWrapper_revertsWhen_callerIsNotOwner() public {
         vm.expectRevert(
             abi.encodeWithSelector(
                 OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
@@ -244,5 +268,18 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
         vm.prank(NON_OWNER);
         adapter.removeWrapper(mockERC20, wrappedCbETH);
+    }
+
+    /// @dev ensures that setSwapper call reverts when calls is not owner
+    function test_setSwapper_revertsWhen_callerIsNotOwner() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
+                NON_OWNER
+            )
+        );
+
+        vm.prank(NON_OWNER);
+        adapter.setSwapper(NON_OWNER);
     }
 }
