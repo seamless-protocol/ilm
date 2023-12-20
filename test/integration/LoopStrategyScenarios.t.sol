@@ -44,8 +44,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
     /// @dev setting up the starting parameters for scenarios
     /// @dev it assums CbETH as collateral asset and USDbC as borrowing asset
     /// @param startCollateral total collateral currently supplied to the lending pool from the strategy
-    /// @param startLeverage current leverage ratio
-    /// @param targetLeverage target leverage ratio for the pool
+    /// @param startLeverage current leverage ratio (2 decimals)
+    /// @param targetLeverage target leverage ratio for the pool (2 decimals)
     /// @param startShares amount of starting shares (18 decimals)
     function _setupScenario(
         uint256 startCollateral,
@@ -66,16 +66,17 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         });
         strategy.setCollateralRatioTargets(collateralRatioTargets);
 
-        // price at block number: 5_950_437
-        _changePrice(CbETH, 179_887_843_722);
-        _changePrice(USDbC, 100_000_000);
+        // price at block number: 5950437
+        uint256 CbETHprice = 1798_87843722;
+        _changePrice(CbETH, CbETHprice);
+        _changePrice(USDbC, 1_00000000);
         swapOffset = 5e6;
         SwapperMock(address(swapper)).setOffsets(swapOffset, swapOffset);
 
-        _changeLtv(CbETH, 8000, 8500, 10_500);
+        _changeLtv(CbETH, 80_00, 85_00, 105_00);
 
         uint256 startDebtUSD = (
-            startCollateral * 179_887_843_722 * (startLeverage - 100)
+            startCollateral * CbETHprice * (startLeverage - 100)
         ) / (startLeverage * 1e18);
         uint256 startDebt = startDebtUSD / 1e2;
 
@@ -100,19 +101,19 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
     function test_scenario_1_depositWhenPoolAtTarget() public {
         _setupScenario(1 ether, 300, 300, 1000 ether);
 
-        assertEq(strategy.collateral(), 179_887_843_722);
-        assertEq(strategy.debt(), 119_925_229_100);
-        assertEq(strategy.currentCollateralRatio(), 150_000_000);
-        assertEq(strategy.totalAssets(), 333_333_330_000_000_000);
+        assertEq(strategy.collateral(), 1798_87843722);
+        assertEq(strategy.debt(), 1199_25229100);
+        assertEq(strategy.currentCollateralRatio(), 1_50000000);
+        assertEq(strategy.totalAssets(), 333333330000000000);
         assertEq(strategy.totalSupply(), 1000 ether);
 
         _depositFor(alice, 0.1 ether);
 
         // we are doing approximate equals because there is different losing of precision between gsheets model and solidity calculations
-        assertApproxEqAbs(strategy.collateral(), 228_948_164_700, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 152_632_109_800, USD_DELTA);
+        assertApproxEqAbs(strategy.collateral(), 2289_48164700, USD_DELTA);
+        assertApproxEqAbs(strategy.debt(), 1526_32109800, USD_DELTA);
         assertApproxEqAbs(
-            strategy.currentCollateralRatio(), 150_000_000, USD_DELTA
+            strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
         assertApproxEqAbs(strategy.totalAssets(), 0.4242 ether, ETH_DELTA);
         assertApproxEqAbs(strategy.totalSupply(), 1272.7273 ether, ETH_DELTA);
@@ -124,18 +125,18 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
     function test_scenario_2_depositWhenPoolBelowMinForRebalance() public {
         _setupScenario(1 ether, 400, 350, 1000 ether);
 
-        assertEq(strategy.collateral(), 179_887_843_722);
-        assertEq(strategy.debt(), 134_915_882_700);
-        assertEq(strategy.currentCollateralRatio(), 133_333_333);
-        assertEq(strategy.totalAssets(), 250_000_000_000_000_000);
+        assertEq(strategy.collateral(), 1798_87843722);
+        assertEq(strategy.debt(), 1349_15882700);
+        assertEq(strategy.currentCollateralRatio(), 1_33333333);
+        assertEq(strategy.totalAssets(), 250000000000000000);
         assertEq(strategy.totalSupply(), 1000 ether);
 
         _depositFor(alice, 0.01 ether);
 
-        assertApproxEqAbs(strategy.collateral(), 158_228_620_500, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 113_020_443_200, USD_DELTA);
+        assertApproxEqAbs(strategy.collateral(), 1582_28620500, USD_DELTA);
+        assertApproxEqAbs(strategy.debt(), 1130_20443200, USD_DELTA);
         assertApproxEqAbs(
-            strategy.currentCollateralRatio(), 140_000_000, USD_DELTA
+            strategy.currentCollateralRatio(), 1_40000000, USD_DELTA
         );
         assertApproxEqAbs(strategy.totalAssets(), 0.2513 ether, ETH_DELTA);
         assertApproxEqAbs(strategy.totalSupply(), 1036.6667 ether, ETH_DELTA);
@@ -148,10 +149,10 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _setupScenario(100 ether, 300, 300, 1000 ether);
         deal(address(strategy), alice, 30 ether, false);
 
-        assertEq(strategy.collateral(), 17_988_784_372_200);
-        assertEq(strategy.debt(), 11_992_522_914_800);
-        assertEq(strategy.currentCollateralRatio(), 150_000_000);
-        assertEq(strategy.totalAssets(), 33_333_333_330_000_000_000);
+        assertEq(strategy.collateral(), 179887_84372200);
+        assertEq(strategy.debt(), 119925_22914800);
+        assertEq(strategy.currentCollateralRatio(), 1_50000000);
+        assertEq(strategy.totalAssets(), 33333333330000000000);
         assertEq(strategy.totalSupply(), 1000 ether);
         assertEq(strategy.balanceOf(alice), 30 ether);
 
@@ -161,10 +162,10 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         vm.stopPrank();
         uint256 withdrawnAmount = CbETH.balanceOf(alice) - balanceBefore;
 
-        assertApproxEqAbs(strategy.collateral(), 17_449_120_841_034, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 11_632_747_227_356, USD_DELTA);
+        assertApproxEqAbs(strategy.collateral(), 174491_20841034, USD_DELTA);
+        assertApproxEqAbs(strategy.debt(), 116327_47227356, USD_DELTA);
         assertApproxEqAbs(
-            strategy.currentCollateralRatio(), 150_000_000, USD_DELTA
+            strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
         assertApproxEqAbs(strategy.totalAssets(), 32.3333 ether, ETH_DELTA);
         assertApproxEqAbs(strategy.totalSupply(), 970 ether, ETH_DELTA);
@@ -178,10 +179,10 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _setupScenario(100 ether, 400, 300, 1000 ether);
         deal(address(strategy), alice, 30 ether, false);
 
-        assertEq(strategy.collateral(), 17_988_784_372_200);
-        assertEq(strategy.debt(), 13_491_588_279_100);
-        assertEq(strategy.currentCollateralRatio(), 133_333_333);
-        assertEq(strategy.totalAssets(), 25_000_000_000_000_000_000);
+        assertEq(strategy.collateral(), 179887_84372200);
+        assertEq(strategy.debt(), 134915_88279100);
+        assertEq(strategy.currentCollateralRatio(), 1_33333333);
+        assertEq(strategy.totalAssets(), 25000000000000000000);
         assertEq(strategy.totalSupply(), 1000 ether);
         assertEq(strategy.balanceOf(alice), 30 ether);
 
@@ -191,10 +192,10 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         vm.stopPrank();
         uint256 withdrawnAmount = CbETH.balanceOf(alice) - balanceBefore;
 
-        assertApproxEqAbs(strategy.collateral(), 12_317_026_476_024, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 8_211_350_984_016, USD_DELTA);
+        assertApproxEqAbs(strategy.collateral(), 123170_26476024, USD_DELTA);
+        assertApproxEqAbs(strategy.debt(), 82113_50984016, USD_DELTA);
         assertApproxEqAbs(
-            strategy.currentCollateralRatio(), 150_000_000, USD_DELTA
+            strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
         assertApproxEqAbs(strategy.totalAssets(), 22.8235 ether, ETH_DELTA);
         assertApproxEqAbs(strategy.totalSupply(), 970 ether, ETH_DELTA);
@@ -208,27 +209,27 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _setupScenario(100 ether, 300, 300, 1000 ether);
         _changeLtv(CbETH, 9000, 9500, 10_500);
 
-        assertEq(strategy.currentCollateralRatio(), 150_000_000);
+        assertEq(strategy.currentCollateralRatio(), 1_50000000);
         assertEq(strategy.rebalanceNeeded(), false);
 
         _changePrice(CbETH, 1400 * 1e8);
 
-        assertEq(strategy.currentCollateralRatio(), 116_739_406);
+        assertEq(strategy.currentCollateralRatio(), 1_16739406);
         assertEq(strategy.rebalanceNeeded(), true);
 
         strategy.rebalance();
 
-        assertEq(strategy.currentCollateralRatio(), 150_000_000);
+        assertEq(strategy.currentCollateralRatio(), 1_50000000);
         assertEq(strategy.rebalanceNeeded(), false);
 
         _changePrice(CbETH, 1500 * 1e8);
 
-        assertEq(strategy.currentCollateralRatio(), 160_714_286);
+        assertEq(strategy.currentCollateralRatio(), 1_60714286);
         assertEq(strategy.rebalanceNeeded(), true);
 
         strategy.rebalance();
 
-        assertEq(strategy.currentCollateralRatio(), 150_000_000);
+        assertEq(strategy.currentCollateralRatio(), 1_50000000);
         assertEq(strategy.rebalanceNeeded(), false);
     }
 
@@ -238,18 +239,18 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         deal(address(strategy), alice, 700 ether, false);
         deal(address(strategy), bob, 300 ether, false);
 
-        assertEq(strategy.collateral(), 17_988_784_372_200);
-        assertEq(strategy.debt(), 11_992_522_914_800);
-        assertEq(strategy.currentCollateralRatio(), 150_000_000);
+        assertEq(strategy.collateral(), 179887_84372200);
+        assertEq(strategy.debt(), 119925_22914800);
+        assertEq(strategy.currentCollateralRatio(), 1_50000000);
 
         vm.startPrank(alice);
         strategy.redeem(700 ether, alice, alice);
         vm.stopPrank();
 
-        assertApproxEqAbs(strategy.collateral(), 5_396_635_311_660, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 3_597_756_874_100, USD_DELTA);
+        assertApproxEqAbs(strategy.collateral(), 53966_35311660, USD_DELTA);
+        assertApproxEqAbs(strategy.debt(), 35977_56874100, USD_DELTA);
         assertApproxEqAbs(
-            strategy.currentCollateralRatio(), 150_000_000, USD_DELTA
+            strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
 
         vm.startPrank(bob);
