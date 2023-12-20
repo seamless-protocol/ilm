@@ -2,21 +2,19 @@
 
 pragma solidity ^0.8.18;
 
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+import { SwapAdapterBase } from "./SwapAdapterBase.sol";
+import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { WrappedTokenAdapterStorage as Storage } from
     "../../storage/WrappedTokenAdapterStorage.sol";
-import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "../../interfaces/IWrappedERC20PermissionedDeposit.sol";
+import { IWrappedTokenAdapter } from "../../interfaces/IWrappedTokenAdapter.sol";
 
 /// @title WrappedTokenAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
-contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
+contract WrappedTokenAdapter is SwapAdapterBase, IWrappedTokenAdapter {
     /// @notice emitted when the wrapper contract for a given WrappedToken is set
     /// @param from token to perform wrapping/unwrapping on
     /// @param to token which will be received after wrapping/unwrapping
@@ -30,8 +28,7 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
     /// @param to token which will be received after wrapping/unwrapping
     event WrapperRemoved(IERC20 from, IERC20 to);
 
-    /// @notice initializing function of adapter
-    /// @param owner address of adapter owner
+    /// @inheritdoc IWrappedTokenAdapter
     function WrappedTokenAdapter__Init(address owner) external initializer {
         __Ownable_init(owner);
     }
@@ -42,7 +39,7 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         IERC20 to,
         uint256 fromAmount,
         address payable beneficiary
-    ) external returns (uint256 toAmount) {
+    ) external onlySwapper returns (uint256 toAmount) {
         Storage.Layout storage $ = Storage.layout();
 
         from.transferFrom(msg.sender, address(this), fromAmount);
@@ -63,10 +60,12 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         return fromAmount;
     }
 
-    /// @notice sets the wrapper contract for a given token pair
-    /// @param from token to wrap/unwrap
-    /// @param to token received after wrapping/unwrapping
-    /// @param wrapper WrappedERC20PermissionedDeposit contract pertaining to from/to tokens
+    /// @inheritdoc ISwapAdapter
+    function setSwapper(address swapper) external onlyOwner {
+        _setSwapper(swapper);
+    }
+
+    /// @inheritdoc IWrappedTokenAdapter
     function setWrapper(
         IERC20 from,
         IERC20 to,
@@ -85,11 +84,23 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
         emit WrapperSet(to, from, wrapper);
     }
 
-    /// @notice removes a previously set wrapper for a given from/to token pair
-    /// @param from token to wrap/unwrap
-    /// @param to token received after wrapping/unwrapping
+    /// @inheritdoc IWrappedTokenAdapter
     function removeWrapper(IERC20 from, IERC20 to) external onlyOwner {
         _removeWrapper(from, to);
+    }
+
+    /// @inheritdoc IWrappedTokenAdapter
+    function getWrapper(IERC20 from, IERC20 to)
+        external
+        view
+        returns (IWrappedERC20PermissionedDeposit wrapper)
+    {
+        return Storage.layout().wrappers[from][to];
+    }
+
+    /// @inheritdoc ISwapAdapter
+    function getSwapper() external view returns (address swapper) {
+        return _getSwapper();
     }
 
     /// @notice removes a previously set wrapper for a given from/to token pair
@@ -101,17 +112,5 @@ contract WrappedTokenAdapter is Ownable2StepUpgradeable, ISwapAdapter {
 
         emit WrapperRemoved(from, to);
         emit WrapperRemoved(to, from);
-    }
-
-    /// @notice returns wrapper contract for a given from/to token pair
-    /// @param from token to wrap/unwrap
-    /// @param to token received after wrapping/unwrapping
-    /// @return wrapper WrappedERC20PermissionedDeposit contract pertaining to from/to tokens
-    function getWrapper(IERC20 from, IERC20 to)
-        external
-        view
-        returns (IWrappedERC20PermissionedDeposit wrapper)
-    {
-        return Storage.layout().wrappers[from][to];
     }
 }
