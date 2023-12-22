@@ -7,8 +7,8 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IRouter } from "../vendor/aerodrome/IRouter.sol";
 
 library AerodromeAdapterStorage {
-    /// @dev struct containing all state for the Swapper contract
-    /// @custom:storage-location erc7201:seamless.contracts.storage.Swapper
+    /// @dev struct containing all state for the AerodromeAdapter contract
+    /// @custom:storage-location erc7201:seamless.contracts.storage.AerodromeAdapter
     struct Layout {
         mapping(IERC20 from => mapping(IERC20 to => IRouter.Route[] routes))
             swapRoutes;
