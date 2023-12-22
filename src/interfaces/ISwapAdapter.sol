@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.18;
 
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 /// @title ISwapAdapter
 /// @notice interface for SwapAdapter contracts
 interface ISwapAdapter {
@@ -14,8 +16,8 @@ interface ISwapAdapter {
     /// @param beneficiary receiver of final to token amount
     /// @return toAmount amount of to token returned from swapping
     function executeSwap(
-        address from,
-        address to,
+        IERC20 from,
+        IERC20 to,
         uint256 fromAmount,
         address payable beneficiary
     ) external returns (uint256 toAmount);
