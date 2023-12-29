@@ -40,7 +40,7 @@ contract LoanLogicTest is BaseForkTest {
     IERC20 public sWETH;
     IERC20 public sUSDbC;
     IERC20 public debtUSDbC;
-    uint256 public ltvWETH;
+    uint256 public lqtWETH;
 
     uint256 public WETH_price;
     uint256 public USDbC_price;
@@ -60,7 +60,7 @@ contract LoanLogicTest is BaseForkTest {
 
         poolDataProvider =
             IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
-        (, ltvWETH,,,,,,,,) =
+        (,, lqtWETH,,,,,,,) =
             poolDataProvider.getReserveConfigurationData(address(WETH));
 
         // getting reserve token addresses
@@ -388,7 +388,7 @@ contract LoanLogicTest is BaseForkTest {
         uint256 debtUSD = Math.mulDiv(debtUSDbCAmount, USDbC_price, ONE_USDbC);
         assertApproxEqAbs(loanState.debtUSD, debtUSD, USD_DELTA);
 
-        uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, ltvWETH);
+        uint256 minCollateralUSD = PercentageMath.percentDiv(debtUSD, lqtWETH);
         uint256 maxAvailableWithdraw = collateralUSD - minCollateralUSD;
         maxAvailableWithdraw = PercentageMath.percentMul(
             maxAvailableWithdraw, LoanLogic.MAX_AMOUNT_PERCENT

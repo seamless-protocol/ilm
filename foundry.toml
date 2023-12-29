@@ -12,6 +12,6 @@ verbosity = 2
 [fmt]
 line_length = 80
 bracket_spacing = true
-number_underscore = "thousands"
+number_underscore = "preserve"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
