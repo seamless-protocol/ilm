@@ -12,6 +12,9 @@ interface ILoopStrategy is IERC4626 {
     /// @notice mint function from IERC4626 is disabled
     error MintDisabled();
 
+    /// @notice withdraw function from IERC4626 is disabled
+    error WithdrawDisabled();
+
     /// @notice reverts when deposit staticcal from previewDeposit reverts
     error DepositStaticcallReverted();
 
@@ -56,6 +59,12 @@ interface ILoopStrategy is IERC4626 {
     /// in underlying value (USD)
     /// @return amount collateral amount
     function collateral() external view returns (uint256 amount);
+
+    /// @notice pauses deposits and withdrawals from the contract
+    function pause() external;
+
+    /// @notice unpauses deposits and withdrawals from the contract
+    function unpause() external;
 
     /// @notice sets the collateral ratio targets (target ratio, min and max for rebalance,
     /// @notice max for deposit rebalance and min for collateral rebalance)

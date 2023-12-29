@@ -274,7 +274,7 @@ library RebalanceLogic {
     /// @param _debtUSD debt valut in USD
     /// @return ratio collateral ratio value
     function collateralRatioUSD(uint256 _collateralUSD, uint256 _debtUSD)
-        public
+        internal
         pure
         returns (uint256 ratio)
     {
@@ -290,7 +290,7 @@ library RebalanceLogic {
         uint256 _assetAmount,
         uint256 _priceInUSD,
         uint256 _assetDecimals
-    ) public pure returns (uint256 usdAmount) {
+    ) internal pure returns (uint256 usdAmount) {
         usdAmount = _assetAmount * _priceInUSD / (10 ** _assetDecimals);
     }
 
@@ -302,7 +302,7 @@ library RebalanceLogic {
         uint256 _usdAmount,
         uint256 _priceInUSD,
         uint256 _assetDecimals
-    ) public pure returns (uint256 assetAmount) {
+    ) internal pure returns (uint256 assetAmount) {
         if (USD_DECIMALS > _assetDecimals) {
             assetAmount = _usdAmount.usdDiv(_priceInUSD)
                 / (10 ** (USD_DECIMALS - _assetDecimals));
@@ -316,7 +316,7 @@ library RebalanceLogic {
     /// @param _a amount to offset
     /// @param _offsetUSD offset as a number between 0 -  ONE_USD
     function offsetUSDAmountDown(uint256 _a, uint256 _offsetUSD)
-        public
+        internal
         pure
         returns (uint256 amount)
     {
@@ -339,7 +339,7 @@ library RebalanceLogic {
         uint256 collateralUSD,
         uint256 debtUSD,
         uint256 offsetFactor
-    ) public pure returns (uint256 amount) {
+    ) internal pure returns (uint256 amount) {
         return (collateralUSD - targetCR.usdMul(debtUSD)).usdDiv(
             targetCR - (ONE_USD - offsetFactor)
         );
@@ -356,7 +356,7 @@ library RebalanceLogic {
         uint256 collateralUSD,
         uint256 debtUSD,
         uint256 offsetFactor
-    ) public pure returns (uint256 amount) {
+    ) internal pure returns (uint256 amount) {
         return (
             amount = (targetCR.usdMul(debtUSD) - collateralUSD).usdDiv(
                 targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD
@@ -375,7 +375,7 @@ library RebalanceLogic {
         uint256 neededCollateralUSD,
         uint256 collateralPriceUSD,
         uint256 collateralDecimals
-    ) public pure returns (uint256 collateralAmountAsset) {
+    ) internal pure returns (uint256 collateralAmountAsset) {
         // maximum amount of collateral to not jeopardize loan health in USD
         uint256 collateralAmountUSD = state.maxWithdrawAmount;
 
@@ -403,7 +403,7 @@ library RebalanceLogic {
     function withdrawAndSwapCollateral(
         Storage.Layout storage $,
         uint256 collateralAmountAsset
-    ) public returns (uint256 borrowAmountAsset) {
+    ) internal returns (uint256 borrowAmountAsset) {
         // withdraw collateral tokens from Aave _pool
         LoanLogic.withdraw(
             $.lendingPool, $.assets.collateral, collateralAmountAsset

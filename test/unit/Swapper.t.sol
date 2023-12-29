@@ -3,10 +3,10 @@
 pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { IAccessControl } from
+    "@openzeppelin/contracts/access/IAccessControl.sol";
+import { AccessControlUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { SwapAdapterMock } from "../mock/SwapAdapterMock.t.sol";
@@ -49,7 +49,7 @@ contract SwapperTest is BaseForkTest {
     /// @param strategy address of added strategy
     event StrategyRemoved(address strategy);
 
-    ISwapper swapper;
+    Swapper swapper;
     ISwapAdapter wethCbETHAdapter;
     ISwapAdapter CbETHUSDbCAdapter;
 
@@ -69,7 +69,11 @@ contract SwapperTest is BaseForkTest {
 
         // deploy and initiliaze swapper
         swapper = new Swapper();
-        Swapper(address(swapper)).Swapper_init(OWNER);
+        swapper.Swapper_init(OWNER);
+
+        vm.startPrank(OWNER);
+        swapper.grantRole(swapper.MANAGER_ROLE(), OWNER);
+        vm.stopPrank();
 
         // fake minting some tokens to start with
         deal(address(WETH), address(this), 100 ether);
@@ -168,8 +172,9 @@ contract SwapperTest is BaseForkTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
-                NON_OWNER
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NON_OWNER,
+                swapper.MANAGER_ROLE()
             )
         );
 
@@ -217,8 +222,9 @@ contract SwapperTest is BaseForkTest {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
-                NON_OWNER
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NON_OWNER,
+                swapper.MANAGER_ROLE()
             )
         );
 
@@ -232,10 +238,10 @@ contract SwapperTest is BaseForkTest {
 
         steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
 
-        vm.prank(OWNER);
+        vm.startPrank(OWNER);
         swapper.setRoute(WETH, CbETH, steps);
-        vm.prank(OWNER);
-        swapper.addStrategy(ALICE);
+        swapper.grantRole(swapper.STRATEGY_ROLE(), ALICE);
+        vm.stopPrank();
 
         uint256 swapAmount = 1 ether;
 
@@ -261,10 +267,10 @@ contract SwapperTest is BaseForkTest {
 
         steps[1] = Step({ from: CbETH, to: USDbC, adapter: CbETHUSDbCAdapter });
 
-        vm.prank(OWNER);
+        vm.startPrank(OWNER);
         swapper.setRoute(WETH, USDbC, steps);
-        vm.prank(OWNER);
-        swapper.addStrategy(ALICE);
+        swapper.grantRole(swapper.STRATEGY_ROLE(), ALICE);
+        vm.stopPrank();
 
         uint256 swapAmount = 1 ether;
 
@@ -280,75 +286,5 @@ contract SwapperTest is BaseForkTest {
 
         assertEq(oldWETHBalance - WETH.balanceOf(ALICE), swapAmount);
         assertEq(USDbC.balanceOf(ALICE) - oldUSDbCBalance, swapAmount);
-    }
-
-    /// @dev ensures addStrategy call adds specified strategy and emits associated event
-    function test_addStrategy_addsNewStrategyToStrategiesEnumerableSet_and_emitsStrategyAddedEvent(
-    ) public {
-        address[] memory strategies = swapper.getStrategies();
-
-        assertEq(strategies.length, 0);
-
-        vm.expectEmit();
-        emit StrategyAdded(OWNER);
-
-        vm.prank(OWNER);
-        swapper.addStrategy(OWNER);
-
-        strategies = swapper.getStrategies();
-
-        assertEq(strategies.length, 1);
-        assertEq(strategies[0], OWNER);
-    }
-
-    /// @dev ensures addStrategy call reverts if not called by owner
-    function test_addStrategy_revertsWhen_CallerIsNotOwner() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
-                NON_OWNER
-            )
-        );
-
-        vm.prank(NON_OWNER);
-        swapper.addStrategy(OWNER);
-    }
-
-    /// @dev ensures removeStrategy call removes specified strategy and emits associated event
-    function test_removeStrategy_removeStrategyFromStrategiesEnumerableSet_and_emitsStrategyRemovedEvent(
-    ) public {
-        address[] memory strategies = swapper.getStrategies();
-
-        assertEq(strategies.length, 0);
-
-        vm.prank(OWNER);
-        swapper.addStrategy(OWNER);
-
-        strategies = swapper.getStrategies();
-
-        assertEq(strategies.length, 1);
-        assertEq(strategies[0], OWNER);
-
-        vm.expectEmit();
-        emit StrategyRemoved(OWNER);
-
-        vm.prank(OWNER);
-        swapper.removeStrategy(OWNER);
-
-        strategies = swapper.getStrategies();
-        assertEq(strategies.length, 0);
-    }
-
-    /// @dev ensures removeStrategy call reverts if not called by owner
-    function test_removeStrategy_revertsWhen_CallerIsNotOwner() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                OwnableUpgradeable.OwnableUnauthorizedAccount.selector,
-                NON_OWNER
-            )
-        );
-
-        vm.prank(NON_OWNER);
-        swapper.removeStrategy(OWNER);
     }
 }

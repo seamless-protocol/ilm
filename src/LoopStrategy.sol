@@ -4,10 +4,6 @@ pragma solidity ^0.8.18;
 
 import { ERC4626Upgradeable } from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { PausableUpgradeable } from
@@ -36,19 +32,31 @@ import { SafeERC20 } from
 import { ISwapper } from "./interfaces/ISwapper.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "./interfaces/IWrappedERC20PermissionedDeposit.sol";
+import { AccessControlUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { UUPSUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
 contract LoopStrategy is
     ILoopStrategy,
     ERC4626Upgradeable,
-    Ownable2StepUpgradeable,
-    PausableUpgradeable
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable
 {
     using USDWadRayMath for uint256;
 
+    /// @dev role which can pause and unpause deposits and withdrawals
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    /// @dev role which can change strategy parameters
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    /// @dev role which can upgrade the contract
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
     function LoopStrategy_init(
-        address _initialOwner,
+        address _initialAdmin,
         StrategyAssets memory _strategyAssets,
         CollateralRatio memory _collateralRatioTargets,
         IPoolAddressesProvider _poolAddressProvider,
@@ -57,9 +65,12 @@ contract LoopStrategy is
         uint256 _ratioMargin,
         uint16 _maxIterations
     ) external initializer {
-        __Ownable_init(_initialOwner);
         __ERC4626_init(_strategyAssets.underlying);
         __Pausable_init();
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
         Storage.Layout storage $ = Storage.layout();
         $.assets = _strategyAssets;
@@ -83,11 +94,20 @@ contract LoopStrategy is
         $.assets.debt.approve(address($.lendingPool.pool), type(uint256).max);
     }
 
-    function pause() external onlyOwner {
+    /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(UPGRADER_ROLE)
+    { }
+
+    /// @inheritdoc ILoopStrategy
+    function pause() external override onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyOwner {
+    /// @inheritdoc ILoopStrategy
+    function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -95,7 +115,7 @@ contract LoopStrategy is
     function setInterestRateMode(uint256 _interestRateMode)
         external
         override
-        onlyOwner
+        onlyRole(MANAGER_ROLE)
     {
         Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
@@ -103,7 +123,7 @@ contract LoopStrategy is
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(
         CollateralRatio memory _collateralRatioTargets
-    ) external override onlyOwner {
+    ) external override onlyRole(MANAGER_ROLE) {
         Storage.layout().collateralRatioTargets = _collateralRatioTargets;
     }
 
@@ -317,14 +337,14 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc IERC4626
-    function withdraw(uint256 assets, address receiver, address owner)
+    function withdraw(uint256, address, address)
         public
+        view
         override(ERC4626Upgradeable, IERC4626)
         whenNotPaused
         returns (uint256)
     {
-        // TODO: should we just revert and disable this function also?
-        //       possible calculation of shares for given cbETH amount is described in PRD
+        revert WithdrawDisabled();
     }
 
     /// @inheritdoc IERC4626
@@ -362,7 +382,9 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
             _shouldRebalance(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                RebalanceLogic.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ),
                 $.collateralRatioTargets
             )
         ) {
@@ -399,7 +421,7 @@ contract LoopStrategy is
                 $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
         } else if (
-            _collateralRatioUSD(
+            RebalanceLogic.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
@@ -565,7 +587,7 @@ contract LoopStrategy is
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
         // by equity cost of rebalance
         else if (
-            _collateralRatioUSD(
+            RebalanceLogic.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
@@ -633,18 +655,6 @@ contract LoopStrategy is
         _withdraw(_msgSender(), receiver, owner, shareUnderlyingAsset, shares);
 
         return shareUnderlyingAsset;
-    }
-
-    /// @notice helper function to calculate collateral ratio
-    /// @param collateralUSD collateral value in USD
-    /// @param debtUSD debt valut in USD
-    /// @return ratio collateral ratio value
-    function _collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
-        internal
-        pure
-        returns (uint256 ratio)
-    {
-        ratio = debtUSD != 0 ? USDWadRayMath.usdDiv(collateralUSD, debtUSD) : 0;
     }
 
     /// @notice function is the same formula as in ERC4626 implementation, but totalAssets is passed as a parameter of the function
@@ -737,7 +747,9 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
             _shouldRebalance(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                RebalanceLogic.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ),
                 $.collateralRatioTargets
             )
         ) {
