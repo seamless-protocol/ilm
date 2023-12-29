@@ -382,7 +382,7 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
             _shouldRebalance(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD),
                 $.collateralRatioTargets
             )
         ) {
@@ -419,7 +419,7 @@ contract LoopStrategy is
                 $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
         } else if (
-            _collateralRatioUSD(
+            RebalanceLogic.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
@@ -585,7 +585,7 @@ contract LoopStrategy is
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
         // by equity cost of rebalance
         else if (
-            _collateralRatioUSD(
+            RebalanceLogic.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
@@ -653,18 +653,6 @@ contract LoopStrategy is
         _withdraw(_msgSender(), receiver, owner, shareUnderlyingAsset, shares);
 
         return shareUnderlyingAsset;
-    }
-
-    /// @notice helper function to calculate collateral ratio
-    /// @param collateralUSD collateral value in USD
-    /// @param debtUSD debt valut in USD
-    /// @return ratio collateral ratio value
-    function _collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
-        internal
-        pure
-        returns (uint256 ratio)
-    {
-        ratio = debtUSD != 0 ? USDWadRayMath.usdDiv(collateralUSD, debtUSD) : 0;
     }
 
     /// @notice function is the same formula as in ERC4626 implementation, but totalAssets is passed as a parameter of the function
@@ -757,7 +745,7 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
             _shouldRebalance(
-                _collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD),
                 $.collateralRatioTargets
             )
         ) {
