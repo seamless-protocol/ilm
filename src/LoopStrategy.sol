@@ -32,8 +32,10 @@ import { SafeERC20 } from
 import { ISwapper } from "./interfaces/ISwapper.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "./interfaces/IWrappedERC20PermissionedDeposit.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { AccessControlUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { UUPSUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
@@ -93,7 +95,11 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(UPGRADER_ROLE)
+    { }
 
     /// @inheritdoc ILoopStrategy
     function pause() external override onlyRole(PAUSER_ROLE) {

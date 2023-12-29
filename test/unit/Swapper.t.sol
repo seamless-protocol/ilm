@@ -3,8 +3,10 @@
 pragma solidity ^0.8.18;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { IAccessControl } from
+    "@openzeppelin/contracts/access/IAccessControl.sol";
+import { AccessControlUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { SwapAdapterMock } from "../mock/SwapAdapterMock.t.sol";

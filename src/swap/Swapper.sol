@@ -13,13 +13,14 @@ import { ISwapper } from "../interfaces/ISwapper.sol";
 import { USDWadRayMath } from "../libraries/math/USDWadRayMath.sol";
 import { SwapperStorage as Storage } from "../storage/SwapperStorage.sol";
 import { Step } from "../types/DataTypes.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { AccessControlUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { UUPSUpgradeable } from
+    "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title Swapper
 /// @notice Routing contract for swaps across different DEXs
 contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
-
     /// @dev role which can use the swap function, only given to ILM strategies
     bytes32 public constant STRATEGY_ROLE = keccak256("STRATEGY_ROLE");
     /// @dev role which can change routes and offset factor
@@ -35,7 +36,11 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address)
+        internal
+        override
+        onlyRole(UPGRADER_ROLE)
+    { }
 
     /// @inheritdoc ISwapper
     function getRoute(IERC20 from, IERC20 to)
@@ -70,7 +75,10 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
-    function removeRoute(IERC20 from, IERC20 to) external onlyRole(MANAGER_ROLE) {
+    function removeRoute(IERC20 from, IERC20 to)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
         _removeRoute(from, to);
     }
 
