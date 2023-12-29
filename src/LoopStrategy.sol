@@ -382,7 +382,9 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
             _shouldRebalance(
-                RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                RebalanceLogic.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ),
                 $.collateralRatioTargets
             )
         ) {
@@ -745,7 +747,9 @@ contract LoopStrategy is
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
             _shouldRebalance(
-                RebalanceLogic.collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                RebalanceLogic.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ),
                 $.collateralRatioTargets
             )
         ) {
