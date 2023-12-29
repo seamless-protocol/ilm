@@ -107,11 +107,9 @@ library LoanLogic {
         (
             uint256 totalCollateralUSD,
             uint256 totalDebtUSD,
-            /* availableBorrowsUSD */
-            ,
-            /* currentLiquidationThreshold */
-            ,
-            uint256 ltv,
+            /* availableBorrowsUSD8 */,
+            uint256 currentLiquidationThreshold,
+            /* ltv */,
             /* healthFactor */
         ) = lendingPool.pool.getUserAccountData(address(this));
 
@@ -124,13 +122,13 @@ library LoanLogic {
         }
 
         uint256 maxWithdrawAmount;
-        // This can happen when the debt is already above ltv
+        // This can happen when the debt is already above liquidation trashold
         // (due to collateral asset price fall, borrow asset price raise, or interest increase)
-        if (totalCollateralUSD < PercentageMath.percentDiv(totalDebtUSD, ltv)) {
+        if (totalCollateralUSD < PercentageMath.percentDiv(totalDebtUSD, currentLiquidationThreshold)) {
             maxWithdrawAmount = 0;
         } else {
-            maxWithdrawAmount = totalCollateralUSD
-                - PercentageMath.percentDiv(totalDebtUSD, ltv);
+            maxWithdrawAmount = 
+                totalCollateralUSD - PercentageMath.percentDiv(totalDebtUSD, currentLiquidationThreshold);
         }
 
         maxWithdrawAmount =
