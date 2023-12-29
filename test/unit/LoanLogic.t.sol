@@ -60,7 +60,7 @@ contract LoanLogicTest is BaseForkTest {
 
         poolDataProvider =
             IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
-        (,,lqtWETH,,,,,,,) =
+        (,, lqtWETH,,,,,,,) =
             poolDataProvider.getReserveConfigurationData(address(WETH));
 
         // getting reserve token addresses
