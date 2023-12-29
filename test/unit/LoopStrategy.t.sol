@@ -114,6 +114,10 @@ contract LoopStrategyTest is BaseForkTest {
             10
         );
 
+        strategy.grantRole(strategy.PAUSER_ROLE(), address(this));
+        strategy.grantRole(strategy.MANAGER_ROLE(), address(this));
+        strategy.grantRole(strategy.UPGRADER_ROLE(), address(this));
+
         wrappedCbETH.setDepositPermission(address(strategy), true);
 
         // fake minting some tokens to start with

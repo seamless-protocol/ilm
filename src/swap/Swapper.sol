@@ -2,12 +2,6 @@
 
 pragma solidity ^0.8.18;
 
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { EnumerableSet } from
-    "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from
@@ -19,23 +13,29 @@ import { ISwapper } from "../interfaces/ISwapper.sol";
 import { USDWadRayMath } from "../libraries/math/USDWadRayMath.sol";
 import { SwapperStorage as Storage } from "../storage/SwapperStorage.sol";
 import { Step } from "../types/DataTypes.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title Swapper
 /// @notice Routing contract for swaps across different DEXs
-contract Swapper is Ownable2StepUpgradeable, ISwapper {
-    using EnumerableSet for EnumerableSet.AddressSet;
+contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
 
-    modifier onlyStrategy() {
-        if (!Storage.layout().strategies.contains(msg.sender)) {
-            revert NotStrategy();
-        }
-        _;
-    }
+    /// @dev role which can use the swap function, only given to ILM strategies
+    bytes32 public constant STRATEGY_ROLE = keccak256("STRATEGY_ROLE");
+    /// @dev role which can change routes and offset factor
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    /// @dev role which can upgrade the contract
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     /// @dev initializer function for Swapper contract
-    function Swapper_init(address _initialOwner) external initializer {
-        __Ownable_init(_initialOwner);
+    function Swapper_init(address _initialAdmin) external initializer {
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
     }
+
+    /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
     /// @inheritdoc ISwapper
     function getRoute(IERC20 from, IERC20 to)
@@ -49,7 +49,7 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
     /// @inheritdoc ISwapper
     function setRoute(IERC20 from, IERC20 to, Step[] calldata steps)
         external
-        onlyOwner
+        onlyRole(MANAGER_ROLE)
     {
         Storage.Layout storage $ = Storage.layout();
 
@@ -70,7 +70,7 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
     }
 
     /// @inheritdoc ISwapper
-    function removeRoute(IERC20 from, IERC20 to) external onlyOwner {
+    function removeRoute(IERC20 from, IERC20 to) external onlyRole(MANAGER_ROLE) {
         _removeRoute(from, to);
     }
 
@@ -86,7 +86,7 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
     /// @inheritdoc ISwapper
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external
-        onlyOwner
+        onlyRole(MANAGER_ROLE)
     {
         if (offsetUSD == 0 || offsetUSD > USDWadRayMath.USD) {
             revert OffsetOutsideRange();
@@ -98,38 +98,12 @@ contract Swapper is Ownable2StepUpgradeable, ISwapper {
     }
 
     /// @inheritdoc ISwapper
-    function addStrategy(address strategy) external onlyOwner {
-        Storage.Layout storage $ = Storage.layout();
-
-        if (!$.strategies.contains(strategy)) {
-            $.strategies.add(strategy);
-            emit StrategyAdded(strategy);
-        }
-    }
-
-    /// @inheritdoc ISwapper
-    function removeStrategy(address strategy) external onlyOwner {
-        Storage.layout().strategies.remove(strategy);
-
-        emit StrategyRemoved(strategy);
-    }
-
-    /// @inheritdoc ISwapper
-    function getStrategies()
-        external
-        view
-        returns (address[] memory strategies)
-    {
-        return Storage.layout().strategies.values();
-    }
-
-    /// @inheritdoc ISwapper
     function swap(
         IERC20 from,
         IERC20 to,
         uint256 fromAmount,
         address payable beneficiary
-    ) external onlyStrategy returns (uint256 toAmount) {
+    ) external onlyRole(STRATEGY_ROLE) returns (uint256 toAmount) {
         Step[] memory steps = Storage.layout().route[from][to];
 
         from.transferFrom(msg.sender, address(this), fromAmount);

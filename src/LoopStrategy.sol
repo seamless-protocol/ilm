@@ -4,10 +4,6 @@ pragma solidity ^0.8.18;
 
 import { ERC4626Upgradeable } from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { PausableUpgradeable } from
@@ -36,19 +32,29 @@ import { SafeERC20 } from
 import { ISwapper } from "./interfaces/ISwapper.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "./interfaces/IWrappedERC20PermissionedDeposit.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
 contract LoopStrategy is
     ILoopStrategy,
     ERC4626Upgradeable,
-    Ownable2StepUpgradeable,
-    PausableUpgradeable
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    UUPSUpgradeable
 {
     using USDWadRayMath for uint256;
 
+    /// @dev role which can pause and unpause deposits and withdrawals
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    /// @dev role which can change strategy parameters
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    /// @dev role which can upgrade the contract
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
     function LoopStrategy_init(
-        address _initialOwner,
+        address _initialAdmin,
         StrategyAssets memory _strategyAssets,
         CollateralRatio memory _collateralRatioTargets,
         IPoolAddressesProvider _poolAddressProvider,
@@ -57,9 +63,12 @@ contract LoopStrategy is
         uint256 _ratioMargin,
         uint16 _maxIterations
     ) external initializer {
-        __Ownable_init(_initialOwner);
         __ERC4626_init(_strategyAssets.underlying);
         __Pausable_init();
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
         Storage.Layout storage $ = Storage.layout();
         $.assets = _strategyAssets;
@@ -83,11 +92,16 @@ contract LoopStrategy is
         $.assets.debt.approve(address($.lendingPool.pool), type(uint256).max);
     }
 
-    function pause() external onlyOwner {
+    /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
+
+    /// @inheritdoc ILoopStrategy
+    function pause() external override onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyOwner {
+    /// @inheritdoc ILoopStrategy
+    function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -95,7 +109,7 @@ contract LoopStrategy is
     function setInterestRateMode(uint256 _interestRateMode)
         external
         override
-        onlyOwner
+        onlyRole(MANAGER_ROLE)
     {
         Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
@@ -103,7 +117,7 @@ contract LoopStrategy is
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(
         CollateralRatio memory _collateralRatioTargets
-    ) external override onlyOwner {
+    ) external override onlyRole(MANAGER_ROLE) {
         Storage.layout().collateralRatioTargets = _collateralRatioTargets;
     }
 
@@ -317,14 +331,14 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc IERC4626
-    function withdraw(uint256 assets, address receiver, address owner)
+    function withdraw(uint256, address, address)
         public
+        view
         override(ERC4626Upgradeable, IERC4626)
         whenNotPaused
         returns (uint256)
     {
-        // TODO: should we just revert and disable this function also?
-        //       possible calculation of shares for given cbETH amount is described in PRD
+        revert WithdrawDisabled();
     }
 
     /// @inheritdoc IERC4626
