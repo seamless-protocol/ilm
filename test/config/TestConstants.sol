@@ -17,6 +17,11 @@ abstract contract TestConstants {
     address public constant SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET =
         0x0E02EB705be325407707662C6f6d3466E939f3a0;
 
+    address public constant AERODROME_ROUTER =
+        0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
+    address public constant AERODROME_FACTORY =
+        0x420DD381b31aEf6683db6B902084cB0FFECe40Da;
+
     // USDbC has 6 decimals
     uint256 public constant ONE_USDbC = 1e6;
 }
