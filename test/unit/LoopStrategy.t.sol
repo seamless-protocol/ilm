@@ -15,6 +15,8 @@ import { IPoolConfigurator } from
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
+import { IAccessControl } from
+    "@openzeppelin/contracts/access/IAccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
     "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -65,6 +67,7 @@ contract LoopStrategyTest is BaseForkTest {
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
     address charlie = makeAddr("charlie");
+    address NON_UPGRADER = makeAddr("nonupgrader");
 
     function setUp() public virtual {
         lendingPool = LendingPool({
@@ -136,6 +139,45 @@ contract LoopStrategyTest is BaseForkTest {
             swapper.offsetFactor(strategyAssets.debt, strategyAssets.collateral);
 
         _changeBorrowCap(USDbC, 1_000_000);
+    }
+
+    /// @dev ensures the address of the new implementation is the value returned from
+    /// looking up the storage slot of the ERC1967 proxy implementation storage
+    function test_upgrade() public {
+        address newImplementation = address(new LoopStrategy());
+        strategy.upgradeToAndCall(
+            address(newImplementation), abi.encodePacked()
+        );
+
+        // slot given by OZ ECR1967 proxy implementation
+        bytes32 slot = bytes32(
+            0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+        );
+        address implementation =
+            address(uint160(uint256(vm.load(address(strategy), slot))));
+
+        assertEq(implementation, newImplementation);
+    }
+
+    /// @dev ensures that `upgradeToAndCall` role fails if caller does not have
+    /// the upgrader role
+    function test_upgradeToAndCall_revertsWhen_callerDoesNotHaveUpgraderRole()
+        public
+    {
+        address newImplementation = address(new LoopStrategy());
+
+        vm.startPrank(NON_UPGRADER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NON_UPGRADER,
+                strategy.UPGRADER_ROLE()
+            )
+        );
+        strategy.upgradeToAndCall(
+            address(newImplementation), abi.encodePacked()
+        );
+        vm.stopPrank();
     }
 
     /// @dev test confirms that functions reverts when pool is paused
