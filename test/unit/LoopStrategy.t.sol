@@ -220,16 +220,22 @@ contract LoopStrategyTest is BaseForkTest {
         strategy.setInterestRateMode(newInterestRateMode);
 
         // slot found from LoopStrategy storage lib
-        uint256 interestRateMode = uint256(vm.load(
-            address(strategy),
-            bytes32(uint256(0x324C4071AA3926AF75895CE4C01A62A23C8476ED82CD28BA23ABB8C0F6634B00) + 12)
-        ));
+        uint256 interestRateMode = uint256(
+            vm.load(
+                address(strategy),
+                bytes32(
+                    uint256(
+                        0x324C4071AA3926AF75895CE4C01A62A23C8476ED82CD28BA23ABB8C0F6634B00
+                    ) + 12
+                )
+            )
+        );
 
-       assertEq(interestRateMode, newInterestRateMode);
+        assertEq(interestRateMode, newInterestRateMode);
     }
 
     /// @dev ensures setInterestRateMode reverts if caller does not have manager role
-    function test_setInterestRateMode_revertsWhen_callerIsNotManager() public { 
+    function test_setInterestRateMode_revertsWhen_callerIsNotManager() public {
         vm.startPrank(NO_ROLE);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -244,8 +250,10 @@ contract LoopStrategyTest is BaseForkTest {
     }
 
     /// @dev ensures setCollateralRaioTargets sets new values for the collateralRatiotargets
-    function test_setCollateralRatioTargets_setsNewCollateralRatioTargets() public {
-         CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+    function test_setCollateralRatioTargets_setsNewCollateralRatioTargets()
+        public
+    {
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
             target: USDWadRayMath.usdDiv(200, 200),
             minForRebalance: USDWadRayMath.usdDiv(180, 200),
             maxForRebalance: USDWadRayMath.usdDiv(220, 200),
@@ -255,12 +263,10 @@ contract LoopStrategyTest is BaseForkTest {
 
         strategy.setCollateralRatioTargets(newCollateralRatioTargets);
 
-        CollateralRatio memory strategyTargets = strategy.getCollateralRatioTargets();
+        CollateralRatio memory strategyTargets =
+            strategy.getCollateralRatioTargets();
 
-        assertEq(
-            newCollateralRatioTargets.target,
-            strategyTargets.target
-        );
+        assertEq(newCollateralRatioTargets.target, strategyTargets.target);
 
         assertEq(
             newCollateralRatioTargets.minForRebalance,
@@ -284,7 +290,9 @@ contract LoopStrategyTest is BaseForkTest {
     }
 
     /// @dev ensures setCollateralRaioTargets reverts if caller is not manager
-    function  test_setCollateralRatioTargets_revertsWhen_callerIsNotManager() public {
+    function test_setCollateralRatioTargets_revertsWhen_callerIsNotManager()
+        public
+    {
         CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
             target: USDWadRayMath.usdDiv(200, 200),
             minForRebalance: USDWadRayMath.usdDiv(180, 200),
