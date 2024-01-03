@@ -105,7 +105,7 @@ contract LoopStrategyTest is BaseForkTest {
         });
 
         LoopStrategy strategyImplementation = new LoopStrategy();
-        
+
         ERC1967Proxy strategyProxy = new ERC1967Proxy(
             address(strategyImplementation),
             abi.encodeWithSelector(
