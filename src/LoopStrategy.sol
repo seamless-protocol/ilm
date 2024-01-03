@@ -347,7 +347,7 @@ contract LoopStrategy is
         revert WithdrawDisabled();
     }
 
-    /// @notice previewWithdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice previewWithdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
     /// @dev returning 0 because previewWithdraw function must not revert by the ERC4626 standard
     function previewWithdraw(uint256)

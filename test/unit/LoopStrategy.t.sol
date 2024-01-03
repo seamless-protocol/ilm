@@ -207,6 +207,16 @@ contract LoopStrategyTest is BaseForkTest {
         assertEq(strategy.previewMint(1 ether), 0);
     }
 
+    /// @dev test confimrs that withdraw function is disabled
+    function test_withdraw_revertsWhen_called() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(ILoopStrategy.WithdrawDisabled.selector)
+        );
+
+        strategy.withdraw(1 ether, address(this), address(this));
+        assertEq(strategy.previewWithdraw(1 ether), 0);
+    }
+
     /// @dev test confirms that changing asset price on the price oracle works
     function test_changePrice() public {
         _changePrice(CbETH, 1234 * 1e8);
