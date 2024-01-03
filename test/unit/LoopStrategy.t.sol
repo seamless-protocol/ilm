@@ -16,6 +16,8 @@ import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { ERC1967Proxy } from
+    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
@@ -102,17 +104,23 @@ contract LoopStrategyTest is BaseForkTest {
             minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 100)
         });
 
-        strategy = new LoopStrategy();
-        strategy.LoopStrategy_init(
-            address(this),
-            strategyAssets,
-            collateralRatioTargets,
-            poolAddressProvider,
-            priceOracle,
-            swapper,
-            10 ** 4, // 0.01% ratio margin
-            10
+        LoopStrategy strategyImplementation = new LoopStrategy();
+        
+        ERC1967Proxy strategyProxy = new ERC1967Proxy(
+            address(strategyImplementation),
+            abi.encodeWithSelector(
+                LoopStrategy.LoopStrategy_init.selector,
+                address(this),
+                strategyAssets,
+                collateralRatioTargets,
+                poolAddressProvider,
+                priceOracle,
+                swapper,
+                10 ** 4, // 0.01% ratio margin
+                10
+            )
         );
+        strategy = LoopStrategy(address(strategyProxy));
 
         strategy.grantRole(strategy.PAUSER_ROLE(), address(this));
         strategy.grantRole(strategy.MANAGER_ROLE(), address(this));
