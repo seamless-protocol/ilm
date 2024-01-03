@@ -67,7 +67,7 @@ contract LoopStrategyTest is BaseForkTest {
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
     address charlie = makeAddr("charlie");
-    address NON_UPGRADER = makeAddr("nonupgrader");
+    address NO_ROLE = makeAddr("norole");
 
     function setUp() public virtual {
         lendingPool = LendingPool({
@@ -166,11 +166,11 @@ contract LoopStrategyTest is BaseForkTest {
     {
         address newImplementation = address(new LoopStrategy());
 
-        vm.startPrank(NON_UPGRADER);
+        vm.startPrank(NO_ROLE);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                NON_UPGRADER,
+                NO_ROLE,
                 strategy.UPGRADER_ROLE()
             )
         );
@@ -196,6 +196,129 @@ contract LoopStrategyTest is BaseForkTest {
             abi.encodeWithSelector(IPausable.EnforcedPause.selector)
         );
         strategy.redeem(1 ether, address(this), address(this));
+    }
+
+    /// @dev ensures pause call reverts if caller does not have pauser role
+    function test_pause_revertsWhen_callerIsNotPauser() public {
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.PAUSER_ROLE()
+            )
+        );
+
+        IPausable(address(strategy)).pause();
+        vm.stopPrank();
+    }
+
+    /// @dev ensures setInterestRateMode sets new interest rate mode
+    function test_setInterestRateMode_setsNewInterestRateMode() public {
+        uint256 newInterestRateMode = 100;
+
+        strategy.setInterestRateMode(newInterestRateMode);
+
+        // slot found from LoopStrategy storage lib
+        uint256 interestRateMode = uint256(vm.load(
+            address(strategy),
+            bytes32(uint256(0x324C4071AA3926AF75895CE4C01A62A23C8476ED82CD28BA23ABB8C0F6634B00) + 12)
+        ));
+
+       assertEq(interestRateMode, newInterestRateMode);
+    }
+
+    /// @dev ensures setInterestRateMode reverts if caller does not have manager role
+    function test_setInterestRateMode_revertsWhen_callerIsNotManager() public { 
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+
+        strategy.setInterestRateMode(1);
+        vm.stopPrank();
+    }
+
+    /// @dev ensures setCollateralRaioTargets sets new values for the collateralRatiotargets
+    function test_setCollateralRatioTargets_setsNewCollateralRatioTargets() public {
+         CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+
+        CollateralRatio memory strategyTargets = strategy.getCollateralRatioTargets();
+
+        assertEq(
+            newCollateralRatioTargets.target,
+            strategyTargets.target
+        );
+
+        assertEq(
+            newCollateralRatioTargets.minForRebalance,
+            strategyTargets.minForRebalance
+        );
+
+        assertEq(
+            newCollateralRatioTargets.maxForRebalance,
+            strategyTargets.maxForRebalance
+        );
+
+        assertEq(
+            newCollateralRatioTargets.maxForDepositRebalance,
+            strategyTargets.maxForDepositRebalance
+        );
+
+        assertEq(
+            newCollateralRatioTargets.minForWithdrawRebalance,
+            strategyTargets.minForWithdrawRebalance
+        );
+    }
+
+    /// @dev ensures setCollateralRaioTargets reverts if caller is not manager
+    function  test_setCollateralRatioTargets_revertsWhen_callerIsNotManager() public {
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+        vm.stopPrank();
+    }
+
+    /// @dev ensures unpause call reverts if caller does not have pauser role
+    function test_unpause_revertsWhen_callerIsNotPauser() public {
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.PAUSER_ROLE()
+            )
+        );
+
+        IPausable(address(strategy)).unpause();
+        vm.stopPrank();
     }
 
     /// @dev test confimrs that mint function is disabled
