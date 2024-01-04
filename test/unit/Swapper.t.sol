@@ -180,6 +180,27 @@ contract SwapperTest is BaseForkTest {
         swapper.setRoute(WETH, USDbC, steps);
     }
 
+    /// @dev ensures setRoute reverts when called by address without MANAGER role
+    function test_setRoute_revertsWhen_calledByNonManager() public {
+        Step[] memory steps = new Step[](2);
+
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+
+        steps[1] =
+            Step({ from: CbETH, to: USDbC, adapter: ISwapAdapter(address(0)) });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                swapper.MANAGER_ROLE()
+            )
+        );
+
+        vm.prank(NO_ROLE);
+        swapper.setRoute(WETH, USDbC, steps);
+    }
+
     /// @dev ensures that an existing route is removed
     function test_removeRoute_removesExistingRoute() public {
         Step[] memory steps = new Step[](2);
