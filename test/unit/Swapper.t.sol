@@ -351,4 +351,33 @@ contract SwapperTest is BaseForkTest {
         assertEq(oldWETHBalance - WETH.balanceOf(ALICE), swapAmount);
         assertEq(USDbC.balanceOf(ALICE) - oldUSDbCBalance, swapAmount);
     }
+
+    /// @dev ensures swapping reverts when called by address without STRATEGY role
+    function test_swap_revertsWhen_callerIsNotStrategy() public {
+        Step[] memory steps = new Step[](1);
+
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+
+        vm.startPrank(OWNER);
+        swapper.setRoute(WETH, CbETH, steps);
+        vm.stopPrank();
+
+        uint256 swapAmount = 1 ether;
+
+        deal(address(WETH), ALICE, WETH.balanceOf(ALICE) + 10 * swapAmount);
+
+        vm.startPrank(ALICE);
+        WETH.approve(address(swapper), swapAmount);
+
+         vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                ALICE,
+                swapper.STRATEGY_ROLE()
+            )
+        );
+
+        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
+        vm.stopPrank();
+    }
 }
