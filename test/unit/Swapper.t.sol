@@ -369,7 +369,7 @@ contract SwapperTest is BaseForkTest {
         vm.startPrank(ALICE);
         WETH.approve(address(swapper), swapAmount);
 
-         vm.expectRevert(
+        vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 ALICE,
