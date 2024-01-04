@@ -464,6 +464,35 @@ contract LoopStrategy is
         return shareEquityAsset;
     }
 
+    /// @inheritdoc ILoopStrategy
+    function setUSDMarginUSD(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
+        if (marginUSD > USDWadRayMath.USD) {
+            revert MarginOutsideRange();
+        }
+
+        Storage.layout().usdMargin = marginUSD;
+
+        emit USDMarginSet(marginUSD);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setRatioMarginUSD(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
+        if (marginUSD > USDWadRayMath.USD) {
+            revert MarginOutsideRange();
+        }
+
+        Storage.layout().ratioMargin = marginUSD;
+
+        emit RatioMarginSet(marginUSD);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setMaxIterations(uint16 iterations) external onlyRole(MANAGER_ROLE) {
+        Storage.layout().maxIterations = iterations;
+
+        emit MaxIterationsSet(iterations);
+    }
+
     /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
     /// @param collateralRatio given collateral ratio
     /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
