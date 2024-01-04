@@ -465,7 +465,10 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setUSDMarginUSD(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
+    function setUSDMarginUSD(uint256 marginUSD)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
         }
@@ -476,7 +479,10 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setRatioMarginUSD(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
+    function setRatioMarginUSD(uint256 marginUSD)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
         }
@@ -487,7 +493,10 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setMaxIterations(uint16 iterations) external onlyRole(MANAGER_ROLE) {
+    function setMaxIterations(uint16 iterations)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
         Storage.layout().maxIterations = iterations;
 
         emit MaxIterationsSet(iterations);
