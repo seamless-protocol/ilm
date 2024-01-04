@@ -55,6 +55,10 @@ contract LoopStrategy is
     /// @dev role which can upgrade the contract
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function LoopStrategy_init(
         address _initialAdmin,
         StrategyAssets memory _strategyAssets,
