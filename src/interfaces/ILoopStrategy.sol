@@ -40,6 +40,18 @@ interface ILoopStrategy is IERC4626 {
     /// shares to be redeemed
     error RedeemerNotOwner();
 
+    /// @notice emitted when a new value for maxIterations is set
+    /// @param iterations new value for maxIterations
+    event MaxIterationsSet(uint256 iterations);
+
+    /// @notice emitted when a new value for ratioMargin is set
+    /// @param margin new value for ratioMargin
+    event RatioMarginSet(uint256 margin);
+
+    /// @notice emitted when a new value for usdMargin is set
+    /// @param margin new value for usdMargin
+    event USDMarginSet(uint256 margin);
+
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
     /// @return amount equity amount
