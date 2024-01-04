@@ -60,7 +60,7 @@ contract SwapperTest is BaseForkTest {
     IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
 
     address public OWNER = makeAddr("OWNER");
-    address public NON_OWNER = makeAddr("NON_OWNER");
+    address public NO_ROLE = makeAddr("NO_ROLE");
     address public ALICE = makeAddr("ALICE");
 
     /// @dev sets up context for testing swapper contract
@@ -83,10 +83,43 @@ contract SwapperTest is BaseForkTest {
 
         vm.startPrank(OWNER);
         swapper.grantRole(swapper.MANAGER_ROLE(), OWNER);
+        swapper.grantRole(swapper.UPGRADER_ROLE(), OWNER);
         vm.stopPrank();
 
         // fake minting some tokens to start with
         deal(address(WETH), address(this), 100 ether);
+    }
+
+    /// @dev ensures Swapper contract may be upgraded by address with UPGRADER role
+    function test_upgrade() public {
+        address newSwapperImplementation = address(new Swapper());
+        vm.prank(OWNER);
+        swapper.upgradeToAndCall(newSwapperImplementation, "");
+
+        // slot given by OZ ECR1967 proxy implementation
+        bytes32 slot = bytes32(
+            0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+        );
+        address implementation =
+            address(uint160(uint256(vm.load(address(swapper), slot))));
+
+        assertEq(implementation, newSwapperImplementation);
+    }
+
+    /// @dev ensures upgrade call reverts if caller does not have UPGRADER role
+    function test_ugprade_revertsWhen_calledByNonUpgrader() public {
+        address newSwapperImplementation = address(new Swapper());
+
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                swapper.UPGRADER_ROLE()
+            )
+        );
+        swapper.upgradeToAndCall(newSwapperImplementation, "");
+        vm.stopPrank();
     }
 
     /// @dev ensures that a new route is set
@@ -183,12 +216,12 @@ contract SwapperTest is BaseForkTest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                NON_OWNER,
+                NO_ROLE,
                 swapper.MANAGER_ROLE()
             )
         );
 
-        vm.prank(NON_OWNER);
+        vm.prank(NO_ROLE);
         swapper.removeRoute(WETH, USDbC);
     }
 
@@ -227,18 +260,18 @@ contract SwapperTest is BaseForkTest {
     }
 
     /// @dev ensures call reverts when called by non-owner
-    function test_setOffsetFactor_revertsWhen_calledByNonOwner() public {
+    function test_setOffsetFactor_revertsWhen_calledByNonManager() public {
         uint256 newOffsetFactor = 1;
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
-                NON_OWNER,
+                NO_ROLE,
                 swapper.MANAGER_ROLE()
             )
         );
 
-        vm.prank(NON_OWNER);
+        vm.prank(NO_ROLE);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
     }
 
