@@ -5,6 +5,8 @@ pragma solidity ^0.8.18;
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IAccessControl } from
     "@openzeppelin/contracts/access/IAccessControl.sol";
+import { ERC1967Proxy } from
+    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { AccessControlUpgradeable } from
     "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
@@ -68,8 +70,16 @@ contract SwapperTest is BaseForkTest {
         CbETHUSDbCAdapter = new SwapAdapterMock();
 
         // deploy and initiliaze swapper
-        swapper = new Swapper();
-        swapper.Swapper_init(OWNER);
+        Swapper swapperImplementation = new Swapper();
+        ERC1967Proxy swapperProxy = new ERC1967Proxy(
+            address(swapperImplementation),
+            abi.encodeWithSelector(
+                Swapper.Swapper_init.selector, 
+                OWNER
+            )
+        );
+
+        swapper = Swapper(address(swapperProxy));
 
         vm.startPrank(OWNER);
         swapper.grantRole(swapper.MANAGER_ROLE(), OWNER);
