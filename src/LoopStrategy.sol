@@ -363,7 +363,7 @@ contract LoopStrategy is
         address receiver,
         address owner,
         uint256 minUnderlyingAsset
-    ) public whenNotPaused returns (uint256 assets) {
+    ) external whenNotPaused returns (uint256 assets) {
         return _redeem(shares, receiver, owner, minUnderlyingAsset);
     }
 
@@ -629,32 +629,29 @@ contract LoopStrategy is
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
-            // amount of equity in USD value which may be withdrawn from
-            // strategy without driving the collateral ratio below
-            // the minForWithdrawRebalance limit, thereby not requiring
-            // a rebalance operation
-            uint256 freeEquityUSD;
             if (
                 state.collateralUSD
-                    < $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
                         state.debtUSD
                     )
             ) {
-                freeEquityUSD = 0;
-            } else {
-                freeEquityUSD = state.collateralUSD
+                // amount of equity in USD value which may be withdrawn from
+                // strategy without driving the collateral ratio below
+                // the minForWithdrawRebalance limit, thereby not requiring
+                // a rebalance operation
+                uint256 freeEquityUSD = state.collateralUSD
                     - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
                         state.debtUSD
                     );
-            }
 
-            // adjust share debt to account for the free equity - since
-            // some equity may be withdrawn freely, not all the debt has to be
-            // repaid
-            shareDebtUSD = shareDebtUSD
-                - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                    shareEquityUSD + shareDebtUSD - freeEquityUSD
-                );
+                // adjust share debt to account for the free equity - since
+                // some equity may be withdrawn freely, not all the debt has to be
+                // repaid
+                shareDebtUSD = shareDebtUSD
+                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
+                        shareEquityUSD + shareDebtUSD - freeEquityUSD
+                    );
+            }
 
             uint256 initialEquityUSD = equityUSD();
 
