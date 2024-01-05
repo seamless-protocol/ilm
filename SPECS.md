@@ -1,4 +1,4 @@
-# ILM (Integrated Lending Management)
+# ILM
 
 The Looping Strategy comprises a set of smart contracts designed to manage user positions within a protocol. It seamlessly integrates the ERC4626 standard and leverages the OpenZeppelin Defender platform for the automation of position management through rebalancing. The strategy involves holding underlying lending pool tokens (sTokens/debtTokens) and is responsible for managing user positions through the minting and burning of share tokens.
 
