@@ -95,6 +95,28 @@ library LoanLogic {
         return getLoanState(lendingPool);
     }
 
+    /// @notice calculates the debt, and equity corresponding to an amount of shares
+    /// @dev collateral corresponding to shares is just sum of debt and equity
+    /// @param state loan state of strategy
+    /// @param shares amount of shares
+    /// @param totalShares total supply of shares
+    /// @return shareDebtUSD amount of debt in USD corresponding to shares
+    /// @return shareEquityUSD amount of equity in USD corresponding to shares
+    function shareDebtAndEquity(
+        LoanState memory state,
+        uint256 shares,
+        uint256 totalShares
+    ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
+        // calculate amount of debt and equity corresponding to shares in USD value
+        shareDebtUSD = state.debtUSD.usdMul(
+            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
+        );
+        // to calculate equity, first collateral is calculated, and debt is subtracted from it
+        shareEquityUSD = state.collateralUSD.usdMul(
+            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
+        ) - shareDebtUSD;
+    }
+
     /// @notice returns the current state of loan position on the Seamless Protocol lending pool for the caller's account
     /// @notice all returned values are in USD value
     /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)

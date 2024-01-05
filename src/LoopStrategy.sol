@@ -408,7 +408,7 @@ contract LoopStrategy is
 
         // calculate amount of debt and equity corresponding to shares in USD value
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareDebtAndEquity(state, shares, totalSupply());
+            LoanLogic.shareDebtAndEquity(state, shares, totalSupply());
 
         // case when redeemer is redeeming all remaining shares
         if (state.debtUSD == shareDebtUSD) {
@@ -569,14 +569,10 @@ contract LoopStrategy is
         // get loan state
         LoanState memory state = _updatedState($);
 
-        // calculate amount of debt and equity corresponding to shares in USD value
-        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareDebtAndEquity(state, shares, totalSupply());
-
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
             RebalanceLogic.rebalanceBeforeWithdraw(
-                $, state, shareDebtUSD, shareEquityUSD
+                $, state, shares, totalSupply()
             )
         );
 
@@ -646,28 +642,6 @@ contract LoopStrategy is
                 .withdraw(collateralAmountAsset);
         }
         underlyingAmountAsset = collateralAmountAsset;
-    }
-
-    /// @notice calculates the debt, and equity corresponding to an amount of shares
-    /// @dev collateral corresponding to shares is just sum of debt and equity
-    /// @param state loan state of strategy
-    /// @param shares amount of shares
-    /// @param totalShares total supply of shares
-    /// @return shareDebtUSD amount of debt in USD corresponding to shares
-    /// @return shareEquityUSD amount of equity in USD corresponding to shares
-    function _shareDebtAndEquity(
-        LoanState memory state,
-        uint256 shares,
-        uint256 totalShares
-    ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-        // calculate amount of debt and equity corresponding to shares in USD value
-        shareDebtUSD = state.debtUSD.usdMul(
-            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-        );
-        // to calculate equity, first collateral is calculated, and debt is subtracted from it
-        shareEquityUSD = state.collateralUSD.usdMul(
-            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-        ) - shareDebtUSD;
     }
 
     /// @notice performs a rebalance if necessary and returns the updated state after
