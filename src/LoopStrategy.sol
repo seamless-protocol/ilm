@@ -211,7 +211,7 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return _shouldRebalance(
+        return RebalanceLogic.rebalanceNeeded(
             RebalanceLogic.collateralRatioUSD(
                 state.collateralUSD, state.debtUSD
             ),
@@ -273,7 +273,7 @@ contract LoopStrategy is
         if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
-            if (_shouldRebalance(currentCR, $.collateralRatioTargets)) {
+            if (RebalanceLogic.rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
@@ -381,7 +381,7 @@ contract LoopStrategy is
 
         // check if collateralRatio is outside range, so user participates in potential rebalance
         if (
-            _shouldRebalance(
+            RebalanceLogic.rebalanceNeeded(
                 RebalanceLogic.collateralRatioUSD(
                     state.collateralUSD, state.debtUSD
                 ),
@@ -502,19 +502,6 @@ contract LoopStrategy is
         emit MaxIterationsSet(iterations);
     }
 
-    /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
-    /// @param collateralRatio given collateral ratio
-    /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
-    function _shouldRebalance(
-        uint256 collateralRatio,
-        CollateralRatio memory collateraRatioTargets
-    ) internal pure returns (bool) {
-        return (
-            collateralRatio < collateraRatioTargets.minForRebalance
-                || collateralRatio > collateraRatioTargets.maxForRebalance
-        );
-    }
-
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
@@ -532,7 +519,7 @@ contract LoopStrategy is
 
         assets = _convertUnderlyingToCollateralAsset($.assets, assets);
 
-        LoanState memory state = _updatedState($);
+        LoanState memory state = RebalanceLogic.updateState($);
 
         uint256 prevTotalAssets = totalAssets();
 
@@ -566,13 +553,10 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        // get loan state
-        LoanState memory state = _updatedState($);
-
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
             RebalanceLogic.rebalanceBeforeWithdraw(
-                $, state, shares, totalSupply()
+                $, shares, totalSupply()
             )
         );
 
@@ -642,32 +626,5 @@ contract LoopStrategy is
                 .withdraw(collateralAmountAsset);
         }
         underlyingAmountAsset = collateralAmountAsset;
-    }
-
-    /// @notice performs a rebalance if necessary and returns the updated state after
-    /// the potential rebalance
-    /// @param $ Storage.Layout struct
-    /// @return state current LoanState of strategy
-    function _updatedState(Storage.Layout storage $)
-        internal
-        returns (LoanState memory state)
-    {
-        // get current loan state and calculate initial collateral ratio
-        state = LoanLogic.getLoanState($.lendingPool);
-        uint256 collateralRatio = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        // if collateralRatio is outside range, user should not incur rebalance costs
-        if (
-            collateralRatio != type(uint256).max
-                && _shouldRebalance(collateralRatio, $.collateralRatioTargets)
-        ) {
-            RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-
-            state = LoanLogic.getLoanState($.lendingPool);
-        }
     }
 }

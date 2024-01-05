@@ -71,16 +71,17 @@ library RebalanceLogic {
     /// @notice performs a rebalance operation before withdrawing an equity asset amount from the lending pool,
     /// during a redemption of shares
     /// @param $ the storage state of LendingStrategyStorage
-    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param shares amount of shares to redeem
     /// @param totalShares total supply of shares
     /// @return shareEquityAsset amount of equity in asset corresponding to shares
     function rebalanceBeforeWithdraw(
         Storage.Layout storage $,
-        LoanState memory state,
         uint256 shares,
         uint256 totalShares
     ) external returns (uint256 shareEquityAsset) {
+        // get updated loan state
+        LoanState memory state = updateState($);
+
         // calculate amount of debt and equity corresponding to shares in USD value
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             LoanLogic.shareDebtAndEquity(state, shares, totalShares);
@@ -171,6 +172,30 @@ library RebalanceLogic {
             return rebalanceUp($, state, ratio, targetCR);
         } else {
             return rebalanceDown($, state, withdrawalUSD, ratio, targetCR);
+        }
+    }
+
+    /// @notice performs a rebalance if necessary and returns the updated state after
+    /// the potential rebalance
+    /// @param $ Storage.Layout struct
+    /// @return state current LoanState of strategy
+    function updateState(Storage.Layout storage $)
+        public
+        returns (LoanState memory state)
+    {
+        // get current loan state and calculate initial collateral ratio
+        state = LoanLogic.getLoanState($.lendingPool);
+        uint256 collateralRatio =
+            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        // if collateralRatio is outside range, user should not incur rebalance costs
+        if (
+            collateralRatio != type(uint256).max
+                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+        ) {
+            rebalanceTo($, state, 0, $.collateralRatioTargets.target);
+
+            state = LoanLogic.getLoanState($.lendingPool);
         }
     }
 
@@ -543,30 +568,6 @@ library RebalanceLogic {
             collateralAmountAsset,
             payable(address(this))
         );
-    }
-
-    /// @notice performs a rebalance if necessary and returns the updated state after
-    /// the potential rebalance
-    /// @param $ Storage.Layout struct
-    /// @return state current LoanState of strategy
-    function updateState(Storage.Layout storage $)
-        internal
-        returns (LoanState memory state)
-    {
-        // get current loan state and calculate initial collateral ratio
-        state = LoanLogic.getLoanState($.lendingPool);
-        uint256 collateralRatio =
-            collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        // if collateralRatio is outside range, user should not incur rebalance costs
-        if (
-            collateralRatio != type(uint256).max
-                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
-        ) {
-            rebalanceTo($, state, 0, $.collateralRatioTargets.target);
-
-            state = LoanLogic.getLoanState($.lendingPool);
-        }
     }
 
     /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
