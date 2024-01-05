@@ -1,113 +1,128 @@
 # ILM
 
-The LoopingStrategy is a contract that manages user positions in a protocol, integrating the ERC4626 standard and employing a Keeper for position management through rebalancing. It holds underlying tokens (aTokens/debtTokens) and is responsible for managing user positions by minting/burning share tokens. Key variables include the target collateral ratio (CR) and an acceptable collateral ratio range.
+The Looping Strategy is a set of contracts that manages user positions in a protocol, integrating the ERC4626 standard and employing OpenZeppelin Defender platform for automatization of position management through rebalancing. It holds underlying lending pool tokens (sTokens/debtTokens) and is responsible for managing user positions by minting/burning share tokens.
+
+Users are allowed to deposit and withdraw collateral at any moment. Their collateral will be pooled, and deposited to the lending pool as a single position. Debt asset is borrowed from the pool against the suplied collateral, which is then exchanged on the external DEX for the collateral asset, giving us more of collateral asset than we started with, which is supplied back to the lending pool, giving the strategy power to borrow even more - thus called the looping strategy by repeating this process multiple times.
+LoopStrategy contract automatically rebalance on big deposits, withdrawals and changing of price of collateral or debt asset.
 
 ![Looping Strategy](https://953119082-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FUh7w5UXhBr7jGvg6R4FO%2Fuploads%2FFETfVcCSMps0WsWEALkC%2FILM%20diagram.png?alt=media&token=855a0dc2-ac65-47bd-b966-19622a324353 "Looping strategy").
 
+## Deposit
+
+User can deposit any amount of collateral asset to the LoopStrategy contract. In return user gets the share tokens (ERC20) which represents their position in the strategy. Share tokens are transferable, but with transferring them, also permission to redeem collateral asset is transferred
+
+## Strategy rebalancing
+
+Strategy will strive to keep the target collateral ratio (ratio of collateral asset and debt asset). That means as price of collateral eventually increases, strategy will borrow more from the lending pool, swapping again for the collateral asset and supplying back. Therefore, exposure to the collateral asset will increase, and the equity of share tokens would increase in that case.
+Rebalance margins allow for small deviation of the target, and are defined for the reason to not do too many rebalances which occurs DEX fees. Also, additional smaller margin around target is defined to allow for small deposit/withdrawal (regarding the total TVL) which will not cause rebalance thus saving user of DEX fees.
+
+## Redeem / Withdraw
+
+By burning share tokens, user is getting proportional amount of collateral back. Users are allowed to redeem share tokens at any moment.
+
+## Fees
+
+There are no fees imposed by the strategy contract itself, but users needs to be aware of the DEX fees which occurs when the debt asset is swapped for the collateral asset (thus lowering equity of the strategy), and accruing debt interest on the borrowed asset.
+
+# Abbreviations and Formulas
+
+- Collateral value: `CV = value of underlying cbETH in USD`
+- Borrow Value: `BV = value of total current debt in USD`
+- Pool Equity: `EV = CV - BV`
+- totalAssets() from ERC4626 overridden to return Pool Equity value
+- Collateral Ratio: `CR = CV / BV`
+- Total shares: `TS = Total number of shares`
+- Share value: `SV = EV / TS`
+
 # Contracts
 
-## Looping Strategy
+Natspec generated documentation can be found [here](/docs/src/SUMMARY.md).
 
-- User-facing contract inherits ERC4626
-- Keeper integrated for position management via rebalancing
-- Holds underlying tokens (aTokens/debtTokens)
-- Responsible for managing user positions via minting/burning share tokens
-- Key variables:
-  - Target collateral ratio (CR)
-  - Acceptable collateral ratio range
-    - Min/Max collateral ratio, if the current CR is not in this range, we rebalance to the Target CR
-- Swapper Suite - comprised of `Swapper` and `SwapAdapter`
+## LoopStrategy
 
-  - `Swapper` - Functions as a router and registry - Above functionality provided by storing `input` and `output` (from/to) tokens to swap “routes” comprised of Steps (see interface for `Step` struct definition)
-    Contains admin functions for upgrading and setting `steps` for given `from`/`to` token pairs
-  - `Adapter`
-    - Each adapter is paired with an `AdapterLibrary` to convert the input data from the `Swapper` to the data needed to be passed in for that particular adapters swap functions
-    - The adapter contains one key functions
-      - `executeSwap` - executes a swap based on input parameters (from/to tokens, amountIn, minAmountOut)
+LoopStrategy is the user facing contract which inherits ERC4626 standard. It holds the lending pool tokens (sTokens/debtTokens) and manages position utilizing helping libraries. It has deposit/redeem functions as well as configuration functions.
 
-- Pricing Oracle Suite
+`mint` and `withdraw` function from the ERC4626 are disabled because of the complexity of share calculation, `deposit` and `redeem` functions are overridden and expected to be used.
 
-  - For the pricing of wrapped cbETH we will use Chainlink oracle for cbETH/USD pair
-  - Using existing Aave Oracles contracts (same as already used in Seamless protocol)
+In the `deposit` function users can use additional parameter `minSharesReceived` securing minimum amount of shares to be received. Similarly, in the `redeem` function there is additional parameter `minUnderlyingAsset` securing minimum amount of underlying asset to be redeemed.
 
-- Logic libraries - linked libraries to save on bytecode size
+### Deposit algorithm
 
-  - `RebalanceLogic`
-    - Contains key value formulas/calculations (equity, collateral, collateral ratio)
-    - Contains `rebalanceDown/Up` functions
-    - Provides backbone for most key operations involved looping maths
-  - `LendingLogic`
-    - Borrow function for borrowing from lending protocol
-    - Repay function for repay the lending protocol
-    - Deposit function for depositing collateral to the lending protocol
+1. If the pool is out of acceptable CR, we do rebalance first
+1. We save current totalAssets (pool equity before user deposit) = prevTAssets
+1. We save current CR -> prevCR
+1. Deposit users cbETH to the aave pool
+1. We see the resulting CR -> afterCR
+1. If afeterCR is below maxTargetCR we don’t need to do any rebalance
+1. Otherwise, it is above maxTargetCR, and in that case we rebalance to the ratio of max(prevCR, targetCR)
 
-- Vault Flows and Key Formulas
+   - If there are no borrowing liquidity available for the rebalance, we still allow the deposit! This will bring up CR above target, and maybe even above acceptable CR range, but the pool will rebalance once borrowing liquidity becomes available
 
-  - Key Formulas:
-    - Collateral value: `CV = value of underlying cbETH in USD`
-    - Borrow Value: `BV = value of total current debt in USD`
-    - Pool Equity: `EV = CV - BV`
-    - totalAssets() from ERC4626 overridden to return Pool Equity value
-    - Collateral Ratio: `CR=CV/BV`
-    - Total shares: `TS = Total number of shares`
-    - Share value: `SV = EV/TS`
+1. We see what is the change in totalAssets after rebalanceUp -> afterTAssets
 
-- Spreadsheet with scenarios:
-  ​​ Vault share calculation models: https://docs.google.com/spreadsheets/d/1d9L_uX4qYCo6i7jxQXZjI55ogBsNhNI2q8jbdJ2P6g0
+   - User effectively added userAssets = (afterTAssets - prevTAssets)
 
-- Deposit/Redeem (and mint/withdraw) logic:
+1. Calculate how much shares user gets based on prevTAsets, userAssets and totalShares
 
-  - If collateral ratio is out of the acceptable range, we do rebalance before the deposit/redeem action
-  - If collateral ratio is brought closer to the target ratio, we don’t need to do any rebalance and calling dex swaps (if CR is in the proximity to the target)
+   - Using \_convertToShares() from OZ erc4626
 
-- Deposit:
+### Redeem algorithm
 
-  - If the pool is out of acceptable CR, we do rebalance first
-  - We save current totalAssets (pool equity before user deposit) = prevTAssets
-  - We save current CR -> prevCR
-  - Deposit users cbETH to the aave pool
-  - We see the resulting CR -> afterCR
-  - If afeterCR is below maxTargetCR we don’t need to do any rebalance
-  - Otherwise, it is above maxTargetCR, and in that case we rebalance to the ratio of max(prevCR, targetCR)
-    - If there are no borrowing liquidity available for the rebalance, we still allow the deposit! This will bring up CR above target, and maybe even above acceptable CR range, but the pool will rebalance once borrowing liquidity becomes available
-  - We see what is the change in totalAssets after rebalanceUp -> afterTAssets
-    - User effectively added userAssets = (afterTAssets - prevTAssets)
-  - Calculate how much shares user gets based on prevTAsets, userAssets and totalShares
-    - Using \_convertToShares() from OZ erc4626
+1. If the pool is out of acceptable collateral ratio range, we do rebalance first
+1. User redeems W shares
 
-- Redeem:
+   - User also specifies minAmountOut of the underlying asset he expects. This is because the price on dex can change until his transaction is minted (maybe frontrunning is possible) which can result in getting less than expected withdrawal.
 
-  - If the pool is out of acceptable collateral ratio range, we do rebalance first
-  - User redeems W shares
-    - User also specifies minAmountOut of the underlying asset he expects. This is because the price on dex can change until his transaction is minted (maybe frontrunning is possible) which can result in getting less than expected withdrawal.
-  - We save current CR -> prevCR
-  - We convert value of shares (vUA) to the amount of underlying asset -> UA
-  - If after the withdrawal of UA from aave pool, CR is above minTargetCR, we just give withdrawal to the user, without dex swaps and rebalances
-  - Otherwise it is below minTargetCR, and in that case we rebalance to the ratio of min(prevCR, targetCR)
-  - During the rebalance dex fees goes against the withdrawer
-    - Total collateral withdrawal value: TCW
-    - Total collateral exchanged to borrowing asset: TCE
-    - Total borrowing asset got after exchange: TBE
-    - User’s share value (vUA) is equal to vUA = TCW - TBE
-    - Amount which user gets back (withdrawal: W) is: W = TCW - TCE
-  - If the amount of what user gets is less than specified minAmountOut we revert transaction
+1. We save current CR -> prevCR
+1. We convert value of shares (vUA) to the amount of underlying asset -> UA
+1. If after the withdrawal of UA from aave pool, CR is above minTargetCR, we just give withdrawal to the user, without dex swaps and rebalances
+1. Otherwise it is below minTargetCR, and in that case we rebalance to the ratio of min(prevCR, targetCR)
+1. During the rebalance dex fees goes against the withdrawer
 
-- Pool rebalancing:
+   - Total collateral withdrawal value: TCW
+   - Total collateral exchanged to borrowing asset: TCE
+   - Total borrowing asset got after exchange: TBE
+   - User’s share value (vUA) is equal to vUA = TCW - TBE
+   - Amount which user gets back (withdrawal: W) is: W = TCW - TCE
 
-  - On price change of the underlying (cbETH) if the collateral ratio goes out of the [minRebalanceCR, maxRebalanceCR] range, we rebalance to the target CR
-  - In this case, dex fees go against the whole pool.
-  - We run the OpenZepppelin Keeper to check the same thing and do rebalancing when there are no deposits/withdrawals but the underlying token price changed
+1. If the amount of what user gets is less than specified minAmountOut we revert transaction
 
-  - Rebalancing when the CR is above the maxRebalanceCR
-    - Calculation of how much USDbC we should borrow to get to the target collateral ratio
-    - Borrow USDbC from the pool
-      - If there is not enough USDbC to borrow we borrow as much as we can
-    - Buy cbETH from the dex/aggregator
-    - Put cbETH back as a collateral to the pool
-    - Repeat the process if we are still above the maxRebalanceCR
+### LoanLogic
+
+LoanLogic library contains all logic required for managing the loan position on the lending pool. It also contains helper functions to see the current state of the loan and to calculate maximum amount of possible borrow and withdrawal of supplied collateral.
+
+### RebalacingLogic
+
+RebalancingLogic library contains all logic for rebalancing the strategy and calculating how much borrowing is needed to achive defined collateral targets.
+
+#### Rebalance algorithm
+
+- Rebalancing when the CR is above the maxRebalanceCR
+
+  1. Calculation of how much debt asset we should borrow to get to the target collateral ratio
+  1. Borrow debt asset from the pool
+
+  - If there is not enough debt asset to borrow we borrow as much as we can
+
+  1. Buy collateral asset from the DEX
+  1. Supply collateral asset back as a collateral to the lending pool
+  1. Repeat the process if we are still above the maxRebalanceCR
 
 - Rebalancing when the CR is below the minRebalanceCR
-  - Calculation of how much collateral cbETH we should withdraw from the pool
-  - Withdraw cbETH and sell on dex/aggregator for USDbC
-  - Repay debt with the USDbC
-  - Repeat the process if we are still above maximum collateral ratio
+  1. Calculation of how much collateral asset we should withdraw from the pool
+  1. Withdraw collateral asset and sell on DEX for the debt asset
+  1. Repay debt with the debt asset
+  1. Repeat the process if we are still above maximum collateral ratio
+
+### USDWadRayMath
+
+USDWadRayMath library contains helper functions for multiplication and division of numbers with 8, 18 and 27 decimals.
+
+## Swapper
+
+Swapper contract is used by the strategy as a router for DEXs. It defines unique route to swap from the starting asset to the destination asset. It can use multiple different DEXs on the route if needed.
+`Offset factor` is defined for each route to estimate the total amount loss on fees and potential slippage, represented as percentage.
+
+## WrappedCbETH
+
+Wrapped CbETH token is just a wrapped version of the CbETH which allows token to differentiate from the standard CbETH token in the lending pool, thus allowing to set different risk parameters. Only strategy (and swapper) are allowed to wrap and supply this token to the lending pool.
