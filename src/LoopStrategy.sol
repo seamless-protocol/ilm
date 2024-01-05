@@ -16,7 +16,6 @@ import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { ILoopStrategy, IERC4626 } from "./interfaces/ILoopStrategy.sol";
-import { ActionLogic } from "./libraries/ActionLogic.sol";
 import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage as Storage } from
@@ -537,7 +536,7 @@ contract LoopStrategy is
 
         uint256 prevTotalAssets = totalAssets();
 
-        ActionLogic.supplyAndRebalance($, state, assets);
+        RebalanceLogic.afterSupply($, state, assets);
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
         shares = _convertToShares(equityReceived, prevTotalAssets);
@@ -576,7 +575,7 @@ contract LoopStrategy is
 
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
-            ActionLogic.shareValueAsset($, state, shareDebtUSD, shareEquityUSD)
+            RebalanceLogic.beforeWithdraw($, state, shareDebtUSD, shareEquityUSD)
         );
 
         // ensure equity in asset terms to be received is larger than
