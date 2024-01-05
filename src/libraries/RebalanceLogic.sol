@@ -27,6 +27,10 @@ library RebalanceLogic {
     uint8 internal constant USD_DECIMALS = 8;
     uint8 internal constant WAD_DECIMALS = 18;
 
+    /// @notice performs a rebalance operation after supplying an asset amount to the lending pool
+    /// @param $ the storage state of LendingStrategyStorage
+    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param assets amount of assets to supply in tokens 
     function rebalanceAfterSupply(
         Storage.Layout storage $,
         LoanState memory state,
@@ -59,6 +63,12 @@ library RebalanceLogic {
         }
     }
 
+    /// @notice performs a rebalance operation before withdrawing an equity asset amount from the lending pool
+    /// @param $ the storage state of LendingStrategyStorage
+    /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param shareDebtUSD amount of debt in USD corresponding to shares
+    /// @param shareEquityUSD amount of equity in USD corresponding to shares
+    /// @return shareEquityAsset amount of equity in asset corresponding to shares
     function rebalanceBeforeWithdraw(
         Storage.Layout storage $,
         LoanState memory state,
