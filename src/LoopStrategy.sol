@@ -536,7 +536,7 @@ contract LoopStrategy is
         LoanState memory state = _updatedState($);
 
         uint256 prevTotalAssets = totalAssets();
-        
+
         ActionLogic.supplyAndRebalance($, state, assets);
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
@@ -685,10 +685,8 @@ contract LoopStrategy is
 
         // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-             collateralRatio != type(uint256).max && _shouldRebalance(
-                collateralRatio,
-                $.collateralRatioTargets
-            )
+            collateralRatio != type(uint256).max
+                && _shouldRebalance(collateralRatio, $.collateralRatioTargets)
         ) {
             RebalanceLogic.rebalanceTo(
                 $, state, 0, $.collateralRatioTargets.target

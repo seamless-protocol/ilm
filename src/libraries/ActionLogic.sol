@@ -46,8 +46,8 @@ library ActionLogic {
                 rebalanceToRatio =
                     $.collateralRatioTargets.maxForDepositRebalance;
             }
-           
-           RebalanceLogic.rebalanceTo($, state, 0, rebalanceToRatio);
+
+            RebalanceLogic.rebalanceTo($, state, 0, rebalanceToRatio);
         }
     }
 
