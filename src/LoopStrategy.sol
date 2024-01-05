@@ -273,7 +273,11 @@ contract LoopStrategy is
         if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
-            if (RebalanceLogic.rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
+            if (
+                RebalanceLogic.rebalanceNeeded(
+                    currentCR, $.collateralRatioTargets
+                )
+            ) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
@@ -555,9 +559,7 @@ contract LoopStrategy is
 
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
-            RebalanceLogic.rebalanceBeforeWithdraw(
-                $, shares, totalSupply()
-            )
+            RebalanceLogic.rebalanceBeforeWithdraw($, shares, totalSupply())
         );
 
         // ensure equity in asset terms to be received is larger than
