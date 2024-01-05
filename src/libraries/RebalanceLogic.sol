@@ -177,7 +177,7 @@ library RebalanceLogic {
         LoanState memory _state,
         uint256 _currentCR,
         uint256 _targetCR
-    ) public returns (uint256 ratio) {
+    ) internal returns (uint256 ratio) {
         // current collateral ratio
         ratio = _currentCR;
 
@@ -271,7 +271,7 @@ library RebalanceLogic {
         uint256 withdrawalUSD,
         uint256 currentCR,
         uint256 targetCR
-    ) public returns (uint256 ratio) {
+    ) internal returns (uint256 ratio) {
         uint256 collateralPriceUSD =
             $.oracle.getAssetPrice(address($.assets.collateral));
 
@@ -336,7 +336,7 @@ library RebalanceLogic {
         Storage.Layout storage $,
         LoanState memory state,
         uint256 targetDebtUSD
-    ) public {
+    ) internal {
         uint256 collateralPriceUSD =
             $.oracle.getAssetPrice(address($.assets.collateral));
 
