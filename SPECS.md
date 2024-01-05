@@ -48,36 +48,35 @@ In the `deposit` function users can use additional parameter `minSharesReceived`
 
 ### Deposit algorithm
 
-1. If the pool is out of acceptable CR, we do rebalance first
-1. We save current totalAssets (pool equity before user deposit) = prevTAssets
-1. We save current CR -> prevCR
-1. Deposit users cbETH to the aave pool
-1. We see the resulting CR -> afterCR
-1. If afeterCR is below maxTargetCR we don’t need to do any rebalance
-1. Otherwise, it is above maxTargetCR, and in that case we rebalance to the ratio of max(prevCR, targetCR)
+1. If the pool is out of collateral ratio margin, first rebalance is done
+1. totalAssets (pool equity before user deposit) is saved -> prevTAssets
+1. Current collateral ratio is saved -> prevCR
+1. Deposit users collateral asset to the Seamless lending pool
+1. Resulting collateral ratio is saved -> afterCR
+1. If afeterCR is below maxForDepositRebalance margin, rebalance is not needed
+1. Otherwise, it is above maxForDepositRebalance maring, and in that case rebalancing is done to the ratio of max(prevCR, targetCR)
 
-   - If there are no borrowing liquidity available for the rebalance, we still allow the deposit! This will bring up CR above target, and maybe even above acceptable CR range, but the pool will rebalance once borrowing liquidity becomes available
+   - If there are no borrowing liquidity available for the rebalance, deposit is still allowed. This will bring up collateral ratio above target, and maybe even above rebalancing margin range, but the pool will rebalance once borrowing liquidity becomes available.
 
-1. We see what is the change in totalAssets after rebalanceUp -> afterTAssets
+1. totalAssets after rebalanceUp (pool equity after user deposit) is saved -> afterTAssets
 
    - User effectively added userAssets = (afterTAssets - prevTAssets)
 
-1. Calculate how much shares user gets based on prevTAsets, userAssets and totalShares
-
-   - Using \_convertToShares() from OZ erc4626
+1. Number of shares which user gets is calculated based on userAssets and totalShares
+   - `shares = (userAssets * totalShares + 1) / (totalAssets + 1)`
 
 ### Redeem algorithm
 
-1. If the pool is out of acceptable collateral ratio range, we do rebalance first
+1. If the pool is out of collateral ratio margin, first rebalance is done
 1. User redeems W shares
 
    - User also specifies minAmountOut of the underlying asset he expects. This is because the price on dex can change until his transaction is minted (maybe frontrunning is possible) which can result in getting less than expected withdrawal.
 
-1. We save current CR -> prevCR
-1. We convert value of shares (vUA) to the amount of underlying asset -> UA
-1. If after the withdrawal of UA from aave pool, CR is above minTargetCR, we just give withdrawal to the user, without dex swaps and rebalances
-1. Otherwise it is below minTargetCR, and in that case we rebalance to the ratio of min(prevCR, targetCR)
-1. During the rebalance dex fees goes against the withdrawer
+1. Current collateral ratio is saved -> prevCR
+1. Value of shares (vUA) is converted to the amount of underlying asset -> UA
+1. If after the withdrawal of UA from the lending pool, collateral ratio is above minForWithdrawRebalance margin, collateral asset is withdrawn directly to the user address, without dex swaps and rebalances
+1. Otherwise it is below minForWithdrawRebalance margin, and in that case rebalance is done to the ratio of min(prevCR, targetCR)
+1. During the rebalance DEX fees goes against the withdrawer
 
    - Total collateral withdrawal value: TCW
    - Total collateral exchanged to borrowing asset: TCE
@@ -85,7 +84,7 @@ In the `deposit` function users can use additional parameter `minSharesReceived`
    - User’s share value (vUA) is equal to vUA = TCW - TBE
    - Amount which user gets back (withdrawal: W) is: W = TCW - TCE
 
-1. If the amount of what user gets is less than specified minAmountOut we revert transaction
+1. If the amount of what user gets is less than specified minAmountOut transaction is reverted
 
 ### LoanLogic
 
