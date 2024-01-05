@@ -90,5 +90,4 @@ library ActionLogic {
         // withdraw and transfer equity asset amount
         LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
     }
-
 }
