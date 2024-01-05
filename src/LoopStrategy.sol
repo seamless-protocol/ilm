@@ -536,7 +536,7 @@ contract LoopStrategy is
 
         uint256 prevTotalAssets = totalAssets();
 
-        RebalanceLogic.afterSupply($, state, assets);
+        RebalanceLogic.rebalanceAfterSupply($, state, assets);
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
         shares = _convertToShares(equityReceived, prevTotalAssets);
@@ -575,7 +575,7 @@ contract LoopStrategy is
 
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
-            RebalanceLogic.beforeWithdraw(
+            RebalanceLogic.rebalanceBeforeWithdraw(
                 $, state, shareDebtUSD, shareEquityUSD
             )
         );

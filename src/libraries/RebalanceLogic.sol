@@ -27,7 +27,7 @@ library RebalanceLogic {
     uint8 internal constant USD_DECIMALS = 8;
     uint8 internal constant WAD_DECIMALS = 18;
 
-    function afterSupply(
+    function rebalanceAfterSupply(
         Storage.Layout storage $,
         LoanState memory state,
         uint256 assets
@@ -59,7 +59,7 @@ library RebalanceLogic {
         }
     }
 
-    function beforeWithdraw(
+    function rebalanceBeforeWithdraw(
         Storage.Layout storage $,
         LoanState memory state,
         uint256 shareDebtUSD,
