@@ -575,7 +575,9 @@ contract LoopStrategy is
 
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
-            RebalanceLogic.beforeWithdraw($, state, shareDebtUSD, shareEquityUSD)
+            RebalanceLogic.beforeWithdraw(
+                $, state, shareDebtUSD, shareEquityUSD
+            )
         );
 
         // ensure equity in asset terms to be received is larger than

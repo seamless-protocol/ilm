@@ -27,25 +27,21 @@ library RebalanceLogic {
     uint8 internal constant USD_DECIMALS = 8;
     uint8 internal constant WAD_DECIMALS = 18;
 
-     function afterSupply(
+    function afterSupply(
         Storage.Layout storage $,
         LoanState memory state,
         uint256 assets
     ) external {
-        uint256 prevCollateralRatio = collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 prevCollateralRatio =
+            collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
 
-        uint256 afterCollateralRatio = collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 afterCollateralRatio =
+            collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (prevCollateralRatio == type(uint256).max) {
-            rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
+            rebalanceTo($, state, 0, $.collateralRatioTargets.target);
         } else if (
             afterCollateralRatio
                 > $.collateralRatioTargets.maxForDepositRebalance
@@ -74,9 +70,7 @@ library RebalanceLogic {
         // and is left with the remaining equity
         if (state.debtUSD == shareDebtUSD) {
             // pay back the debt corresponding to the shares
-            rebalanceDownToDebt(
-                $, state, state.debtUSD - shareDebtUSD
-            );
+            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
 
             state = LoanLogic.getLoanState($.lendingPool);
             shareEquityUSD = state.collateralUSD - state.debtUSD;
@@ -116,9 +110,7 @@ library RebalanceLogic {
             uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
 
             // pay back the adjusted debt corresponding to the shares
-            rebalanceDownToDebt(
-                $, state, state.debtUSD - shareDebtUSD
-            );
+            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
 
             state = LoanLogic.getLoanState($.lendingPool);
 
