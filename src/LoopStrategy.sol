@@ -16,6 +16,7 @@ import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { ILoopStrategy, IERC4626 } from "./interfaces/ILoopStrategy.sol";
+import { ActionLogic } from "./libraries/ActionLogic.sol";
 import { LoanLogic } from "./libraries/LoanLogic.sol";
 import { RebalanceLogic } from "./libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage as Storage } from
@@ -610,73 +611,10 @@ contract LoopStrategy is
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             _shareDebtAndEquity(state, shares, totalSupply());
 
-        // if all shares are being withdrawn, then their debt is the strategy debt
-        // so in that case the redeemer incurs the full cost of paying back the debt
-        // and is left with the remaining equity
-        if (state.debtUSD == shareDebtUSD) {
-            // pay back the debt corresponding to the shares
-            RebalanceLogic.rebalanceDownToDebt(
-                $, state, state.debtUSD - shareDebtUSD
-            );
-
-            shareEquityUSD = equityUSD();
-        }
-        //check if withdrawal would lead to a collateral below minimum acceptable level
-        // if yes, rebalance until share debt is repaid, and decrease remaining share equity
-        // by equity cost of rebalance
-        else if (
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD - shareEquityUSD, state.debtUSD
-            ) < $.collateralRatioTargets.minForWithdrawRebalance
-        ) {
-            if (
-                state.collateralUSD
-                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    )
-            ) {
-                // amount of equity in USD value which may be withdrawn from
-                // strategy without driving the collateral ratio below
-                // the minForWithdrawRebalance limit, thereby not requiring
-                // a rebalance operation
-                uint256 freeEquityUSD = state.collateralUSD
-                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    );
-
-                // adjust share debt to account for the free equity - since
-                // some equity may be withdrawn freely, not all the debt has to be
-                // repaid
-                shareDebtUSD = shareDebtUSD
-                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                        shareEquityUSD + shareDebtUSD - freeEquityUSD
-                    );
-            }
-
-            uint256 initialEquityUSD = equityUSD();
-
-            // pay back the adjusted debt corresponding to the shares
-            RebalanceLogic.rebalanceDownToDebt(
-                $, state, state.debtUSD - shareDebtUSD
-            );
-
-            // shares lose equity equal to the amount of equity lost for
-            // the rebalance to pay the adjusted debt
-            shareEquityUSD -= initialEquityUSD - equityUSD();
-        }
-
-        // convert equity to collateral asset
-        uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD,
-            $.oracle.getAssetPrice(address($.assets.collateral)),
-            IERC20Metadata(address($.assets.collateral)).decimals()
+        uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
+            $.assets,
+            ActionLogic.shareValueAsset($, state, shareDebtUSD, shareEquityUSD)
         );
-
-        // withdraw and transfer equity asset amount
-        LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
-
-        uint256 shareUnderlyingAsset =
-            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset);
 
         // ensure equity in asset terms to be received is larger than
         // minimum acceptable amount
