@@ -533,48 +533,11 @@ contract LoopStrategy is
 
         assets = _convertUnderlyingToCollateralAsset($.assets, assets);
 
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        uint256 collateralRatio = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        if (
-            collateralRatio != type(uint256).max
-                && _shouldRebalance(collateralRatio, $.collateralRatioTargets)
-        ) {
-            collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-        }
+        LoanState memory state = _updatedState($);
 
         uint256 prevTotalAssets = totalAssets();
-        uint256 prevCollateralRatio = collateralRatio;
-
-        state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
-        uint256 afterCollateralRatio = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        if (prevCollateralRatio == type(uint256).max) {
-            collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-        } else if (
-            afterCollateralRatio
-                > $.collateralRatioTargets.maxForDepositRebalance
-        ) {
-            uint256 rebalanceToRatio = prevCollateralRatio;
-            if (
-                $.collateralRatioTargets.maxForDepositRebalance
-                    > rebalanceToRatio
-            ) {
-                rebalanceToRatio =
-                    $.collateralRatioTargets.maxForDepositRebalance;
-            }
-            collateralRatio =
-                RebalanceLogic.rebalanceTo($, state, 0, rebalanceToRatio);
-        }
+        
+        ActionLogic.supplyAndRebalance($, state, assets);
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
         shares = _convertToShares(equityReceived, prevTotalAssets);
@@ -716,13 +679,14 @@ contract LoopStrategy is
     {
         // get current loan state and calculate initial collateral ratio
         state = LoanLogic.getLoanState($.lendingPool);
+        uint256 collateralRatio = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
 
-        // check if collateralRatio is outside range, so user participates in potential rebalance
+        // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-            _shouldRebalance(
-                RebalanceLogic.collateralRatioUSD(
-                    state.collateralUSD, state.debtUSD
-                ),
+             collateralRatio != type(uint256).max && _shouldRebalance(
+                collateralRatio,
                 $.collateralRatioTargets
             )
         ) {

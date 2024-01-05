@@ -15,6 +15,42 @@ import { LoanState } from "../types/DataTypes.sol";
 library ActionLogic {
     using USDWadRayMath for uint256;
 
+    function supplyAndRebalance(
+        Storage.Layout storage $,
+        LoanState memory state,
+        uint256 assets
+    ) external {
+        uint256 prevCollateralRatio = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
+
+        uint256 afterCollateralRatio = RebalanceLogic.collateralRatioUSD(
+            state.collateralUSD, state.debtUSD
+        );
+
+        if (prevCollateralRatio == type(uint256).max) {
+            RebalanceLogic.rebalanceTo(
+                $, state, 0, $.collateralRatioTargets.target
+            );
+        } else if (
+            afterCollateralRatio
+                > $.collateralRatioTargets.maxForDepositRebalance
+        ) {
+            uint256 rebalanceToRatio = prevCollateralRatio;
+            if (
+                $.collateralRatioTargets.maxForDepositRebalance
+                    > rebalanceToRatio
+            ) {
+                rebalanceToRatio =
+                    $.collateralRatioTargets.maxForDepositRebalance;
+            }
+           
+           RebalanceLogic.rebalanceTo($, state, 0, rebalanceToRatio);
+        }
+    }
+
     function shareValueAsset(
         Storage.Layout storage $,
         LoanState memory state,
