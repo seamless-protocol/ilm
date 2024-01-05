@@ -30,7 +30,7 @@ library RebalanceLogic {
     /// @notice performs a rebalance operation after supplying an asset amount to the lending pool
     /// @param $ the storage state of LendingStrategyStorage
     /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param assets amount of assets to supply in tokens 
+    /// @param assets amount of assets to supply in tokens
     function rebalanceAfterSupply(
         Storage.Layout storage $,
         LoanState memory state,
