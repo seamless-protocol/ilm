@@ -82,7 +82,7 @@ contract RebalanceMathTest is Test {
     ) public {
         /// need a minimum LTV and maximum LTV to bound all other variables
         /// LTV must always be < 1 as we are working with overcallateralized positions
-        ltv = bound(_ltv, 0.01e8, 0.9e8);
+        ltv = bound(ltv, 0.01e8, 0.9e8);
         /// offsetFactor is a value up to 1e8
         offsetFactor = bound(offsetFactor, 0, 1e8);
         /// target CR must be at least 1 / LTV
@@ -92,7 +92,7 @@ contract RebalanceMathTest is Test {
         /// assume less than 3 trillion USD collateral, and more than 1 USD
         collateralUSD = bound(collateralUSD, 1e8, 3e20);
 
-        debtUSD = bound(__debtUSD, 0, collateralUSD.usdMul(ltv));
+        debtUSD = bound(debtUSD, 0, collateralUSD.usdMul(ltv));
 
         if (collateralUSD > targetCR.usdMul(debtUSD)) {
             uint256 requiredBorrow = RebalanceMath.requiredBorrowUSD(
