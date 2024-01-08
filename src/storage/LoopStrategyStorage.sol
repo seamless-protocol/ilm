@@ -21,7 +21,6 @@ library LoopStrategyStorage {
         /// @dev struct encapsulating collateral and borrow asset addresses
         StrategyAssets assets;
         /// @dev struct encapsulating min/max bounds and target values for the collateral ratio
-        /// TODO: decide on whether to be 1e8 or 1e18 or 1e27
         CollateralRatio collateralRatioTargets;
         /// @dev error margin on specific target collateral ratio passed in function calls
         uint256 ratioMargin;

@@ -55,6 +55,10 @@ contract LoopStrategy is
     /// @dev role which can upgrade the contract
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function LoopStrategy_init(
         address _initialAdmin,
         StrategyAssets memory _strategyAssets,
@@ -345,6 +349,19 @@ contract LoopStrategy is
         returns (uint256)
     {
         revert WithdrawDisabled();
+    }
+
+    /// @notice previewWithdraw function is disabled because the exact amount of shares for a number of
+    /// tokens cannot be calculated accurately
+    /// @dev returning 0 because previewWithdraw function must not revert by the ERC4626 standard
+    function previewWithdraw(uint256)
+        public
+        view
+        override(ERC4626Upgradeable, IERC4626)
+        whenNotPaused
+        returns (uint256)
+    {
+        return 0;
     }
 
     /// @inheritdoc IERC4626
