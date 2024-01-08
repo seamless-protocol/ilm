@@ -7,7 +7,7 @@ import { Test } from "forge-std/Test.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
-/// @title ConversionMathTest 
+/// @title ConversionMathTest
 /// @dev ConversionMath library unit tests
 contract ConversionMathTest is Test {
     using USDWadRayMath for uint256;
@@ -31,9 +31,7 @@ contract ConversionMathTest is Test {
             assetAmount, priceInUSD, assetDecimals
         );
 
-        assertEq(
-            usdAmount, assetAmount * priceInUSD / (10 ** assetDecimals)
-        );
+        assertEq(usdAmount, assetAmount * priceInUSD / (10 ** assetDecimals));
     }
 
     /// @dev ensures that converting USD amounts to asset amounts results in the expected value,
