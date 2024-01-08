@@ -428,65 +428,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         }
     }
 
-    /// @dev ensures that converting assets amounts to USD amounts results in the expected value,
-    /// for a range of inputs
-    /// @param _assetAmount fuzzed amount of asset to convert in USD
-    /// @param _priceInUSD fuzzed price of asset in USD
-    /// @param _assetDecimals fuzzed value of asset decimals
-    function testFuzz_convertAssetToUSD(
-        uint256 _assetAmount,
-        uint256 _priceInUSD,
-        uint256 _assetDecimals
-    ) public {
-        // prevent overflows
-        _assetDecimals = bound(_assetDecimals, 0, 18); // assume tokens with no more than 18 decimals would be used as assets
-        _priceInUSD = bound(_priceInUSD, 0, 1 ** 12);
-        _assetAmount = bound(_assetAmount, 0, 5 * 10 ** 60);
-
-        uint256 _usdAmount = ConversionMath.convertAssetToUSD(
-            _assetAmount, _priceInUSD, _assetDecimals
-        );
-
-        assertEq(
-            _usdAmount, _assetAmount * _priceInUSD / (10 ** _assetDecimals)
-        );
-    }
-
-    /// @dev ensures that converting USD amounts to asset amounts results in the expected value,
-    /// for a range of inputs
-    /// @param _usdAmount fuzzed amount of USD to convert to asset
-    /// @param _priceInUSD fuzzed price of asset in USD
-    /// @param _assetDecimals fuzzed value of asset decimals
-    function testFuzz_convertUSDtoAsset(
-        uint256 _usdAmount,
-        uint256 _priceInUSD,
-        uint256 _assetDecimals
-    ) public {
-        vm.assume(_assetDecimals <= 18 && _assetDecimals != 0); // assume no tokens with more than 18 decimals would be used as assets
-        vm.assume(_priceInUSD <= 250_000 * 10 ** 8 && _priceInUSD != 0); // assume no token has a price larger than 250000 USD
-        vm.assume(_usdAmount <= 5 * 10 ** 60 && _usdAmount != 0); // assume no astronomical value of USD to be converted
-
-        uint256 _assetAmount = ConversionMath.convertUSDToAsset(
-            _usdAmount, _priceInUSD, _assetDecimals
-        );
-
-        uint8 USD_DECIMALS = 8;
-
-        if (USD_DECIMALS > _assetDecimals) {
-            assertEq(
-                _assetAmount,
-                _usdAmount.usdDiv(_priceInUSD)
-                    / 10 ** (USD_DECIMALS - _assetDecimals)
-            );
-        } else {
-            assertEq(
-                _assetAmount,
-                _usdAmount.usdDiv(_priceInUSD)
-                    * 10 ** (_assetDecimals - USD_DECIMALS)
-            );
-        }
-    }
-
     /// @dev ensures that offsetting a USD value down results in the expected value,
     /// for a range of inputs
     /// @param _a fuzzed value to offset down

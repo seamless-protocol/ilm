@@ -7,7 +7,7 @@ import { USDWadRayMath } from "./USDWadRayMath.sol";
 library ConversionMath {
     using USDWadRayMath for uint256;
 
-    /// @dev decimals of USD prices as per _oracle, and WAD decimals
+    /// @dev decimals of USD prices as per oracle
     uint8 internal constant USD_DECIMALS = 8;
 
     /// @notice converts a asset amount to its usd value
