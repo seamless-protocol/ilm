@@ -15,9 +15,6 @@ interface ILoopStrategy is IERC4626 {
     /// @notice withdraw function from IERC4626 is disabled
     error WithdrawDisabled();
 
-    /// @notice reverts when deposit staticcal from previewDeposit reverts
-    error DepositStaticcallReverted();
-
     /// @notice reverts when rebalance function is called but collateral ratio is in the target range
     error RebalanceNotNeeded();
 

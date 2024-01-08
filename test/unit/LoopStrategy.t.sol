@@ -15,7 +15,11 @@ import { IPoolConfigurator } from
 import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
+import { IAccessControl } from
+    "@openzeppelin/contracts/access/IAccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { ERC1967Proxy } from
+    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
@@ -63,6 +67,7 @@ contract LoopStrategyTest is BaseForkTest {
     address alice = makeAddr("alice");
     address bob = makeAddr("bob");
     address charlie = makeAddr("charlie");
+    address NO_ROLE = makeAddr("norole");
 
     function setUp() public virtual {
         lendingPool = LendingPool({
@@ -102,17 +107,23 @@ contract LoopStrategyTest is BaseForkTest {
             minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 100)
         });
 
-        strategy = new LoopStrategy();
-        strategy.LoopStrategy_init(
-            address(this),
-            strategyAssets,
-            collateralRatioTargets,
-            poolAddressProvider,
-            priceOracle,
-            swapper,
-            10 ** 4, // 0.01% ratio margin
-            10
+        LoopStrategy strategyImplementation = new LoopStrategy();
+
+        ERC1967Proxy strategyProxy = new ERC1967Proxy(
+            address(strategyImplementation),
+            abi.encodeWithSelector(
+                LoopStrategy.LoopStrategy_init.selector,
+                address(this),
+                strategyAssets,
+                collateralRatioTargets,
+                poolAddressProvider,
+                priceOracle,
+                swapper,
+                10 ** 4, // 0.01% ratio margin
+                10
+            )
         );
+        strategy = LoopStrategy(address(strategyProxy));
 
         strategy.grantRole(strategy.PAUSER_ROLE(), address(this));
         strategy.grantRole(strategy.MANAGER_ROLE(), address(this));
@@ -128,6 +139,45 @@ contract LoopStrategyTest is BaseForkTest {
             swapper.offsetFactor(strategyAssets.debt, strategyAssets.collateral);
 
         _changeBorrowCap(USDbC, 1_000_000);
+    }
+
+    /// @dev ensures the address of the new implementation is the value returned from
+    /// looking up the storage slot of the ERC1967 proxy implementation storage
+    function test_upgrade() public {
+        address newImplementation = address(new LoopStrategy());
+        strategy.upgradeToAndCall(
+            address(newImplementation), abi.encodePacked()
+        );
+
+        // slot given by OZ ECR1967 proxy implementation
+        bytes32 slot = bytes32(
+            0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc
+        );
+        address implementation =
+            address(uint160(uint256(vm.load(address(strategy), slot))));
+
+        assertEq(implementation, newImplementation);
+    }
+
+    /// @dev ensures that `upgradeToAndCall` role fails if caller does not have
+    /// the upgrader role
+    function test_upgradeToAndCall_revertsWhen_callerDoesNotHaveUpgraderRole()
+        public
+    {
+        address newImplementation = address(new LoopStrategy());
+
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.UPGRADER_ROLE()
+            )
+        );
+        strategy.upgradeToAndCall(
+            address(newImplementation), abi.encodePacked()
+        );
+        vm.stopPrank();
     }
 
     /// @dev test confirms that functions reverts when pool is paused
@@ -148,6 +198,137 @@ contract LoopStrategyTest is BaseForkTest {
         strategy.redeem(1 ether, address(this), address(this));
     }
 
+    /// @dev ensures pause call reverts if caller does not have pauser role
+    function test_pause_revertsWhen_callerIsNotPauser() public {
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.PAUSER_ROLE()
+            )
+        );
+
+        IPausable(address(strategy)).pause();
+        vm.stopPrank();
+    }
+
+    /// @dev ensures setInterestRateMode sets new interest rate mode
+    function test_setInterestRateMode_setsNewInterestRateMode() public {
+        uint256 newInterestRateMode = 100;
+
+        strategy.setInterestRateMode(newInterestRateMode);
+
+        // slot found from LoopStrategy storage lib
+        uint256 interestRateMode = uint256(
+            vm.load(
+                address(strategy),
+                bytes32(
+                    uint256(
+                        0x324C4071AA3926AF75895CE4C01A62A23C8476ED82CD28BA23ABB8C0F6634B00
+                    ) + 12
+                )
+            )
+        );
+
+        assertEq(interestRateMode, newInterestRateMode);
+    }
+
+    /// @dev ensures setInterestRateMode reverts if caller does not have manager role
+    function test_setInterestRateMode_revertsWhen_callerIsNotManager() public {
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+
+        strategy.setInterestRateMode(1);
+        vm.stopPrank();
+    }
+
+    /// @dev ensures setCollateralRaioTargets sets new values for the collateralRatiotargets
+    function test_setCollateralRatioTargets_setsNewCollateralRatioTargets()
+        public
+    {
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+
+        CollateralRatio memory strategyTargets =
+            strategy.getCollateralRatioTargets();
+
+        assertEq(newCollateralRatioTargets.target, strategyTargets.target);
+
+        assertEq(
+            newCollateralRatioTargets.minForRebalance,
+            strategyTargets.minForRebalance
+        );
+
+        assertEq(
+            newCollateralRatioTargets.maxForRebalance,
+            strategyTargets.maxForRebalance
+        );
+
+        assertEq(
+            newCollateralRatioTargets.maxForDepositRebalance,
+            strategyTargets.maxForDepositRebalance
+        );
+
+        assertEq(
+            newCollateralRatioTargets.minForWithdrawRebalance,
+            strategyTargets.minForWithdrawRebalance
+        );
+    }
+
+    /// @dev ensures setCollateralRaioTargets reverts if caller is not manager
+    function test_setCollateralRatioTargets_revertsWhen_callerIsNotManager()
+        public
+    {
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+        vm.stopPrank();
+    }
+
+    /// @dev ensures unpause call reverts if caller does not have pauser role
+    function test_unpause_revertsWhen_callerIsNotPauser() public {
+        vm.startPrank(NO_ROLE);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.PAUSER_ROLE()
+            )
+        );
+
+        IPausable(address(strategy)).unpause();
+        vm.stopPrank();
+    }
+
     /// @dev test confimrs that mint function is disabled
     function test_mint_revertMintDisabled() public {
         vm.expectRevert(
@@ -155,6 +336,16 @@ contract LoopStrategyTest is BaseForkTest {
         );
         strategy.mint(1 ether, address(this));
         assertEq(strategy.previewMint(1 ether), 0);
+    }
+
+    /// @dev test confimrs that withdraw function is disabled
+    function test_withdraw_revertsWhen_called() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(ILoopStrategy.WithdrawDisabled.selector)
+        );
+
+        strategy.withdraw(1 ether, address(this), address(this));
+        assertEq(strategy.previewWithdraw(1 ether), 0);
     }
 
     /// @dev test confirms that changing asset price on the price oracle works

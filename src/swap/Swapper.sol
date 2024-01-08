@@ -28,6 +28,10 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     /// @dev role which can upgrade the contract
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /// @dev initializer function for Swapper contract
     function Swapper_init(address _initialAdmin) external initializer {
         __AccessControl_init();
