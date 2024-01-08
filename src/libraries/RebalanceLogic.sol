@@ -199,6 +199,173 @@ library RebalanceLogic {
         }
     }
 
+    /// @notice mimics the operations required to supply an asset to the lending pool, estimating
+    /// the overall equity added to the strategy in terms of underlying asset (1e18)
+    /// @param $ Storage.Layout struct
+    /// @param assets amount of collateral asset to be supplied
+    /// @return suppliedEquityAsset esimated amount of equity supplied in asset terms (1e18)
+    function estimateSupply(Storage.Layout storage $, uint256 assets)
+        external
+        view
+        returns (uint256 suppliedEquityAsset)
+    {
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        uint256 currentCR =
+            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        uint256 estimateTargetCR;
+
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
+
+        uint256 assetsUSD = convertAssetToUSD(
+            assets,
+            underlyingPriceUSD,
+            IERC20Metadata(address($.assets.underlying)).decimals()
+        );
+
+        if (currentCR == type(uint256).max) {
+            estimateTargetCR = $.collateralRatioTargets.target;
+        } else {
+            if (rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
+                currentCR = $.collateralRatioTargets.target;
+            }
+
+            uint256 afterCR = collateralRatioUSD(
+                state.collateralUSD + assetsUSD, state.debtUSD
+            );
+            if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
+                estimateTargetCR = currentCR;
+                if (
+                    $.collateralRatioTargets.maxForDepositRebalance
+                        > estimateTargetCR
+                ) {
+                    estimateTargetCR =
+                        $.collateralRatioTargets.maxForDepositRebalance;
+                }
+            } else {
+                estimateTargetCR = afterCR;
+            }
+        }
+
+        uint256 offsetFactor =
+            $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+        uint256 borrowAmountUSD =
+            requiredBorrowUSD(estimateTargetCR, assetsUSD, 0, offsetFactor);
+        uint256 collateralAfterUSD = borrowAmountUSD.usdMul(estimateTargetCR);
+        uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
+
+        return convertUSDToAsset(
+            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
+        );
+    }
+
+    /// @notice mimics the operations required to withdraw an asset from the lending pool, estimating
+    /// the overall equity received from the strategy in terms of underlying asset (1e18)
+    /// @param $ Storage.Layout struct
+    /// @param shares amount of shares to burn to receive equity
+    /// @param totalShares total supply of shares
+    /// @return shareEquityAsset amount of equity assets received for the burnt shares
+    function estimateWithdraw(
+        Storage.Layout storage $,
+        uint256 shares,
+        uint256 totalShares
+    ) external view returns (uint256 shareEquityAsset) {
+        // get current loan state and calculate initial collateral ratio
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        uint256 collateralRatio =
+            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        // if collateralRatio is outside range, user should not incur rebalance costs
+        if (
+            collateralRatio != type(uint256).max
+                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+        ) {
+            // calculate amount of collateral needed to bring the collateral ratio
+            // to target
+            uint256 neededCollateralUSD = requiredCollateralUSD(
+                $.collateralRatioTargets.target,
+                state.collateralUSD,
+                state.debtUSD,
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+
+            // calculate new debt and collateral values after collateral has been exchanged
+            // for rebalance
+            state.collateralUSD -= neededCollateralUSD;
+            state.debtUSD -= RebalanceLogic.offsetUSDAmountDown(
+                neededCollateralUSD,
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+        }
+
+        // calculate amount of debt and equity corresponding to shares in USD value
+        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            LoanLogic.shareDebtAndEquity(state, shares, totalShares);
+
+        // case when redeemer is redeeming all remaining shares
+        if (state.debtUSD == shareDebtUSD) {
+            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
+                USDWadRayMath.USD
+                    - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+
+            shareEquityUSD -= collateralNeededUSD.usdMul(
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+        } else if (
+            RebalanceLogic.collateralRatioUSD(
+                state.collateralUSD - shareEquityUSD, state.debtUSD
+            ) < $.collateralRatioTargets.minForWithdrawRebalance
+        ) {
+            if (
+                state.collateralUSD
+                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                        state.debtUSD
+                    )
+            ) {
+                // amount of equity in USD value which may be withdrawn from
+                // strategy without driving the collateral ratio below
+                // the minForWithdrawRebalance limit, thereby not requiring
+                // a rebalance operation
+                uint256 freeEquityUSD = state.collateralUSD
+                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                        state.debtUSD
+                    );
+
+                // adjust share debt to account for the free equity - since
+                // some equity may be withdrawn freely, not all the debt has to be
+                // repaid
+                shareDebtUSD = shareDebtUSD
+                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
+                        shareEquityUSD + shareDebtUSD - freeEquityUSD
+                    );
+            }
+
+            // amount of collateral needed for repaying debt of shares after
+            // freeEquityUSD is accounted for
+            uint256 neededCollateralUSD = shareDebtUSD.usdDiv(
+                USDWadRayMath.USD
+                    - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+
+            shareEquityUSD -= neededCollateralUSD.usdMul(
+                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
+            );
+        }
+
+        shareEquityAsset = convertUSDToAsset(
+            shareEquityUSD,
+            $.oracle.getAssetPrice(address($.assets.underlying)),
+            IERC20Metadata(address($.assets.underlying)).decimals()
+        );
+
+        return shareEquityAsset;
+    }
+
     /// @notice performs all operations necessary to rebalance the loan state of the strategy upwards
     /// @dev "upwards" in this context means reducing collateral ratio, thereby _increasing_ exposure
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
