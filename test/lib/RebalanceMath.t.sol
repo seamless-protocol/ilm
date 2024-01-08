@@ -17,10 +17,9 @@ contract RebalanceMathTest is Test {
     /// of inputs
     /// @param collateralUSD fuzzed value of collateral held by contract in USD
     /// @param debtUSD fuzzed value of debt held by contract in USD
-    function testFuzz_collateralRatioUSD(
-        uint256 collateralUSD,
-        uint256 debtUSD
-    ) public {
+    function testFuzz_collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
+        public
+    {
         debtUSD = bound(
             debtUSD, 0, (type(uint256).max - debtUSD / 2) / USDWadRayMath.USD
         );
@@ -100,9 +99,8 @@ contract RebalanceMathTest is Test {
                 targetCR, collateralUSD, debtUSD, offsetFactor
             );
 
-            uint256 actualBorrow = (
-                collateralUSD - targetCR.usdMul(debtUSD)
-            ).usdDiv(targetCR - (USDWadRayMath.USD - offsetFactor));
+            uint256 actualBorrow = (collateralUSD - targetCR.usdMul(debtUSD))
+                .usdDiv(targetCR - (USDWadRayMath.USD - offsetFactor));
 
             assertEq(requiredBorrow, actualBorrow);
         }
