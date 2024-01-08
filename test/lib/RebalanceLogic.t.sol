@@ -17,7 +17,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
     uint256 targetCR;
 
-    //address public SUPPLIER = address(123123123);
     /// @dev sets up testing context
     function setUp() public virtual override {
         super.setUp();
@@ -492,7 +491,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     /// for a range of inputs
     /// @param _a fuzzed value to offset down
     /// @param _offsetUSD fuzzed value of _offsetUSD
-    function testFuzz__offset_USDAmountDown(uint256 _a, uint256 _offsetUSD)
+    function testFuzz_offset_USDAmountDown(uint256 _a, uint256 _offsetUSD)
         public
     {
         _offsetUSD = bound(_offsetUSD, 0, USDWadRayMath.USD - 1);
