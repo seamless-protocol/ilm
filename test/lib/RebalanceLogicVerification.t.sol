@@ -6,6 +6,8 @@ import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
+import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
+import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
@@ -25,7 +27,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         // a bit more than a third to hit as close as possible to 1 ETH after rebalancing upwards for
         // 3x leverage
         uint256 startingAmountAsset = uint256(1 ether) * 11 / 30;
-        uint256 startingAmountUSD = RebalanceLogic.convertAssetToUSD(
+        uint256 startingAmountUSD = ConversionMath.convertAssetToUSD(
             startingAmountAsset, WETH_price, 18
         );
 
@@ -109,7 +111,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         // 3x leverage
         // value is found heuristically
         uint256 startingAmountAsset = uint256(1 ether) * 288_143 / 1_000_000;
-        uint256 startingAmountUSD = RebalanceLogic.convertAssetToUSD(
+        uint256 startingAmountUSD = ConversionMath.convertAssetToUSD(
             startingAmountAsset, WETH_price, 18
         );
 

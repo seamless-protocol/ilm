@@ -26,6 +26,7 @@ import {
     LendingPool,
     StrategyAssets
 } from "./types/DataTypes.sol";
+import { ConversionMath } from "./libraries/math/ConversionMath.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -153,7 +154,7 @@ contract LoopStrategy is
         uint256 underlyingDecimals =
             IERC20Metadata(address($.assets.underlying)).decimals();
 
-        return RebalanceLogic.convertUSDToAsset(
+        return ConversionMath.convertUSDToAsset(
             equityUSD(), underlyingPriceUSD, underlyingDecimals
         );
     }

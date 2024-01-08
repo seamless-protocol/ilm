@@ -8,6 +8,7 @@ import { IERC20Metadata } from
     "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { LoanLogic } from "./LoanLogic.sol";
+import { ConversionMath } from "./math/ConversionMath.sol";
 import { USDWadRayMath } from "./math/USDWadRayMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { LoopStrategyStorage as Storage } from
@@ -142,7 +143,7 @@ library RebalanceLogic {
         }
 
         // convert equity to collateral asset
-        shareEquityAsset = convertUSDToAsset(
+        shareEquityAsset = ConversionMath.convertUSDToAsset(
             shareEquityUSD,
             $.oracle.getAssetPrice(address($.assets.collateral)),
             IERC20Metadata(address($.assets.collateral)).decimals()
@@ -220,7 +221,7 @@ library RebalanceLogic {
         uint256 underlyingDecimals =
             IERC20Metadata(address($.assets.underlying)).decimals();
 
-        uint256 assetsUSD = convertAssetToUSD(
+        uint256 assetsUSD = ConversionMath.convertAssetToUSD(
             assets,
             underlyingPriceUSD,
             IERC20Metadata(address($.assets.underlying)).decimals()
@@ -257,7 +258,7 @@ library RebalanceLogic {
         uint256 collateralAfterUSD = borrowAmountUSD.usdMul(estimateTargetCR);
         uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 
-        return convertUSDToAsset(
+        return ConversionMath.convertUSDToAsset(
             estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
         );
     }
@@ -357,7 +358,7 @@ library RebalanceLogic {
             );
         }
 
-        shareEquityAsset = convertUSDToAsset(
+        shareEquityAsset = ConversionMath.convertUSDToAsset(
             shareEquityUSD,
             $.oracle.getAssetPrice(address($.assets.underlying)),
             IERC20Metadata(address($.assets.underlying)).decimals()
@@ -419,8 +420,9 @@ library RebalanceLogic {
             }
 
             // convert borrowAmount from USD to a borrowAsset amount
-            uint256 borrowAmountAsset =
-                convertUSDToAsset(borrowAmountUSD, debtPriceUSD, debtDecimals);
+            uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
+                borrowAmountUSD, debtPriceUSD, debtDecimals
+            );
 
             if (borrowAmountAsset == 0) {
                 break;
@@ -598,36 +600,6 @@ library RebalanceLogic {
             _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
     }
 
-    /// @notice converts a asset amount to its usd value
-    /// @param _assetAmount amount of asset
-    /// @param _priceInUSD price of asset in USD
-    /// @return usdAmount amount of USD after conversion
-    function convertAssetToUSD(
-        uint256 _assetAmount,
-        uint256 _priceInUSD,
-        uint256 _assetDecimals
-    ) internal pure returns (uint256 usdAmount) {
-        usdAmount = _assetAmount * _priceInUSD / (10 ** _assetDecimals);
-    }
-
-    /// @notice converts a USD amount to its token value
-    /// @param _usdAmount amount of USD
-    /// @param _priceInUSD price of asset in USD
-    /// @return assetAmount amount of asset after conversion
-    function convertUSDToAsset(
-        uint256 _usdAmount,
-        uint256 _priceInUSD,
-        uint256 _assetDecimals
-    ) internal pure returns (uint256 assetAmount) {
-        if (USD_DECIMALS > _assetDecimals) {
-            assetAmount = _usdAmount.usdDiv(_priceInUSD)
-                / (10 ** (USD_DECIMALS - _assetDecimals));
-        } else {
-            assetAmount = _usdAmount.usdDiv(_priceInUSD)
-                * (10 ** (_assetDecimals - USD_DECIMALS));
-        }
-    }
-
     /// @notice helper function to offset amounts by a USD percentage downwards
     /// @param _a amount to offset
     /// @param _offsetUSD offset as a number between 0 -  ONE_USD
@@ -706,7 +678,7 @@ library RebalanceLogic {
             ? collateralAmountUSD
             : neededCollateralUSD;
 
-        return convertUSDToAsset(
+        return ConversionMath.convertUSDToAsset(
             collateralAmountUSD, collateralPriceUSD, collateralDecimals
         );
     }

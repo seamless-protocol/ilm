@@ -6,6 +6,7 @@ import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
+import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
 /// @title RebalanceLogicTest
@@ -58,7 +59,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // more than one iteration to reach targetCR of 1.45e8
-        uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
+        uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
             LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
             USDbC_price,
             6
@@ -103,7 +104,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         // perform a single borrow-supply iteration, so non-zero debt whilst still needing
         // one iteration to reach targetCR of  1.8555e8
-        uint256 borrowAmountAsset = RebalanceLogic.convertUSDToAsset(
+        uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
             LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
             USDbC_price,
             6
@@ -458,7 +459,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         _priceInUSD = bound(_priceInUSD, 0, 1 ** 12);
         _assetAmount = bound(_assetAmount, 0, 5 * 10 ** 60);
 
-        uint256 _usdAmount = RebalanceLogic.convertAssetToUSD(
+        uint256 _usdAmount = ConversionMath.convertAssetToUSD(
             _assetAmount, _priceInUSD, _assetDecimals
         );
 
@@ -481,7 +482,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         vm.assume(_priceInUSD <= 250_000 * 10 ** 8 && _priceInUSD != 0); // assume no token has a price larger than 250000 USD
         vm.assume(_usdAmount <= 5 * 10 ** 60 && _usdAmount != 0); // assume no astronomical value of USD to be converted
 
-        uint256 _assetAmount = RebalanceLogic.convertUSDToAsset(
+        uint256 _assetAmount = ConversionMath.convertUSDToAsset(
             _usdAmount, _priceInUSD, _assetDecimals
         );
 
