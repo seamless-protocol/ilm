@@ -27,6 +27,7 @@ import {
 import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
 import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
@@ -333,7 +334,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // calculate amount of collateral needed to bring the collateral ratio
         // to target, on the strategy wide rebalance
-        uint256 neededCollateralUSD = RebalanceLogic.requiredCollateralUSD(
+        uint256 neededCollateralUSD = RebalanceMath.requiredCollateralUSD(
             collateralRatioTargets.target,
             strategy.collateral(),
             strategy.debt(),
@@ -345,8 +346,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 expectedCollateralUSD =
             strategy.collateral() - neededCollateralUSD;
         uint256 expectedDebtUSD = strategy.debt()
-            - RebalanceLogic.offsetUSDAmountDown(neededCollateralUSD, swapOffset);
-        uint256 expectedCR = RebalanceLogic.collateralRatioUSD(
+            - RebalanceMath.offsetUSDAmountDown(neededCollateralUSD, swapOffset);
+        uint256 expectedCR = RebalanceMath.collateralRatioUSD(
             expectedCollateralUSD, expectedDebtUSD
         );
 

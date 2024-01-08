@@ -9,6 +9,7 @@ import { IERC20Metadata } from
 
 import { LoanLogic } from "./LoanLogic.sol";
 import { ConversionMath } from "./math/ConversionMath.sol";
+import { RebalanceMath } from "./math/RebalanceMath.sol";
 import { USDWadRayMath } from "./math/USDWadRayMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { LoopStrategyStorage as Storage } from
@@ -43,12 +44,12 @@ library RebalanceLogic {
         uint256 assets
     ) external {
         uint256 prevCollateralRatio =
-            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
 
         uint256 afterCollateralRatio =
-            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (prevCollateralRatio == type(uint256).max) {
             rebalanceTo($, state, 0, $.collateralRatioTargets.target);
@@ -101,7 +102,7 @@ library RebalanceLogic {
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
         // by equity cost of rebalance
         else if (
-            collateralRatioUSD(
+            RebalanceMath.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
@@ -167,7 +168,8 @@ library RebalanceLogic {
         uint256 targetCR
     ) public returns (uint256 ratio) {
         // current collateral ratio
-        ratio = collateralRatioUSD(state.collateralUSD, state.debtUSD);
+        ratio =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (ratio > targetCR) {
             return rebalanceUp($, state, ratio, targetCR);
@@ -187,7 +189,7 @@ library RebalanceLogic {
         // get current loan state and calculate initial collateral ratio
         state = LoanLogic.getLoanState($.lendingPool);
         uint256 collateralRatio =
-            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         // if collateralRatio is outside range, user should not incur rebalance costs
         if (
@@ -213,7 +215,7 @@ library RebalanceLogic {
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         uint256 currentCR =
-            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
         uint256 estimateTargetCR;
 
         uint256 underlyingPriceUSD =
@@ -234,7 +236,7 @@ library RebalanceLogic {
                 currentCR = $.collateralRatioTargets.target;
             }
 
-            uint256 afterCR = collateralRatioUSD(
+            uint256 afterCR = RebalanceMath.collateralRatioUSD(
                 state.collateralUSD + assetsUSD, state.debtUSD
             );
             if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
@@ -253,8 +255,9 @@ library RebalanceLogic {
 
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
-        uint256 borrowAmountUSD =
-            requiredBorrowUSD(estimateTargetCR, assetsUSD, 0, offsetFactor);
+        uint256 borrowAmountUSD = RebalanceMath.requiredBorrowUSD(
+            estimateTargetCR, assetsUSD, 0, offsetFactor
+        );
         uint256 collateralAfterUSD = borrowAmountUSD.usdMul(estimateTargetCR);
         uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 
@@ -278,7 +281,7 @@ library RebalanceLogic {
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         uint256 collateralRatio =
-            collateralRatioUSD(state.collateralUSD, state.debtUSD);
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         // if collateralRatio is outside range, user should not incur rebalance costs
         if (
@@ -287,7 +290,7 @@ library RebalanceLogic {
         ) {
             // calculate amount of collateral needed to bring the collateral ratio
             // to target
-            uint256 neededCollateralUSD = requiredCollateralUSD(
+            uint256 neededCollateralUSD = RebalanceMath.requiredCollateralUSD(
                 $.collateralRatioTargets.target,
                 state.collateralUSD,
                 state.debtUSD,
@@ -297,7 +300,7 @@ library RebalanceLogic {
             // calculate new debt and collateral values after collateral has been exchanged
             // for rebalance
             state.collateralUSD -= neededCollateralUSD;
-            state.debtUSD -= RebalanceLogic.offsetUSDAmountDown(
+            state.debtUSD -= RebalanceMath.offsetUSDAmountDown(
                 neededCollateralUSD,
                 $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
@@ -318,7 +321,7 @@ library RebalanceLogic {
                 $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
         } else if (
-            RebalanceLogic.collateralRatioUSD(
+            RebalanceMath.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
@@ -405,7 +408,7 @@ library RebalanceLogic {
             {
                 // calculate how much borrow amount in USD is needed to reach
                 // targetCR
-                uint256 neededBorrowUSD = requiredBorrowUSD(
+                uint256 neededBorrowUSD = RebalanceMath.requiredBorrowUSD(
                     _targetCR,
                     _state.collateralUSD,
                     _state.debtUSD,
@@ -452,7 +455,9 @@ library RebalanceLogic {
             );
 
             // update collateral ratio value
-            ratio = collateralRatioUSD(_state.collateralUSD, _state.debtUSD);
+            ratio = RebalanceMath.collateralRatioUSD(
+                _state.collateralUSD, _state.debtUSD
+            );
 
             if (++count > $.maxIterations) {
                 break;
@@ -496,9 +501,10 @@ library RebalanceLogic {
             // current collateral ratio
             ratio = currentCR;
 
-            uint256 collateralAmountAsset = calculateCollateralAsset(
+            uint256 collateralAmountAsset = RebalanceMath
+                .calculateCollateralAsset(
                 state,
-                requiredCollateralUSD(
+                RebalanceMath.requiredCollateralUSD(
                     targetCR, state.collateralUSD, state.debtUSD, offsetFactor
                 ),
                 collateralPriceUSD,
@@ -524,7 +530,9 @@ library RebalanceLogic {
             state.collateralUSD -= withdrawalUSD;
 
             // update collateral ratio value
-            ratio = collateralRatioUSD(state.collateralUSD, state.debtUSD);
+            ratio = RebalanceMath.collateralRatioUSD(
+                state.collateralUSD, state.debtUSD
+            );
 
             if (++count > $.maxIterations) {
                 break;
@@ -555,7 +563,8 @@ library RebalanceLogic {
         uint256 count;
 
         do {
-            uint256 collateralAmountAsset = calculateCollateralAsset(
+            uint256 collateralAmountAsset = RebalanceMath
+                .calculateCollateralAsset(
                 state,
                 remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor),
                 collateralPriceUSD,
@@ -585,102 +594,6 @@ library RebalanceLogic {
                 break;
             }
         } while (targetDebtUSD < state.debtUSD);
-    }
-
-    /// @notice helper function to calculate collateral ratio
-    /// @param _collateralUSD collateral value in USD
-    /// @param _debtUSD debt valut in USD
-    /// @return ratio collateral ratio value
-    function collateralRatioUSD(uint256 _collateralUSD, uint256 _debtUSD)
-        internal
-        pure
-        returns (uint256 ratio)
-    {
-        ratio =
-            _debtUSD != 0 ? _collateralUSD.usdDiv(_debtUSD) : type(uint256).max;
-    }
-
-    /// @notice helper function to offset amounts by a USD percentage downwards
-    /// @param _a amount to offset
-    /// @param _offsetUSD offset as a number between 0 -  ONE_USD
-    function offsetUSDAmountDown(uint256 _a, uint256 _offsetUSD)
-        internal
-        pure
-        returns (uint256 amount)
-    {
-        // prevent overflows
-        if (_a <= type(uint256).max / (ONE_USD - _offsetUSD)) {
-            amount = (_a * (ONE_USD - _offsetUSD)) / ONE_USD;
-        } else {
-            amount = (_a / ONE_USD) * (ONE_USD - _offsetUSD);
-        }
-    }
-
-    /// @notice calculates the total required borrow amount in order to reach a target collateral ratio value
-    /// @param targetCR target collateral ratio value
-    /// @param collateralUSD current collateral value in USD
-    /// @param debtUSD current debt value in USD
-    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
-    /// @return amount required borrow amount
-    function requiredBorrowUSD(
-        uint256 targetCR,
-        uint256 collateralUSD,
-        uint256 debtUSD,
-        uint256 offsetFactor
-    ) internal pure returns (uint256 amount) {
-        return (collateralUSD - targetCR.usdMul(debtUSD)).usdDiv(
-            targetCR - (ONE_USD - offsetFactor)
-        );
-    }
-
-    /// @notice calculates the total required collateral amount in order to reach a target collateral ratio value
-    /// @param targetCR target collateral ratio value
-    /// @param collateralUSD current collateral value in USD
-    /// @param debtUSD current debt value in USD
-    /// @param offsetFactor expected loss to DEX fees and slippage expressed as a value from 0 - ONE_USD
-    /// @return amount required collateral amount
-    function requiredCollateralUSD(
-        uint256 targetCR,
-        uint256 collateralUSD,
-        uint256 debtUSD,
-        uint256 offsetFactor
-    ) internal pure returns (uint256 amount) {
-        return (
-            amount = (targetCR.usdMul(debtUSD) - collateralUSD).usdDiv(
-                targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD
-            )
-        );
-    }
-
-    /// @notice determines the collateral asset amount needed for a rebalance down cycle
-    /// @param state loan state
-    /// @param neededCollateralUSD collateral needed for overall operation in USD
-    /// @param collateralPriceUSD price of collateral in USD
-    /// @param collateralDecimals decimals of collateral token
-    /// @return collateralAmountAsset amount of collateral asset needed fo the current rebalance down cycle
-    function calculateCollateralAsset(
-        LoanState memory state,
-        uint256 neededCollateralUSD,
-        uint256 collateralPriceUSD,
-        uint256 collateralDecimals
-    ) internal pure returns (uint256 collateralAmountAsset) {
-        // maximum amount of collateral to not jeopardize loan health in USD
-        uint256 collateralAmountUSD = state.maxWithdrawAmount;
-
-        // handle cases where debt is less than maxWithdrawAmount possible
-        if (state.debtUSD < state.maxWithdrawAmount) {
-            collateralAmountUSD = state.debtUSD;
-        }
-
-        // if less than the max collateral amount possible is needed,
-        // use the amount that is required to reach targetCR
-        collateralAmountUSD = collateralAmountUSD < neededCollateralUSD
-            ? collateralAmountUSD
-            : neededCollateralUSD;
-
-        return ConversionMath.convertUSDToAsset(
-            collateralAmountUSD, collateralPriceUSD, collateralDecimals
-        );
     }
 
     /// @notice withrdraws an amount of collateral asset and exchanges it for an

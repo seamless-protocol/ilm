@@ -7,7 +7,7 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
-import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
@@ -46,9 +46,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         );
         assertEq(state.debtUSD, 0);
         assertEq(
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
-            ),
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
             type(uint256).max
         );
 
@@ -77,9 +75,8 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
 
         state = LoanLogic.getLoanState($.lendingPool);
 
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         // expectedCR taken from scenario case
         uint256 expectedCR = uint256(1.65e8);
@@ -128,9 +125,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         );
         assertEq(state.debtUSD, 0);
         assertEq(
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
-            ),
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
             type(uint256).max
         );
 
@@ -159,9 +154,8 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         state = LoanLogic.supply(
             $.lendingPool, $.assets.collateral, depositAmountAsset
         );
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 expectedCR = 1.4165e8;
 

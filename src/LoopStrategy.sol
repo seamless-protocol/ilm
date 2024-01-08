@@ -27,6 +27,7 @@ import {
     StrategyAssets
 } from "./types/DataTypes.sol";
 import { ConversionMath } from "./libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "./libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -183,9 +184,8 @@ contract LoopStrategy is
     {
         LoanState memory state =
             LoanLogic.getLoanState(Storage.layout().lendingPool);
-        return RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        return
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -217,9 +217,7 @@ contract LoopStrategy is
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
         return RebalanceLogic.rebalanceNeeded(
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
-            ),
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
             $.collateralRatioTargets
         );
     }

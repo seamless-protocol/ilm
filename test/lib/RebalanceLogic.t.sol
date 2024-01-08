@@ -7,6 +7,7 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
 /// @title RebalanceLogicTest
@@ -36,9 +37,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio = RebalanceLogic.rebalanceUp(
             $, state, currentCR, $.collateralRatioTargets.target
@@ -82,9 +82,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $.lendingPool, $.assets.collateral, collateralAmountAsset
         );
 
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -127,9 +126,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $.lendingPool, $.assets.collateral, collateralAmountAsset
         );
 
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -146,9 +144,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.35e8;
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -160,9 +157,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.45e8;
 
         state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
 
@@ -181,9 +177,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -195,9 +190,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.45e8;
 
         state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 withdrawalUSD = 1000 * USDWadRayMath.USD; // 1000 USD
 
@@ -219,9 +213,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.35e8;
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -233,9 +226,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 3.5e8;
 
         state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
 
@@ -253,9 +245,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.35e8;
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -267,9 +258,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 3.5e8;
 
         state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 withdrawalUSD = 1000 * USDWadRayMath.USD; // 1000 USD
 
@@ -290,9 +280,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.35e8;
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -327,9 +316,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         );
 
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetRatio);
@@ -349,9 +337,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -363,9 +350,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = targetRatio;
 
         state = LoanLogic.getLoanState($.lendingPool);
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
 
@@ -384,9 +370,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         targetCR = 1.35e8;
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio =
             RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
@@ -436,10 +421,10 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 ratio;
 
         if (_debtUSD == 0) {
-            ratio = RebalanceLogic.collateralRatioUSD(_collateralUSD, _debtUSD);
+            ratio = RebalanceMath.collateralRatioUSD(_collateralUSD, _debtUSD);
             assertEq(ratio, type(uint256).max);
         } else {
-            ratio = RebalanceLogic.collateralRatioUSD(_collateralUSD, _debtUSD);
+            ratio = RebalanceMath.collateralRatioUSD(_collateralUSD, _debtUSD);
             assertEq(ratio, _collateralUSD.usdDiv(_debtUSD));
         }
     }
@@ -512,7 +497,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     {
         _offsetUSD = bound(_offsetUSD, 0, USDWadRayMath.USD - 1);
 
-        uint256 amount = RebalanceLogic.offsetUSDAmountDown(_a, _offsetUSD);
+        uint256 amount = RebalanceMath.offsetUSDAmountDown(_a, _offsetUSD);
 
         // ensure overflows are accounted for
         if (_a <= type(uint256).max / (USDWadRayMath.USD - _offsetUSD)) {
@@ -556,7 +541,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         __debtUSD = bound(__debtUSD, 0, __collateralUSD.usdMul(_ltv));
 
         if (__collateralUSD > _targetCR.usdMul(__debtUSD)) {
-            uint256 requiredBorrow = RebalanceLogic.requiredBorrowUSD(
+            uint256 requiredBorrow = RebalanceMath.requiredBorrowUSD(
                 _targetCR, __collateralUSD, __debtUSD, _offsetFactor
             );
 

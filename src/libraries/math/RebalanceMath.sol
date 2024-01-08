@@ -20,8 +20,7 @@ library RebalanceMath {
         pure
         returns (uint256 ratio)
     {
-        ratio =
-            debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
+        ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
     }
 
     /// @notice helper function to offset amounts by a USD percentage downwards
