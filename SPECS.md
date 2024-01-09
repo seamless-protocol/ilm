@@ -20,21 +20,23 @@ To manage the loans, the `LoopingStrategy` contracts leverage the OpenZeppelin D
 
 The `LoopingStrategy` overrides the `ERC4626` standard to mint/burn user shares, and integrates with the `Seamless` protocol for borrowing. As a result all debt is attributed to the strategy, and the strategy holds `sTokens` or `debtTokens`, with the positions of users in the strategy are directly reflected by their shares.
 
-## Deposit
+### Rebalancing
 
-Users can deposit any amount of collateral assets into the LoopStrategy contract. In return, users receive share tokens (ERC20) representing their position in the strategy. While these share tokens are transferable, transferring them also involves transferring the permission to redeem collateral assets.
+The strategy adjusts risk by maintaining a desired (target) collateral ratio, defined as the ratio of collateral asset and debt asset in USD value. As the price of collateral asset increases, so does the value of the collateral. To maintain the target collateral ratio, the strategy borrows more from the lending pool, exchanges it for the collateral asset and supplies it back to the lending pool. This increases exposure to the collateral asset, subsequently increasing the equity of share tokens. 
 
-## Strategy Rebalancing
+Rebalance margins have been implemented allow for small deviations from the target collateral ratio in order to minimize the frequency of rebalances, mitigating equity loss caused by DEX fees upon swapping. Additionally, a second, smaller margin has been implemented around the target to accommodate small deposit/withdrawal actions (relative to the total TVL), preventing unnecessary rebalances and further preventing the burdening of users with DEX fees.
 
-The strategy aims to maintain the target collateral ratio (the ratio of collateral asset and debt asset). As the price of collateral increases, the strategy borrows more from the lending pool, exchanging it for the collateral asset and supplying it back. This increases exposure to the collateral asset, subsequently increasing the equity of share tokens. Rebalance margins allow for a small deviation from the target and are defined to minimize the frequency of rebalances, avoiding excessive DEX fees. Additionally, a smaller margin around the target accommodates small deposit/withdrawal actions (relative to the total TVL), preventing unnecessary rebalances and saving users from DEX fees.
+### Deposit
 
-## Redeem/Withdraw
+Users can deposit any amount of collateral assets into the `LoopStrategy`. In return, users receive share tokens (ERC20) representing their position in the strategy. These share tokens are transferable, along with any rights to the assets they represent - both their respective debt, and collateral, get transferred as well. 
 
-By burning share tokens, users receive a proportional amount of collateral back. Users are allowed to redeem share tokens at any time.
+### Redeem
 
-## Fees
+By burning share tokens, users receive a proportional amount of collateral back, after paying back the debt corresponding to the shares. Users are allowed to redeem share tokens at any time.
 
-The strategy contract itself does not impose any fees. However, users need to be aware of DEX fees incurred during the swap of debt assets for collateral assets (resulting in a lower equity of the strategy) and the accrual of debt interest on the borrowed asset.
+### Fees
+
+The strategy contract itself does not impose any fees. However the strategy, and subsequently the users, incur DEX fees during the swapping of debt assets for collateral assets (resulting in a lower equity of the strategy), as well as accruing debt interest on the borrowed asset.
 
 # Abbreviations and Formulas
 
