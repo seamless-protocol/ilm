@@ -1,10 +1,24 @@
-# ILM
+# Integrated Liquidity Markets (ILM)
 
-The Looping Strategy is a set of contracts designed to manage user positions within a protocol. It integrates the ERC4626 standard and utilizes the OpenZeppelin Defender platform for the automation of position management through rebalancing. The strategy holds underlying lending pool tokens (sTokens/debtTokens) and is responsible for managing user positions by minting/burning share tokens.
+The ILMs are a set of contracts which increase capital efficiency chiefly by reducing friction of capital deployment and costs of position management.
 
-Users have the flexibility to deposit and withdraw collateral at any moment. Their collateral is pooled and deposited into the lending pool as a single position. Debt assets are borrowed from the pool against the supplied collateral, exchanged on an external DEX for the collateral asset, resulting in more collateral than initially started with. This surplus collateral is supplied back to the lending pool, empowering the strategy to borrow even more - hence the term "looping strategy," repeating this process multiple times. The LoopStrategy contract automatically rebalances on significant deposits, withdrawals, and changes in the price of collateral or debt assets.
+## Looping Strategy
+
+### Overview
+The `LoopingStrategy` is the first of a set of strategy contracts which will comprise the `Integrated Liquidity Markets` (ILMs). It recursively supplies deposited assets as collateral and takes out loans against that collateral to multiplicatively increase the exposure to the asset provided as collateral - hence the name `Looping`.
 
 ![Looping Strategy](https://953119082-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FUh7w5UXhBr7jGvg6R4FO%2Fuploads%2FFETfVcCSMps0WsWEALkC%2FILM%20diagram.png?alt=media&token=855a0dc2-ac65-47bd-b966-19622a324353 "Looping strategy")
+
+In a nutshell, the "loop" goes as follows:
+- User collateral is pooled and deposited into the lending pool as a single position
+- Debt assets are borrowed from the pool against the supplied collateral
+- Debt assets are exchanged on an external DEX for the collateral asset
+- The additiona collateral asset is supplied back to the lending pool
+- Strategy is enabled to borrow more debt assets
+
+To manage the loans, the `LoopingStrategy` contracts leverage the OpenZeppelin Defender platform in order to supply more, or repay part of the loans, in order to keep the position within an acceptable risk margin. Specifically the LoopStrategy contract automatically rebalances on significant deposits, withdrawals, and changes in the price of collateral or debt assets.
+
+The `LoopingStrategy` overrides the `ERC4626` standard to mint/burn user shares, and integrates with the `Seamless` protocol for borrowing. As a result all debt is attributed to the strategy, and the strategy holds `sTokens` or `debtTokens`, with the positions of users in the strategy are directly reflected by their shares.
 
 ## Deposit
 
