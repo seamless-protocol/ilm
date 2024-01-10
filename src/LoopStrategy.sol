@@ -202,7 +202,6 @@ contract LoopStrategy is
         return RebalanceLogic.rebalanceTo(
             $,
             LoanLogic.getLoanState($.lendingPool),
-            0,
             $.collateralRatioTargets.target
         );
     }

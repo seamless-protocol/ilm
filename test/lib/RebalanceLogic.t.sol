@@ -135,8 +135,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    /// when rebalancing requires a single iteration with a zero withdrawal value
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration_ZeroValueWithdrawal(
+    /// when rebalancing requires a single iteration
+    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration(
     ) public {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
@@ -159,7 +159,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -167,45 +167,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    /// when rebalancing requires a single iteration with a non zero withdrawal value
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration_NonZeroValueWithdrawal(
-    ) public {
-        // with 0.75 LTV, we have a min CR of 1.33e8
-        // given by CR_min = 1 / LTV
-        targetCR = 1.35e8;
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        uint256 currentCR =
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
-
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-
-        targetCR = 1.45e8;
-
-        state = LoanLogic.getLoanState($.lendingPool);
-        currentCR =
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        uint256 withdrawalUSD = 1000 * USDWadRayMath.USD; // 1000 USD
-
-        ratio = RebalanceLogic.rebalanceDown(
-            $, state, withdrawalUSD, currentCR, targetCR
-        );
-
-        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-    }
-
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    /// when rebalancing requires multiple iterations with a zero withdrawal value
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations_ZeroValueWithdrawal(
+    /// when rebalancing requires multiple iterations
+    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations(
     ) public {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
@@ -228,43 +191,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
-
-        margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-    }
-
-    /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
-    /// when rebalancing requires multiple iterations with a non zero withdrawal value
-    function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringMultipleIterations_NonZeroValueWithdrawal(
-    ) public {
-        // with 0.75 LTV, we have a min CR of 1.33e8
-        // given by CR_min = 1 / LTV
-        targetCR = 1.35e8;
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR =
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
-
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-
-        assertApproxEqAbs(ratio, targetCR, margin);
-
-        targetCR = 3.5e8;
-
-        state = LoanLogic.getLoanState($.lendingPool);
-        currentCR =
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        uint256 withdrawalUSD = 1000 * USDWadRayMath.USD; // 1000 USD
-
-        ratio = RebalanceLogic.rebalanceDown(
-            $, state, withdrawalUSD, currentCR, targetCR
-        );
+        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -352,7 +279,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        ratio = RebalanceLogic.rebalanceDown($, state, 0, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
