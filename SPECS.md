@@ -20,6 +20,8 @@ To manage the loans, the `LoopingStrategy` contracts leverage the OpenZeppelin D
 
 The `LoopingStrategy` overrides the `ERC4626` standard to mint/burn user shares, and integrates with the `Seamless` protocol for borrowing. As a result all debt is attributed to the strategy, and the strategy holds `sTokens` or `debtTokens`, with the positions of users in the strategy are directly reflected by their shares.
 
+Below some key concepts, and their implementations, integral to the functioning of the `LoopStrategy` are expanded upon.
+
 ### Rebalancing
 
 The strategy adjusts risk by maintaining a desired (target) collateral ratio, defined as the ratio of collateral asset and debt asset in USD value. As the price of collateral asset increases, so does the value of the collateral. To maintain the target collateral ratio, the strategy borrows more from the lending pool, exchanges it for the collateral asset and supplies it back to the lending pool. This increases exposure to the collateral asset, subsequently increasing the equity of share tokens. 
@@ -60,33 +62,28 @@ The `mint` and `withdraw` functions from ERC4626 are disabled due to the complex
 
 #### Deposit Algorithm
 
-1. If the pool is out of the collateral ratio margin, a rebalance is initiated first.
-2. The current totalAssets (pool equity before user deposit) is saved as `prevTAssets`.
-3. The current collateral ratio is saved as `prevCR`.
-4. Users deposit collateral assets into the Seamless lending pool.
-5. The resulting collateral ratio is saved as `afterCR`.
-6. If `afterCR` is below `maxForDepositRebalance` margin, no rebalance is needed; otherwise, rebalancing is done to the ratio of `max(prevCR, targetCR)`.
-
-   - If there is insufficient borrowing liquidity for the rebalance, the deposit is still allowed. This may bring up the collateral ratio above the target and potentially above the rebalancing margin range, but the pool will rebalance once borrowing liquidity becomes available.
-
-7. The totalAssets after rebalanceUp (pool equity after user deposit) is saved as `afterTAssets`.
-
-   - Users effectively added `userAssets = (afterTAssets - prevTAssets)`.
-
-8. The number of shares that the user gets is calculated based on `userAssets` and `totalShares`.
+1. If the current collateral ratio is outside the defined margin, the pool rebalances.
+2. The totalAssets (pool equity before user deposit) are then recorded as `prevTAssets`.
+3. The collateral ratio is recorded as `prevCR`.
+4. The collateral assets are deposited into the Seamless lending pool.
+5. The resulting collateral ratio is recorded as `afterCR`.
+6. If `afterCR` is below the `maxForDepositRebalance` margin, no rebalance is needed; otherwise, the pool rebalances to the collateral ratio given by `max(prevCR, targetCR)`.
+7. The totalAssets after rebalanceUp (pool equity after user deposit) are recorded as `afterTAssets`. Users effectively added `userAssets = (afterTAssets - prevTAssets)` of equity.
+8. The number of shares that the user gets is calculated based on `userAssets` and `totalShares`, as per the ERC4646 specification:
    - `shares = (userAssets * totalShares + 1) / (totalAssets + 1)`
+
+Important note: if there is insufficient borrowing liquidity for the rebalance operation, the deposit is still allowed; user funds are held until rebalancing is possible again. This may result in the collateral ratio being above the target and potentially above the rebalancing margin range, and rebalancing will resume once borrowing liquidity becomes available.
 
 #### Redeem Algorithm
 
-1. If the pool is out of the collateral ratio margin, a rebalance is initiated first.
+1. If the current collateral ratio is outside the defined margin, the pool rebalances.
 2. Users redeem `W` shares.
-3. Users also specify `minAmountOut` of the underlying asset they expect. This is because the price on the DEX can change until the transaction is minted (potentially allowing frontrunning), resulting in less than expected withdrawal.
-
+3. Users also specify `minAmountOut` of the underlying asset they expect. This is to safeguard against DEX price changes between transaction submission and execution which may resul in a less than expected withdrawal.
 4. The current collateral ratio is saved as `prevCR`.
-5. The value of shares (`vUA`) is converted to the amount of the underlying asset (`UA`).
+5. The DOLLAR value of shares (`vUA`) is converted to the amount of the underlying asset (`UA`).
 6. If, after the withdrawal of `UA` from the lending pool, the collateral ratio is above `minForWithdrawRebalance` margin, collateral assets are withdrawn directly to the user address without DEX swaps and rebalances.
-7. Otherwise, if the collateral ratio is below `minForWithdrawRebalance` margin, a rebalance is done to the ratio of `min(prevCR, targetCR)`.
-8. During the rebalance, DEX fees are deducted from the withdrawer.
+7. Otherwise, if the withdrawal of collateral resulted in a collateral ratio below `minForWithdrawRebalance` margin, the pool rebalances to the collateral ratio given by `min(prevCR, targetCR)`.
+8. During the rebalance, the user redeeming the shares is burdened with the associated DEX fees, so that the pool does not incur these costs as lost equity.
 
    - Total collateral withdrawal value: `TCW`
    - Total collateral exchanged for borrowing asset: `TCE`
@@ -96,33 +93,30 @@ The `mint` and `withdraw` functions from ERC4626 are disabled due to the complex
 
 9. If the amount that the user gets is less than the specified `minAmountOut`, the transaction is reverted.
 
-#### LoanLogic
+### LoanLogic
 
-The LoanLogic library contains all the logic required for managing the loan position on the lending pool. It also includes helper functions to examine the current state of the loan and calculate the maximum amount of possible borrowings and withdrawals of supplied collateral.
+The LoanLogic library contains all the logic required for interacting with the Seamless lending pool. It includes helper functions to retrieve the current state of the loan, and, crucially, a function to calculate the maximum amount of possible borrowings and withdrawals of supplied collateral.
 
-#### RebalancingLogic
+### RebalanceLogic
 
-The RebalancingLogic library contains all the logic for rebalancing the strategy and calculating how much borrowing is needed to achieve defined collateral targets.
+The RebalanceLogic library contains all the logic for all the rebalancing operations the strategy undergoes.
 
 #### Rebalance Algorithm
 
-- Rebalancing when the CR is above the `maxRebalanceCR`:
+- When the collateral ratio is above the `maxForRebalance`:
 
-  1. Calculation of how much debt asset should be borrowed to reach the target collateral ratio.
-  2. Borrow debt assets from the pool.
+  1. Calculate amount of debt asset which needs to be borrowed to reach the target collateral ratio.
+  2. Borrow debt assets from the lending pool. If there is not enough debt asset to borrow, borrow as much as possible.
+  3. Swap debt assets for collateral assets via the DEX.
+  4. Supply collateral assets as collateral to the lending pool.
+  5. Repeat the process until the collateral ratio is still below the `maxForRebalance` ratio.
 
-  - If there is not enough debt asset to borrow, borrow as much as possible.
+- When the collateral ratio is below the `minForRebalance`:
 
-  3. Buy collateral assets from the DEX.
-  4. Supply collateral assets back as collateral to the lending pool.
-  5. Repeat the process if the CR is still above the `maxRebalanceCR`.
-
-- Rebalancing when the CR is below the `minRebalanceCR`:
-
-  1. Calculation of how much collateral asset should be withdrawn from the pool.
-  2. Withdraw collateral assets and sell them on the DEX for the debt asset.
+  1. Caculate amount of collateral asset needs to be withdrawn from the pool to reach the target collateral ratio.
+  2. Withdraw collateral assets and swap them for debt assets via the DEX.
   3. Repay debt with the debt asset.
-  4. Repeat the process if the CR is still below the maximum collateral ratio.
+  4. Repeat the process until the collateral ratio is above the minimum collateral ratio.
 
 ### USDWadRayMath
 
@@ -130,7 +124,7 @@ The USDWadRayMath library contains helper functions for the multiplication and d
 
 ## Swapper
 
-The Swapper contract is used by the strategy as a router for DEXs. It defines a unique route to swap from the starting asset to the destination asset, allowing the use of multiple DEXs on the route if needed. An `offset factor` is defined for each route to estimate the total amount lost on fees and potential slippage, represented as a percentage.
+The Swapper contract is used by the strategy as a router for DEXs. It defines a unique route to swap from the starting asset to the destination asset, allowing the use of multiple DEXs on the route. An `offset factor` is defined for each route to estimate the total amount lost on fees and potential slippage, represented as a percentage.
 
 ## WrappedCbETH
 
