@@ -40,7 +40,7 @@ By burning share tokens, users receive a proportional amount of collateral back,
 
 The strategy contract itself does not impose any fees. However the strategy, and subsequently the users, incur DEX fees during the swapping of debt assets for collateral assets (resulting in a lower equity of the strategy), as well as accruing debt interest on the borrowed asset.
 
-# Abbreviations and Formulas
+### Abbreviations and Formulas
 
 - Collateral value: `CV = value of total collateral in USD`
 - Borrow Value: `BV = value of total debt in USD`
