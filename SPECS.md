@@ -40,25 +40,25 @@ The strategy contract itself does not impose any fees. However the strategy, and
 
 # Abbreviations and Formulas
 
-- Collateral value: `CV = value of collateral in USD`
-- Borrow Value: `BV = value of total current debt in USD`
+- Collateral value: `CV = value of total collateral in USD`
+- Borrow Value: `BV = value of total debt in USD`
 - Pool Equity: `EV = CV - BV`
-- `totalAssets()` from ERC4626 is overridden to return Pool Equity value
 - Collateral Ratio: `CR = CV / BV`
 - Total shares: `TS = Total number of shares`
 - Share value: `SV = EV / TS`
+- `totalAssets()` from ERC4626 is overridden to return Pool Equity value
 
-# Contracts
+## Contracts
 
 Natspec-generated documentation can be found [here](/docs/src/SUMMARY.md).
 
-## LoopStrategy
+### LoopStrategy
 
-LoopStrategy is the user-facing contract that inherits the ERC4626 standard. It holds the lending pool tokens (sTokens/debtTokens) and manages positions using helper libraries. It features deposit/redeem functions as well as configuration functions.
+`LoopStrategy`` is the user-facing contract that inherits the ERC4626 standard. It holds the lending pool tokens (sTokens/debtTokens) and manages its position using helper libraries. It features deposit/redeem functions as well as configuration functions.
 
-The `mint` and `withdraw` functions from ERC4626 are disabled due to the complexity of share calculation. Instead, the `deposit` and `redeem` functions are overridden and intended for use.
+The `mint` and `withdraw` functions from ERC4626 are disabled due to the complexity of share calculation. Instead, the `deposit` and `redeem` functions are overridden and act as the primary mechanisms for entry and exit into the strategy, respectively.
 
-### Deposit Algorithm
+#### Deposit Algorithm
 
 1. If the pool is out of the collateral ratio margin, a rebalance is initiated first.
 2. The current totalAssets (pool equity before user deposit) is saved as `prevTAssets`.
@@ -76,7 +76,7 @@ The `mint` and `withdraw` functions from ERC4626 are disabled due to the complex
 8. The number of shares that the user gets is calculated based on `userAssets` and `totalShares`.
    - `shares = (userAssets * totalShares + 1) / (totalAssets + 1)`
 
-### Redeem Algorithm
+#### Redeem Algorithm
 
 1. If the pool is out of the collateral ratio margin, a rebalance is initiated first.
 2. Users redeem `W` shares.
@@ -96,11 +96,11 @@ The `mint` and `withdraw` functions from ERC4626 are disabled due to the complex
 
 9. If the amount that the user gets is less than the specified `minAmountOut`, the transaction is reverted.
 
-### LoanLogic
+#### LoanLogic
 
 The LoanLogic library contains all the logic required for managing the loan position on the lending pool. It also includes helper functions to examine the current state of the loan and calculate the maximum amount of possible borrowings and withdrawals of supplied collateral.
 
-### RebalancingLogic
+#### RebalancingLogic
 
 The RebalancingLogic library contains all the logic for rebalancing the strategy and calculating how much borrowing is needed to achieve defined collateral targets.
 
