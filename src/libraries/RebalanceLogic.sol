@@ -52,7 +52,7 @@ library RebalanceLogic {
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         if (prevCollateralRatio == type(uint256).max) {
-            rebalanceTo($, state, 0, $.collateralRatioTargets.target);
+            rebalanceTo($, state, $.collateralRatioTargets.target);
         } else if (
             afterCollateralRatio
                 > $.collateralRatioTargets.maxForDepositRebalance
@@ -66,7 +66,7 @@ library RebalanceLogic {
                     $.collateralRatioTargets.maxForDepositRebalance;
             }
 
-            rebalanceTo($, state, 0, rebalanceToRatio);
+            rebalanceTo($, state, rebalanceToRatio);
         }
     }
 
@@ -158,13 +158,11 @@ library RebalanceLogic {
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param $ the storage state of LendingStrategyStorage
     /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param withdrawalUSD amount of USD withdrawn - used to project post-collateral-withdrawal collateral ratios (useful in strategy share redemptions)
     /// @param targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceTo(
         Storage.Layout storage $,
         LoanState memory state,
-        uint256 withdrawalUSD,
         uint256 targetCR
     ) public returns (uint256 ratio) {
         // current collateral ratio
@@ -174,7 +172,7 @@ library RebalanceLogic {
         if (ratio > targetCR) {
             return rebalanceUp($, state, ratio, targetCR);
         } else {
-            return rebalanceDown($, state, withdrawalUSD, ratio, targetCR);
+            return rebalanceDown($, state, ratio, targetCR);
         }
     }
 
@@ -196,7 +194,7 @@ library RebalanceLogic {
             collateralRatio != type(uint256).max
                 && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
         ) {
-            rebalanceTo($, state, 0, $.collateralRatioTargets.target);
+            rebalanceTo($, state, $.collateralRatioTargets.target);
 
             state = LoanLogic.getLoanState($.lendingPool);
         }
@@ -470,14 +468,12 @@ library RebalanceLogic {
     /// @dev note that the current collateral/debt values are expected to be given in underlying value (USD)
     /// @param $ the storage state of LendingStrategyStorage
     /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
-    /// @param withdrawalUSD amount of USD withdrawn - used to project post-collateral-withdrawal collateral ratios (useful in strategy share redemptions)
     /// @param currentCR current value of collateral ratio
     /// @param targetCR target value of collateral ratio to reach
     /// @return ratio value of collateral ratio after rebalance
     function rebalanceDown(
         Storage.Layout storage $,
         LoanState memory state,
-        uint256 withdrawalUSD,
         uint256 currentCR,
         uint256 targetCR
     ) internal returns (uint256 ratio) {
@@ -493,9 +489,6 @@ library RebalanceLogic {
 
         uint256 margin = targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
-
-        // adjust collateralUSD in state by withdrawalUSD
-        state.collateralUSD -= withdrawalUSD;
 
         do {
             // current collateral ratio
@@ -525,9 +518,6 @@ library RebalanceLogic {
             // repay debt to AaveV3 _pool
             state =
                 LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
-
-            // adjust collateralUSD in state by withdrawalUSD
-            state.collateralUSD -= withdrawalUSD;
 
             // update collateral ratio value
             ratio = RebalanceMath.collateralRatioUSD(

@@ -51,7 +51,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -83,7 +83,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
 
         assertApproxEqAbs(currentCR, expectedCR, expectedCR / 1_000_000);
 
-        currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -133,7 +133,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         targetCR = 1.33333333e8;
         $.maxIterations = 25;
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -146,7 +146,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         assertApproxEqAbs(currentCR, targetCR, margin);
 
         targetCR = 1.4e8;
-        currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(currentCR, targetCR, margin);
@@ -163,7 +163,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         assertApproxEqAbs(currentCR, expectedCR, expectedCR / 10_000);
 
         targetCR = 1.4e8;
-        currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(currentCR, targetCR, margin);
