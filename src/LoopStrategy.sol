@@ -26,6 +26,8 @@ import {
     LendingPool,
     StrategyAssets
 } from "./types/DataTypes.sol";
+import { ConversionMath } from "./libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "./libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -157,7 +159,7 @@ contract LoopStrategy is
         uint256 underlyingDecimals =
             IERC20Metadata(address($.assets.underlying)).decimals();
 
-        return RebalanceLogic.convertUSDToAsset(
+        return ConversionMath.convertUSDToAsset(
             equityUSD(), underlyingPriceUSD, underlyingDecimals
         );
     }
@@ -182,9 +184,8 @@ contract LoopStrategy is
     {
         LoanState memory state =
             LoanLogic.getLoanState(Storage.layout().lendingPool);
-        return RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        return
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -201,7 +202,6 @@ contract LoopStrategy is
         return RebalanceLogic.rebalanceTo(
             $,
             LoanLogic.getLoanState($.lendingPool),
-            0,
             $.collateralRatioTargets.target
         );
     }
@@ -215,10 +215,8 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return _shouldRebalance(
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
-            ),
+        return RebalanceLogic.rebalanceNeeded(
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
             $.collateralRatioTargets
         );
     }
@@ -259,62 +257,10 @@ contract LoopStrategy is
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        Storage.Layout storage $ = Storage.layout();
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        uint256 currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
+        return _convertToShares(
+            RebalanceLogic.estimateSupply(Storage.layout(), assets),
+            totalAssets()
         );
-        uint256 estimateTargetCR;
-
-        uint256 underlyingPrice =
-            $.oracle.getAssetPrice(address($.assets.underlying));
-        uint256 assetsUSD = RebalanceLogic.convertAssetToUSD(
-            assets,
-            underlyingPrice,
-            IERC20Metadata(address($.assets.underlying)).decimals()
-        );
-
-        if (currentCR == type(uint256).max) {
-            estimateTargetCR = $.collateralRatioTargets.target;
-        } else {
-            if (_shouldRebalance(currentCR, $.collateralRatioTargets)) {
-                currentCR = $.collateralRatioTargets.target;
-            }
-
-            uint256 afterCR = RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD + assetsUSD, state.debtUSD
-            );
-            if (afterCR > $.collateralRatioTargets.maxForDepositRebalance) {
-                estimateTargetCR = currentCR;
-                if (
-                    $.collateralRatioTargets.maxForDepositRebalance
-                        > estimateTargetCR
-                ) {
-                    estimateTargetCR =
-                        $.collateralRatioTargets.maxForDepositRebalance;
-                }
-            } else {
-                estimateTargetCR = afterCR;
-            }
-        }
-
-        uint256 offsetFactor =
-            $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
-        uint256 borrowAmount = RebalanceLogic.requiredBorrowUSD(
-            estimateTargetCR, assetsUSD, 0, offsetFactor
-        );
-        uint256 collateralAfterUSD = borrowAmount.usdMul(estimateTargetCR);
-        uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmount;
-
-        uint256 underlyingPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.underlying));
-        uint256 underlyingDecimals =
-            IERC20Metadata(address($.assets.underlying)).decimals();
-
-        uint256 estimatedEquity = RebalanceLogic.convertUSDToAsset(
-            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
-        );
-        return _convertToShares(estimatedEquity, totalAssets());
     }
 
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
@@ -380,7 +326,7 @@ contract LoopStrategy is
         address receiver,
         address owner,
         uint256 minUnderlyingAsset
-    ) public whenNotPaused returns (uint256 assets) {
+    ) external whenNotPaused returns (uint256 assets) {
         return _redeem(shares, receiver, owner, minUnderlyingAsset);
     }
 
@@ -391,107 +337,47 @@ contract LoopStrategy is
         override(ERC4626Upgradeable, IERC4626)
         returns (uint256)
     {
-        Storage.Layout storage $ = Storage.layout();
-
-        // get current loan state and calculate initial collateral ratio
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        // check if collateralRatio is outside range, so user participates in potential rebalance
-        if (
-            _shouldRebalance(
-                RebalanceLogic.collateralRatioUSD(
-                    state.collateralUSD, state.debtUSD
-                ),
-                $.collateralRatioTargets
-            )
-        ) {
-            // calculate amount of collateral needed to bring the collateral ratio
-            // to target
-            uint256 neededCollateralUSD = RebalanceLogic.requiredCollateralUSD(
-                $.collateralRatioTargets.target,
-                state.collateralUSD,
-                state.debtUSD,
-                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
-
-            // calculate new debt and collateral values after collateral has been exchanged
-            // for rebalance
-            state.collateralUSD -= neededCollateralUSD;
-            state.debtUSD -= RebalanceLogic.offsetUSDAmountDown(
-                neededCollateralUSD,
-                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
-        }
-
-        // calculate amount of debt and equity corresponding to shares in USD value
-        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareDebtAndEquity(state, shares, totalSupply());
-
-        // case when redeemer is redeeming all remaining shares
-        if (state.debtUSD == shareDebtUSD) {
-            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
-                USDWadRayMath.USD
-                    - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
-
-            shareEquityUSD -= collateralNeededUSD.usdMul(
-                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
-        } else if (
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD - shareEquityUSD, state.debtUSD
-            ) < $.collateralRatioTargets.minForWithdrawRebalance
-        ) {
-            // amount of equity in USD value which may be withdrawn from
-            // strategy without driving the collateral ratio below
-            // the minForWithdrawRebalance limit, thereby not requiring
-            // a rebalance operation
-            // note: freeEquityUSD < shareEquityUSD by definition, otherwise
-            // the if-confidition wouldn't hold
-            uint256 freeEquityUSD = state.collateralUSD
-                - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                    state.debtUSD
-                );
-
-            // adjust share debt to account for the free equity - since
-            // some equity may be withdrawn freely, not all the debt has to be
-            // repaid
-            shareDebtUSD -= freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                shareEquityUSD + shareDebtUSD - freeEquityUSD
-            );
-
-            // amount of collateral needed for repaying debt of shares after
-            // freeEquityUSD is accounted for
-            uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
-                USDWadRayMath.USD
-                    - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
-
-            shareEquityUSD -= collateralNeededUSD.usdMul(
-                $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
-            );
-        }
-
-        uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD,
-            $.oracle.getAssetPrice(address($.assets.underlying)),
-            IERC20Metadata(address($.assets.underlying)).decimals()
+        return RebalanceLogic.estimateWithdraw(
+            Storage.layout(), shares, totalSupply()
         );
-
-        return shareEquityAsset;
     }
 
-    /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
-    /// @param collateralRatio given collateral ratio
-    /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
-    function _shouldRebalance(
-        uint256 collateralRatio,
-        CollateralRatio memory collateraRatioTargets
-    ) internal pure returns (bool) {
-        return (
-            collateralRatio < collateraRatioTargets.minForRebalance
-                || collateralRatio > collateraRatioTargets.maxForRebalance
-        );
+    /// @inheritdoc ILoopStrategy
+    function setUSDMarginUSD(uint256 marginUSD)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        if (marginUSD > USDWadRayMath.USD) {
+            revert MarginOutsideRange();
+        }
+
+        Storage.layout().usdMargin = marginUSD;
+
+        emit USDMarginSet(marginUSD);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setRatioMarginUSD(uint256 marginUSD)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        if (marginUSD > USDWadRayMath.USD) {
+            revert MarginOutsideRange();
+        }
+
+        Storage.layout().ratioMargin = marginUSD;
+
+        emit RatioMarginSet(marginUSD);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setMaxIterations(uint16 iterations)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        Storage.layout().maxIterations = iterations;
+
+        emit MaxIterationsSet(iterations);
     }
 
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
@@ -511,48 +397,11 @@ contract LoopStrategy is
 
         assets = _convertUnderlyingToCollateralAsset($.assets, assets);
 
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        uint256 collateralRatio = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        if (
-            collateralRatio != type(uint256).max
-                && _shouldRebalance(collateralRatio, $.collateralRatioTargets)
-        ) {
-            collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-        }
+        LoanState memory state = RebalanceLogic.updateState($);
 
         uint256 prevTotalAssets = totalAssets();
-        uint256 prevCollateralRatio = collateralRatio;
 
-        state = LoanLogic.supply($.lendingPool, $.assets.collateral, assets);
-        uint256 afterCollateralRatio = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
-
-        if (prevCollateralRatio == type(uint256).max) {
-            collateralRatio = RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-        } else if (
-            afterCollateralRatio
-                > $.collateralRatioTargets.maxForDepositRebalance
-        ) {
-            uint256 rebalanceToRatio = prevCollateralRatio;
-            if (
-                $.collateralRatioTargets.maxForDepositRebalance
-                    > rebalanceToRatio
-            ) {
-                rebalanceToRatio =
-                    $.collateralRatioTargets.maxForDepositRebalance;
-            }
-            collateralRatio =
-                RebalanceLogic.rebalanceTo($, state, 0, rebalanceToRatio);
-        }
+        RebalanceLogic.rebalanceAfterSupply($, state, assets);
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
         shares = _convertToShares(equityReceived, prevTotalAssets);
@@ -582,83 +431,10 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
-        // get loan state
-        LoanState memory state = _updatedState($);
-
-        // calculate amount of debt and equity corresponding to shares in USD value
-        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
-            _shareDebtAndEquity(state, shares, totalSupply());
-
-        // if all shares are being withdrawn, then their debt is the strategy debt
-        // so in that case the redeemer incurs the full cost of paying back the debt
-        // and is left with the remaining equity
-        if (state.debtUSD == shareDebtUSD) {
-            // pay back the debt corresponding to the shares
-            RebalanceLogic.rebalanceDownToDebt(
-                $, state, state.debtUSD - shareDebtUSD
-            );
-
-            shareEquityUSD = equityUSD();
-        }
-        //check if withdrawal would lead to a collateral below minimum acceptable level
-        // if yes, rebalance until share debt is repaid, and decrease remaining share equity
-        // by equity cost of rebalance
-        else if (
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD - shareEquityUSD, state.debtUSD
-            ) < $.collateralRatioTargets.minForWithdrawRebalance
-        ) {
-            // amount of equity in USD value which may be withdrawn from
-            // strategy without driving the collateral ratio below
-            // the minForWithdrawRebalance limit, thereby not requiring
-            // a rebalance operation
-            uint256 freeEquityUSD;
-            if (
-                state.collateralUSD
-                    < $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    )
-            ) {
-                freeEquityUSD = 0;
-            } else {
-                freeEquityUSD = state.collateralUSD
-                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    );
-            }
-
-            // adjust share debt to account for the free equity - since
-            // some equity may be withdrawn freely, not all the debt has to be
-            // repaid
-            shareDebtUSD = shareDebtUSD
-                - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                    shareEquityUSD + shareDebtUSD - freeEquityUSD
-                );
-
-            uint256 initialEquityUSD = equityUSD();
-
-            // pay back the adjusted debt corresponding to the shares
-            RebalanceLogic.rebalanceDownToDebt(
-                $, state, state.debtUSD - shareDebtUSD
-            );
-
-            // shares lose equity equal to the amount of equity lost for
-            // the rebalance to pay the adjusted debt
-            shareEquityUSD -= initialEquityUSD - equityUSD();
-        }
-
-        // convert equity to collateral asset
-        uint256 shareEquityAsset = RebalanceLogic.convertUSDToAsset(
-            shareEquityUSD,
-            $.oracle.getAssetPrice(address($.assets.collateral)),
-            IERC20Metadata(address($.assets.collateral)).decimals()
+        uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
+            $.assets,
+            RebalanceLogic.rebalanceBeforeWithdraw($, shares, totalSupply())
         );
-
-        // withdraw and transfer equity asset amount
-        LoanLogic.withdraw($.lendingPool, $.assets.collateral, shareEquityAsset);
-
-        uint256 shareUnderlyingAsset =
-            _convertCollateralToUnderlyingAsset($.assets, shareEquityAsset);
 
         // ensure equity in asset terms to be received is larger than
         // minimum acceptable amount
@@ -726,55 +502,5 @@ contract LoopStrategy is
                 .withdraw(collateralAmountAsset);
         }
         underlyingAmountAsset = collateralAmountAsset;
-    }
-
-    /// @notice calculates the debt, and equity corresponding to an amount of shares
-    /// @dev collateral corresponding to shares is just sum of debt and equity
-    /// @param state loan state of strategy
-    /// @param shares amount of shares
-    /// @param totalShares total supply of shares
-    /// @return shareDebtUSD amount of debt in USD corresponding to shares
-    /// @return shareEquityUSD amount of equity in USD corresponding to shares
-    function _shareDebtAndEquity(
-        LoanState memory state,
-        uint256 shares,
-        uint256 totalShares
-    ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-        // calculate amount of debt and equity corresponding to shares in USD value
-        shareDebtUSD = state.debtUSD.usdMul(
-            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-        );
-        // to calculate equity, first collateral is calculated, and debt is subtracted from it
-        shareEquityUSD = state.collateralUSD.usdMul(
-            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-        ) - shareDebtUSD;
-    }
-
-    /// @notice performs a rebalance if necessary and returns the updated state after
-    /// the potential rebalance
-    /// @param $ Storage.Layout struct
-    /// @return state current LoanState of strategy
-    function _updatedState(Storage.Layout storage $)
-        internal
-        returns (LoanState memory state)
-    {
-        // get current loan state and calculate initial collateral ratio
-        state = LoanLogic.getLoanState($.lendingPool);
-
-        // check if collateralRatio is outside range, so user participates in potential rebalance
-        if (
-            _shouldRebalance(
-                RebalanceLogic.collateralRatioUSD(
-                    state.collateralUSD, state.debtUSD
-                ),
-                $.collateralRatioTargets
-            )
-        ) {
-            RebalanceLogic.rebalanceTo(
-                $, state, 0, $.collateralRatioTargets.target
-            );
-
-            state = LoanLogic.getLoanState($.lendingPool);
-        }
     }
 }

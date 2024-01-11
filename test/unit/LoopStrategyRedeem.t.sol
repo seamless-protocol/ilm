@@ -26,6 +26,8 @@ import {
 } from "../../src/types/DataTypes.sol";
 import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
 import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
+import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
@@ -133,7 +135,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // assets received by redeemer should be equivalent in value to the initialShareEquityUSD
         // minus the expected rebalance cost, since the redeemer is burdened with said cost
-        uint256 expectedReceivedAssets = RebalanceLogic.convertUSDToAsset(
+        uint256 expectedReceivedAssets = ConversionMath.convertUSDToAsset(
             (initialShareEquityUSD - expectedRebalanceCostUSD),
             COLLATERAL_PRICE,
             18
@@ -230,7 +232,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // assets received by redeemer should be equivalent in value to the initialShareEquityUSD
         // minus the expected rebalance cost, since the redeemer is burdened with said cost
-        uint256 expectedReceivedAssets = RebalanceLogic.convertUSDToAsset(
+        uint256 expectedReceivedAssets = ConversionMath.convertUSDToAsset(
             (initialShareEquityUSD - expectedRebalanceCostUSD),
             COLLATERAL_PRICE,
             18
@@ -293,7 +295,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         );
 
         // ensure that redeemAmount / initialTotalSupply of the total equity of the strategy was transferred to Alice in the form of collateral asset, with a 0.0001% margin
-        uint256 expectedTransferedTokens = RebalanceLogic.convertUSDToAsset(
+        uint256 expectedTransferedTokens = ConversionMath.convertUSDToAsset(
             oldEquityUSD - strategy.equityUSD(), COLLATERAL_PRICE, 18
         );
         assertApproxEqRel(receivedCollateral, expectedTransferedTokens, MARGIN);
@@ -332,7 +334,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // calculate amount of collateral needed to bring the collateral ratio
         // to target, on the strategy wide rebalance
-        uint256 neededCollateralUSD = RebalanceLogic.requiredCollateralUSD(
+        uint256 neededCollateralUSD = RebalanceMath.requiredCollateralUSD(
             collateralRatioTargets.target,
             strategy.collateral(),
             strategy.debt(),
@@ -344,8 +346,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 expectedCollateralUSD =
             strategy.collateral() - neededCollateralUSD;
         uint256 expectedDebtUSD = strategy.debt()
-            - RebalanceLogic.offsetUSDAmountDown(neededCollateralUSD, swapOffset);
-        uint256 expectedCR = RebalanceLogic.collateralRatioUSD(
+            - RebalanceMath.offsetUSDAmountDown(neededCollateralUSD, swapOffset);
+        uint256 expectedCR = RebalanceMath.collateralRatioUSD(
             expectedCollateralUSD, expectedDebtUSD
         );
 
@@ -384,7 +386,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // ensure that redeemAmount / initialTotalSupply of the total equity of the strategy
         // was transferred to Alice in the form of collateral asset, with a 0.0001% margin
-        uint256 expectedTransferedTokens = RebalanceLogic.convertUSDToAsset(
+        uint256 expectedTransferedTokens = ConversionMath.convertUSDToAsset(
             oldEquityUSD - strategy.equityUSD(), DROPPED_COLLATERAL_PRICE, 18
         );
         assertApproxEqRel(receivedCollateral, expectedTransferedTokens, MARGIN);

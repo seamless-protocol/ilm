@@ -6,6 +6,8 @@ import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
+import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
+import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
@@ -25,7 +27,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         // a bit more than a third to hit as close as possible to 1 ETH after rebalancing upwards for
         // 3x leverage
         uint256 startingAmountAsset = uint256(1 ether) * 11 / 30;
-        uint256 startingAmountUSD = RebalanceLogic.convertAssetToUSD(
+        uint256 startingAmountUSD = ConversionMath.convertAssetToUSD(
             startingAmountAsset, WETH_price, 18
         );
 
@@ -44,14 +46,12 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         );
         assertEq(state.debtUSD, 0);
         assertEq(
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
-            ),
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
             type(uint256).max
         );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -75,16 +75,15 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
 
         state = LoanLogic.getLoanState($.lendingPool);
 
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         // expectedCR taken from scenario case
         uint256 expectedCR = uint256(1.65e8);
 
         assertApproxEqAbs(currentCR, expectedCR, expectedCR / 1_000_000);
 
-        currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -109,7 +108,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         // 3x leverage
         // value is found heuristically
         uint256 startingAmountAsset = uint256(1 ether) * 288_143 / 1_000_000;
-        uint256 startingAmountUSD = RebalanceLogic.convertAssetToUSD(
+        uint256 startingAmountUSD = ConversionMath.convertAssetToUSD(
             startingAmountAsset, WETH_price, 18
         );
 
@@ -126,9 +125,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         );
         assertEq(state.debtUSD, 0);
         assertEq(
-            RebalanceLogic.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
-            ),
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
             type(uint256).max
         );
 
@@ -136,7 +133,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         targetCR = 1.33333333e8;
         $.maxIterations = 25;
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        uint256 currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -149,7 +146,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         assertApproxEqAbs(currentCR, targetCR, margin);
 
         targetCR = 1.4e8;
-        currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(currentCR, targetCR, margin);
@@ -157,9 +154,8 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         state = LoanLogic.supply(
             $.lendingPool, $.assets.collateral, depositAmountAsset
         );
-        currentCR = RebalanceLogic.collateralRatioUSD(
-            state.collateralUSD, state.debtUSD
-        );
+        currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 expectedCR = 1.4165e8;
 
@@ -167,7 +163,7 @@ contract RebalanceLogicVerification is RebalanceLogicContext {
         assertApproxEqAbs(currentCR, expectedCR, expectedCR / 10_000);
 
         targetCR = 1.4e8;
-        currentCR = RebalanceLogic.rebalanceTo($, state, 0, targetCR);
+        currentCR = RebalanceLogic.rebalanceTo($, state, targetCR);
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(currentCR, targetCR, margin);

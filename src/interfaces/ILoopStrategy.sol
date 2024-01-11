@@ -33,9 +33,25 @@ interface ILoopStrategy is IERC4626 {
         uint256 underlyingReceived, uint256 minUnderlyingReceived
     );
 
+    /// @notice thrown when attempting to set a margin value which is meant to lie between
+    /// 0 < margin < 1e8 (1 USD)
+    error MarginOutsideRange();
+
     /// @notice thrown when the caller of the redeem function is not the owner of the
     /// shares to be redeemed
     error RedeemerNotOwner();
+
+    /// @notice emitted when a new value for maxIterations is set
+    /// @param iterations new value for maxIterations
+    event MaxIterationsSet(uint16 iterations);
+
+    /// @notice emitted when a new value for ratioMargin is set
+    /// @param margin new value for ratioMargin
+    event RatioMarginSet(uint256 margin);
+
+    /// @notice emitted when a new value for usdMargin is set
+    /// @param margin new value for usdMargin
+    event USDMarginSet(uint256 margin);
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
@@ -119,4 +135,16 @@ interface ILoopStrategy is IERC4626 {
         address owner,
         uint256 minUnderlyingAsset
     ) external returns (uint256 assets);
+
+    /// @notice sets the usdMarginUSD value
+    /// @param marginUSD new value of usdMarginUSD
+    function setUSDMarginUSD(uint256 marginUSD) external;
+
+    /// @notice sets the ratioMarginUSD value
+    /// @param marginUSD new value of ratioMarginUSD
+    function setRatioMarginUSD(uint256 marginUSD) external;
+
+    /// @notice sets the maxIterations value
+    /// @param iterations new value of maxIterations
+    function setMaxIterations(uint16 iterations) external;
 }
