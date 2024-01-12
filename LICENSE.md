@@ -15,7 +15,7 @@ Additional Use Grant: Any uses listed and defined at this [LICENSE](./LICENSE.md
 
 Change Date: 28 February 2026
 
-Change License: MIT
+Change License: GNU General Public License v2.0 or later
 
 ---
 
