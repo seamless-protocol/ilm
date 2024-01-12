@@ -131,6 +131,8 @@ contract LoopStrategy is
         CollateralRatio memory _collateralRatioTargets
     ) external override onlyRole(MANAGER_ROLE) {
         Storage.layout().collateralRatioTargets = _collateralRatioTargets;
+
+        emit CollateralRatioTargetsSet(_collateralRatioTargets);
     }
 
     /// @inheritdoc ILoopStrategy

@@ -63,6 +63,10 @@ contract LoopStrategyTest is BaseForkTest {
     /// @param swapper new address of swapper contract
     event SwapperSet(address swapper);
 
+    /// @notice emitted when a new value for the collateralRatioTargets is set
+    /// @param targets new value of collateralRatioTargest struct
+    event CollateralRatioTargetsSet(CollateralRatio targets);
+
     IPoolAddressesProvider public constant poolAddressProvider =
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
@@ -281,6 +285,9 @@ contract LoopStrategyTest is BaseForkTest {
             minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
         });
 
+        vm.expectEmit();
+        emit CollateralRatioTargetsSet(newCollateralRatioTargets);
+        
         strategy.setCollateralRatioTargets(newCollateralRatioTargets);
 
         CollateralRatio memory strategyTargets =

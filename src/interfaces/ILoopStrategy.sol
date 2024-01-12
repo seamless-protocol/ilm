@@ -45,6 +45,10 @@ interface ILoopStrategy is IERC4626 {
     /// shares to be redeemed
     error RedeemerNotOwner();
 
+    /// @notice emitted when a new value for the collateralRatioTargets is set
+    /// @param targets new value of collateralRatioTargest struct
+    event CollateralRatioTargetsSet(CollateralRatio targets);
+
     /// @notice emitted when a new value for maxIterations is set
     /// @param iterations new value for maxIterations
     event MaxIterationsSet(uint16 iterations);
