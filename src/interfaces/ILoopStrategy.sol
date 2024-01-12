@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.21;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { CollateralRatio } from "../types/DataTypes.sol";

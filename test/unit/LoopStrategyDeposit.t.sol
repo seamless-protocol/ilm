@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.21;
 
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from
@@ -158,7 +158,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         uint256 depositAlice = 3 ether;
         _depositFor(alice, depositAlice);
 
-        // borrow cap is low now so we don't have any more available USDbC on lendingp pool
+        // borrow cap is low now so we don't have any more available USDbC on lending pool
         _changeBorrowCap(USDbC, 100_000);
         uint256 beforeCR = strategy.currentCollateralRatio();
 
