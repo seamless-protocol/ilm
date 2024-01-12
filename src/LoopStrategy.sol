@@ -381,6 +381,13 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
+    function setSwapper(address swapper) external onlyRole(MANAGER_ROLE) {
+        Storage.layout().swapper = ISwapper(swapper);
+
+        emit SwapperSet(swapper);
+    }
+
+    /// @inheritdoc ILoopStrategy
     function getAssets() external view returns (StrategyAssets memory assets) {
         return Storage.layout().assets;
     }

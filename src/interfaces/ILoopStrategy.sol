@@ -57,6 +57,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param margin new value for usdMargin
     event USDMarginSet(uint256 margin);
 
+    /// @notice emitted when a new value for the swapper address is set
+    /// @param swapper new address of swapper contract
+    event SwapperSet(address swapper);
+
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
     /// @return amount equity amount
@@ -151,6 +155,10 @@ interface ILoopStrategy is IERC4626 {
     /// @notice sets the maxIterations value
     /// @param iterations new value of maxIterations
     function setMaxIterations(uint16 iterations) external;
+
+    /// @notice sets the swapper contract address
+    /// @param swapper address of swapper contract
+    function setSwapper(address swapper) external;
 
     /// @notice returns underlying StrategyAssets struct
     /// @return assets underlying StrategyAssets struct
