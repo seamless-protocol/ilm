@@ -146,11 +146,11 @@ interface ILoopStrategy is IERC4626 {
 
     /// @notice sets the usdMarginUSD value
     /// @param marginUSD new value of usdMarginUSD
-    function setUSDMarginUSD(uint256 marginUSD) external;
+    function setUSDMargin(uint256 marginUSD) external;
 
     /// @notice sets the ratioMarginUSD value
     /// @param marginUSD new value of ratioMarginUSD
-    function setRatioMarginUSD(uint256 marginUSD) external;
+    function setRatioMargin(uint256 marginUSD) external;
 
     /// @notice sets the maxIterations value
     /// @param iterations new value of maxIterations

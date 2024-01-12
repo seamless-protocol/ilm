@@ -343,7 +343,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setUSDMarginUSD(uint256 marginUSD)
+    function setUSDMargin(uint256 marginUSD)
         external
         onlyRole(MANAGER_ROLE)
     {
@@ -357,7 +357,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setRatioMarginUSD(uint256 marginUSD)
+    function setRatioMargin(uint256 marginUSD)
         external
         onlyRole(MANAGER_ROLE)
     {
