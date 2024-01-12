@@ -380,6 +380,50 @@ contract LoopStrategy is
         emit MaxIterationsSet(iterations);
     }
 
+    /// @inheritdoc ILoopStrategy
+    function getAssets() external view returns (StrategyAssets memory assets) {
+        return Storage.layout().assets;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getPoolAddressProvider()
+        external
+        view
+        returns (address poolAddressProvider)
+    {
+        return address(Storage.layout().poolAddressProvider);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getLendingPool() external view returns (LendingPool memory pool) {
+        return Storage.layout().lendingPool;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getOracle() external view returns (address oracle) {
+        return address(Storage.layout().oracle);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getSwapper() external view returns (address swapper) {
+        return address(Storage.layout().swapper);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getUSDMargin() external view returns (uint256 marginUSD) {
+        return Storage.layout().usdMargin;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getRatioMagin() external view returns (uint256 marginUSD) {
+        return Storage.layout().ratioMargin;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getMaxIterations() external view returns (uint256 iterations) {
+        return Storage.layout().maxIterations;
+    }
+
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens

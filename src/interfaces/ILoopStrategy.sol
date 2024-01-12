@@ -3,7 +3,11 @@
 pragma solidity ^0.8.18;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { CollateralRatio } from "../types/DataTypes.sol";
+import {
+    CollateralRatio,
+    LendingPool,
+    StrategyAssets
+} from "../types/DataTypes.sol";
 
 /// @title IStrategy
 /// @notice interface for Integration Liquiity Market strategies
@@ -147,4 +151,39 @@ interface ILoopStrategy is IERC4626 {
     /// @notice sets the maxIterations value
     /// @param iterations new value of maxIterations
     function setMaxIterations(uint16 iterations) external;
+
+    /// @notice returns underlying StrategyAssets struct
+    /// @return assets underlying StrategyAssets struct
+    function getAssets() external view returns (StrategyAssets memory assets);
+
+    /// @notice returns poolAddressProvider contract address
+    /// @return poolAddressProvider poolAddressProvider contract address
+    function getPoolAddressProvider()
+        external
+        view
+        returns (address poolAddressProvider);
+
+    /// @notice returns LendingPool struct
+    /// @return pool LendingPool struct
+    function getLendingPool() external view returns (LendingPool memory pool);
+
+    /// @notice returns address of oracle contract
+    /// @return oracle address of oracle contract
+    function getOracle() external view returns (address oracle);
+
+    /// @notice returns address of swapper contract
+    /// @return swapper address of swapper contract
+    function getSwapper() external view returns (address swapper);
+
+    /// @notice returns value of usdMargin
+    /// @return marginUSD usdMargin value
+    function getUSDMargin() external view returns (uint256 marginUSD);
+
+    /// @notice returns value of ratioMargin
+    /// @return marginUSD ratioMargin value
+    function getRatioMagin() external view returns (uint256 marginUSD);
+
+    /// @notice returns value of maxIterations
+    /// @return iterations maxIterations value
+    function getMaxIterations() external view returns (uint256 iterations);
 }
