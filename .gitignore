@@ -13,6 +13,7 @@ deployed-contracts.json
 # Foundry files
 cache_forge
 out
+broadcast
 
 # mac OS
 **/.DS_Store
