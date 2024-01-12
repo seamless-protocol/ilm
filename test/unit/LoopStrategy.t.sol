@@ -43,6 +43,26 @@ import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 contract LoopStrategyTest is BaseForkTest {
     using stdStorage for StdStorage;
 
+    /////////////////////////////
+    ///// REPLICATED EVENTS /////
+    /////////////////////////////
+
+    // @notice emitted when a new value for maxIterations is set
+    /// @param iterations new value for maxIterations
+    event MaxIterationsSet(uint16 iterations);
+
+    /// @notice emitted when a new value for ratioMargin is set
+    /// @param margin new value for ratioMargin
+    event RatioMarginSet(uint256 margin);
+
+    /// @notice emitted when a new value for usdMargin is set
+    /// @param margin new value for usdMargin
+    event USDMarginSet(uint256 margin);
+
+    /// @notice emitted when a new value for the swapper address is set
+    /// @param swapper new address of swapper contract
+    event SwapperSet(address swapper);
+
     IPoolAddressesProvider public constant poolAddressProvider =
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
@@ -312,6 +332,134 @@ contract LoopStrategyTest is BaseForkTest {
 
         strategy.setCollateralRatioTargets(newCollateralRatioTargets);
         vm.stopPrank();
+    }
+
+    /// @dev ensures a new value for usdMargin is set and the appropriate event is emitted
+    function test_setUSDMargin_setsNewValueforusdMaring_and_emitsUsdMarginSetEvent(
+    ) public {
+        uint256 marginUSD = 10;
+
+        vm.expectEmit();
+        emit USDMarginSet(marginUSD);
+
+        strategy.setUSDMargin(marginUSD);
+
+        assertEq(strategy.getUSDMargin(), marginUSD);
+    }
+
+    /// @dev ensures setUSDMargin call is reverted when called by non-manager
+    function test_setUSDMargin_revertsWhen_callerIsNotManager() public {
+        uint256 marginUSD = 10;
+        vm.startPrank(NO_ROLE);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+        strategy.setUSDMargin(marginUSD);
+    }
+
+    /// @dev ensures setUSDMargin reverts when new value is outside range
+    function test_setUSDMargin_revertsWhen_valueExceeds_1e8() public {
+        uint256 marginUSD = 1e8 + 1;
+
+        vm.expectRevert(ILoopStrategy.MarginOutsideRange.selector);
+
+        strategy.setUSDMargin(marginUSD);
+    }
+
+    /// @dev ensures a new value for ratioMargin is set and the appropriate event is emitted
+    function test_setRatioMargin_setNewValueForRatioMargin_and_emitsRatioMarginSetEvent(
+    ) public {
+        uint256 marginUSD = 10;
+
+        vm.expectEmit();
+        emit RatioMarginSet(marginUSD);
+
+        strategy.setRatioMargin(marginUSD);
+
+        assertEq(strategy.getRatioMagin(), marginUSD);
+    }
+
+    /// @dev ensures setRatioMargin call is reverted when called by non-manager
+    function test_setRatioMargin_revertsWhen_callerIsNotManager() public {
+        uint256 marginUSD = 10;
+        vm.startPrank(NO_ROLE);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+        strategy.setRatioMargin(marginUSD);
+    }
+
+    /// @dev ensures setRatioMargin reverts when new value is outside range
+    function test_setRatioMargin_revertsWhen_valueExceeds_1e8() public {
+        uint256 marginUSD = 1e8 + 1;
+
+        vm.expectRevert(ILoopStrategy.MarginOutsideRange.selector);
+
+        strategy.setRatioMargin(marginUSD);
+    }
+
+    /// @dev ensures a new value for maxIterations is set and the appropriate event is emitted
+    function test_setMaxIterations_setNewValueForMaxIterations_and_emitsMaxIterationsSetEvent(
+    ) public {
+        uint16 iterations = 10;
+
+        vm.expectEmit();
+        emit MaxIterationsSet(iterations);
+
+        strategy.setMaxIterations(iterations);
+
+        assertEq(strategy.getMaxIterations(), iterations);
+    }
+
+    /// @dev ensures setMaxIterations call is reverted when called by non-manager
+    function test_setMaxIterations_revertsWhen_callerIsNotManager() public {
+        uint16 iterations = 10;
+        vm.startPrank(NO_ROLE);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+        strategy.setMaxIterations(iterations);
+    }
+
+    /// @dev ensures a new value for swapper is set and the appropriate event is emitted
+    function test_setSwapper_setNewValueForSwapper_and_emitsSwapperSetEvent()
+        public
+    {
+        vm.expectEmit();
+        emit SwapperSet(alice);
+
+        strategy.setSwapper(alice);
+
+        assertEq(strategy.getSwapper(), alice);
+    }
+
+    /// @dev ensures setSwapper call is reverted when called by non-manager
+    function test_setSwapper_revertsWhen_callerIsNotManager() public {
+        vm.startPrank(NO_ROLE);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                strategy.MANAGER_ROLE()
+            )
+        );
+        strategy.setSwapper(alice);
     }
 
     /// @dev ensures unpause call reverts if caller does not have pauser role
