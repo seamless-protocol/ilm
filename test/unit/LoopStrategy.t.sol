@@ -287,7 +287,7 @@ contract LoopStrategyTest is BaseForkTest {
 
         vm.expectEmit();
         emit CollateralRatioTargetsSet(newCollateralRatioTargets);
-        
+
         strategy.setCollateralRatioTargets(newCollateralRatioTargets);
 
         CollateralRatio memory strategyTargets =
