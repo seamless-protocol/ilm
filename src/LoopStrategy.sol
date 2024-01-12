@@ -343,10 +343,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setUSDMargin(uint256 marginUSD)
-        external
-        onlyRole(MANAGER_ROLE)
-    {
+    function setUSDMargin(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
         }
