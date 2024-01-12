@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.21;
 
 import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";

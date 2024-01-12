@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.21;
+pragma solidity ^0.8.21;
 
 interface IPoolFactory {
     /// @notice returns the number of pools created from this factory
