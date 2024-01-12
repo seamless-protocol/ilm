@@ -113,6 +113,8 @@ contract LoopStrategyTest is BaseForkTest {
             address(strategyImplementation),
             abi.encodeWithSelector(
                 LoopStrategy.LoopStrategy_init.selector,
+                "ILM_NAME",
+                "ILM_SYMBOL",
                 address(this),
                 strategyAssets,
                 collateralRatioTargets,
