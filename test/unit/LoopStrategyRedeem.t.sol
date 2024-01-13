@@ -470,6 +470,59 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         );
     }
 
+    /// @dev ensures that redemptions work as intended even when the borrow capacity
+    /// of the lending pool has been reached
+    function test_redeem_afterBorrowCapOnLendingPoolIsExceeded() public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+        _depositFor(bob, depositAmount);
+
+        assertEq(
+            strategy.currentCollateralRatio(),
+            strategy.getCollateralRatioTargets().maxForDepositRebalance
+        );
+
+        // change borrow cap so that it is now exceeded
+        _changeBorrowCap(USDbC, 100_000);
+
+        // deposit to increase strategy collateral ratio greatly
+        _depositFor(bob, depositAmount);
+
+        assert(
+            strategy.currentCollateralRatio()
+                > strategy.getCollateralRatioTargets().maxForRebalance
+        );
+
+        uint256 initialTotalSupply = strategy.totalSupply();
+
+        // grab pre-redeem key parameters of strategy/user state
+        uint256 initialCollateralUSD = strategy.collateral();
+        uint256 initialDebtUSD = strategy.debt();
+
+        // calculate amount of debt, collateral and equity corresponding to shares to be redeemed
+        uint256 initialShareDebtUSD = initialDebtUSD.usdMul(
+            USDWadRayMath.wadToUSD(aliceShares.wadDiv(initialTotalSupply))
+        );
+        uint256 initialShareCollateralUSD = initialCollateralUSD.usdMul(
+            USDWadRayMath.wadToUSD(aliceShares.wadDiv(initialTotalSupply))
+        );
+        uint256 initialShareEquityUSD =
+            initialShareCollateralUSD - initialShareDebtUSD;
+
+        vm.prank(alice);
+        uint256 receivedAssets = strategy.redeem(aliceShares, alice, alice);
+
+        // since strategy has a much higher collateral ratio, it should follow that redemption
+        // incurs no equity cost
+        uint256 expectedAssets = ConversionMath.convertUSDToAsset(
+            initialShareEquityUSD, COLLATERAL_PRICE, 18
+        );
+
+        assertEq(receivedAssets, expectedAssets);
+    }
+
     /// @dev ensures that the predicted assets returned by the preview redeem call
     /// match the amount returned by the actual call when the redemption is for all
     /// the remaining shares
