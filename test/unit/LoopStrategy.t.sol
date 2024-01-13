@@ -316,6 +316,59 @@ contract LoopStrategyTest is BaseForkTest {
         );
     }
 
+    /// @dev ensures setCollateralRatioTargets reverts when the new target values are not logically
+    /// consistent
+    function test_setCollateralRatioTargets_revertsWhen_newCollateralRatioTargetsAreInvalid(
+    ) public {
+        // minForRebalance > target
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+
+        //maxForRebalance < target
+        newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(200, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+
+        //minForWithdrawRebalance < minForRebalance
+        newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(179, 200)
+        });
+
+        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+
+        //maxForDepositRebalance < maxForRebalance
+        newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(230, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
+        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
+    }
+
     /// @dev ensures setCollateralRaioTargets reverts if caller is not manager
     function test_setCollateralRatioTargets_revertsWhen_callerIsNotManager()
         public
