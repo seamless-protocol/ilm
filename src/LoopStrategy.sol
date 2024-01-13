@@ -127,12 +127,25 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setCollateralRatioTargets(
-        CollateralRatio memory _collateralRatioTargets
-    ) external override onlyRole(MANAGER_ROLE) {
-        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
+    function setCollateralRatioTargets(CollateralRatio memory targets)
+        external
+        override
+        onlyRole(MANAGER_ROLE)
+    {
+        if (
+            targets.minForRebalance > targets.target
+                || targets.maxForRebalance < targets.target
+                || targets.minForWithdrawRebalance > targets.target
+                || targets.maxForDepositRebalance < targets.target
+                || targets.minForRebalance > targets.minForWithdrawRebalance
+                || targets.maxForRebalance < targets.maxForDepositRebalance
+        ) {
+            revert InvalidCollateralRatioTargets();
+        }
 
-        emit CollateralRatioTargetsSet(_collateralRatioTargets);
+        Storage.layout().collateralRatioTargets = targets;
+
+        emit CollateralRatioTargetsSet(targets);
     }
 
     /// @inheritdoc ILoopStrategy
