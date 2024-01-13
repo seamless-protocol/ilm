@@ -135,8 +135,6 @@ contract LoopStrategy is
         if (
             targets.minForRebalance > targets.target
                 || targets.maxForRebalance < targets.target
-                || targets.minForWithdrawRebalance > targets.target
-                || targets.maxForDepositRebalance < targets.target
                 || targets.minForRebalance > targets.minForWithdrawRebalance
                 || targets.maxForRebalance < targets.maxForDepositRebalance
         ) {
