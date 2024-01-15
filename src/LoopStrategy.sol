@@ -229,7 +229,12 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc IERC4626
-    function maxDeposit(address) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxDeposit(address)
+        public
+        view
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return Storage.layout().assetsCap - totalAssets();
     }
 
@@ -264,9 +269,14 @@ contract LoopStrategy is
             totalAssets()
         );
     }
-    
+
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
-    function maxMint(address) public pure override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxMint(address)
+        public
+        pure
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return 0;
     }
 
@@ -292,13 +302,18 @@ contract LoopStrategy is
         revert MintDisabled();
     }
 
-    /// @notice withdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
-    function maxWithdraw(address) public pure override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxWithdraw(address)
+        public
+        pure
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return 0;
     }
 
-    /// @notice withdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
     function withdraw(uint256, address, address)
         public
@@ -310,7 +325,7 @@ contract LoopStrategy is
         revert WithdrawDisabled();
     }
 
-    /// @notice withdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
     function previewWithdraw(uint256)
         public
@@ -531,7 +546,11 @@ contract LoopStrategy is
 
     /// @notice converts the USD value to the amount of underlying token assets
     /// @param usdValue amount of USD to convert
-    function _convertUSDValueToUnderlyingAsset(uint256 usdValue) view internal returns(uint256) {
+    function _convertUSDValueToUnderlyingAsset(uint256 usdValue)
+        internal
+        view
+        returns (uint256)
+    {
         Storage.Layout storage $ = Storage.layout();
 
         // get underlying price and decimals
