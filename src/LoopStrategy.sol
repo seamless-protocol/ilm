@@ -62,6 +62,8 @@ contract LoopStrategy is
     }
 
     function LoopStrategy_init(
+        string memory _erc20name,
+        string memory _erc20symbol,
         address _initialAdmin,
         StrategyAssets memory _strategyAssets,
         CollateralRatio memory _collateralRatioTargets,
@@ -75,6 +77,7 @@ contract LoopStrategy is
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
+        __ERC20_init(_erc20name, _erc20symbol);
 
         _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
