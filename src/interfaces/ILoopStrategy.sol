@@ -53,6 +53,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param margin new value for usdMargin
     event USDMarginSet(uint256 margin);
 
+    /// @notice emitted when a new value for assets cap is set
+    /// @param assetsCap new value for assets cap
+    event AssetsCapSet(uint256 assetsCap);
+
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
     /// @return amount equity amount
@@ -135,6 +139,10 @@ interface ILoopStrategy is IERC4626 {
         address owner,
         uint256 minUnderlyingAsset
     ) external returns (uint256 assets);
+
+    /// @notice sets the assets cap value
+    /// @param assetsCap new value of assets cap
+    function setAssetsCap(uint256 assetsCap) external;
 
     /// @notice sets the usdMarginUSD value
     /// @param marginUSD new value of usdMarginUSD

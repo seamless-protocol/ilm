@@ -14,6 +14,8 @@ import { Errors } from "@aave/contracts/protocol/libraries/helpers/Errors.sol";
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { ERC4626Upgradeable } from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
@@ -184,6 +186,36 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         uint256 previewShares = strategy.previewDeposit(depositAlice);
         uint256 actualShares = _depositFor(alice, depositAlice);
         assertApproxEqRel(previewShares, actualShares, 0.00001 ether);
+    }
+
+    /// @dev test confirms that maxDeposit function is returning the correct value when assetsCap is set
+    function test_maxDeposit() public {
+        uint256 assetsCap = 10 ether;
+        strategy.setAssetsCap(assetsCap);
+
+        assertEq(strategy.maxDeposit(alice), assetsCap);
+
+        uint256 depositAlice = 1 ether;
+        uint256 actualShares = _depositFor(alice, depositAlice);
+
+        assertEq(strategy.maxDeposit(alice), assetsCap - actualShares);
+    }
+
+    /// @dev test confirms that deposit reverts when user tries to deposit more than current maxDeposit
+    function test_deposit_revertERC4626ExceededMaxDeposit() public {
+        uint256 assetsCap = 10 ether;
+        strategy.setAssetsCap(assetsCap);
+
+        uint256 depositAlice = 15 ether;
+        bytes memory revertReason =
+            abi.encodeWithSelector(
+                ERC4626Upgradeable.ERC4626ExceededMaxDeposit.selector,
+                alice,
+                depositAlice,
+                assetsCap
+            );
+
+        _depositForExpectsRevert(alice, depositAlice, revertReason);
     }
 
     /// @dev validates current collateral ratio with relative error max 0.01%
