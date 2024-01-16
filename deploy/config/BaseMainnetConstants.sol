@@ -20,6 +20,9 @@ abstract contract BaseMainnetConstants {
     address public constant AERODROME_FACTORY =
         0x420DD381b31aEf6683db6B902084cB0FFECe40Da;
 
+    address public constant CHAINLINK_CBETH_USD_ORACLE = 
+        0xd7818272B9e248357d13057AAb0B417aF31E817d;
+
     // USDbC has 6 decimals
     uint256 public constant ONE_USDbC = 1e6;
 

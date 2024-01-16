@@ -122,7 +122,7 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     address[] memory assets = new address[](1);
     address[] memory sources = new address[](1);
     assets[0] = address(wrappedCbETH);
-    sources[0] = 0xd7818272B9e248357d13057AAb0B417aF31E817d;
+    sources[0] = CHAINLINK_CBETH_USD_ORACLE;
 
     IAaveOracle(poolAddressesProvider.getPriceOracle()).setAssetSources(assets, sources);
     vm.stopBroadcast();
