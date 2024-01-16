@@ -13,27 +13,27 @@ All contracts follow the unstructured storage pattern, where a hash is used to d
 ## Documentation
 The first of these contracts is the ![Looping Strategy](./SPECS.md), which swaps borrowed funds to for collateral funds to achieve a higher exposure to the collateral token.
 
-A![summary][/docs/src/SUMMARY.md] of the `Looping Strategy` interfaces and contracts is provided in the repo as well.
+A ![summary](/docs/src/SUMMARY.md) of the `Looping Strategy` interfaces and contracts is provided in the repo as well.
 
 The ILM repo is subject to the ![Styling Guide](./STYLING_GUIDE.md). 
 
-The ILMs integrate directly with the (![Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol)) which fulfills the role of the lender. 
+The ILMs integrate directly with the ![Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol) which fulfills the role of the lender. 
 
 ## Audits
 TBA
 
 ## Usage
 ### Installation
-`forge install`
+```forge install```
 
 ### Build
-`forge build`
+```forge build```
 
 ### Test
-`forge test`
+```forge test```
 
 ### Testnet Deployment
-`forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_FORK_RPC} --broadcast --slow --delay 20 --force`
+```forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_FORK_RPC} --broadcast --slow --delay 20 --force```
 
 ### Mainnet Deployment
 TBA
