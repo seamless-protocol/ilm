@@ -11,29 +11,37 @@ The `Swapper` contract is essentially a routing contract, and simply routes swap
 All contracts follow the unstructured storage pattern, where a hash is used to define the storage slot for the part of the state of the contract.
 
 ## Documentation
-The first of these contracts is the ![Looping Strategy](./SPECS.md), which swaps borrowed funds to for collateral funds to achieve a higher exposure to the collateral token.
+The first of these contracts is the [Looping Strategy](./SPECS.md), which swaps borrowed funds to for collateral funds to achieve a higher exposure to the collateral token.
 
-A ![summary](/docs/src/SUMMARY.md) of the `Looping Strategy` interfaces and contracts is provided in the repo as well.
+A [summary](/docs/src/SUMMARY.md) of the `Looping Strategy` interfaces and contracts is provided in the repo as well.
 
-The ILM repo is subject to the ![Styling Guide](./STYLING_GUIDE.md). 
+The ILM repo is subject to the [Styling Guide](./STYLING_GUIDE.md). 
 
-The ILMs integrate directly with the ![Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol) which fulfills the role of the lender. 
+The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol) which fulfills the role of the lender. 
 
 ## Audits
 TBA
 
 ## Usage
 ### Installation
-```forge install```
+```markdown
+forge install
+```
 
 ### Build
-```forge build```
+```markdown
+forge build
+```
 
 ### Test
-```forge test```
+```markdown
+forge test
+```
 
 ### Testnet Deployment
-```forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_FORK_RPC} --broadcast --slow --delay 20 --force```
+```markdown
+forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_FORK_RPC} --broadcast --slow --delay 20 --force
+```
 
 ### Mainnet Deployment
 TBA
