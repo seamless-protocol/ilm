@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.21;
 
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 import { Step } from "../types/DataTypes.sol";
 
 library SwapperStorage {
@@ -12,8 +15,8 @@ library SwapperStorage {
         mapping(IERC20 from => mapping(IERC20 to => uint256 offsetUSD))
             offsetUSD;
         mapping(IERC20 from => mapping(IERC20 to => Step[] steps)) route;
-        mapping(IERC20 token => IPriceOracleGetter oracle) oracles;
         mapping(IERC20 token => uint256 maxSlippageWAD) tokenSlippageWAD;
+        IPriceOracleGetter oracle;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.Swapper")) - 1)) & ~bytes32(uint256(0xff));

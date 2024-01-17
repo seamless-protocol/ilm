@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.21;
 
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from
@@ -107,6 +109,44 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         Storage.layout().offsetUSD[from][to] = offsetUSD;
 
         emit OffsetFactorSet(from, to, offsetUSD);
+    }
+
+    /// @inheritdoc ISwapper
+    function setOracle(IPriceOracleGetter oracle)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        Storage.layout().oracle = oracle;
+
+        emit OracleSet(oracle);
+    }
+
+    /// @inheritdoc ISwapper
+    function setTokenSlippage(IERC20 token, uint256 slippage)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        if (slippage > USDWadRayMath.WAD) {
+            revert SlippageOutsideRange();
+        }
+
+        Storage.layout().tokenSlippageWAD[token] = slippage;
+
+        emit SlippageSet(token, slippage);
+    }
+
+    /// @inheritdoc ISwapper
+    function getTokenSlippage(IERC20 token)
+        external
+        view
+        returns (uint256 slippage)
+    {
+        return Storage.layout().tokenSlippageWAD[token];
+    }
+
+    /// @inheritdoc ISwapper
+    function getOracle() external view returns (IPriceOracleGetter oracle) {
+        return Storage.layout().oracle;
     }
 
     /// @inheritdoc ISwapper

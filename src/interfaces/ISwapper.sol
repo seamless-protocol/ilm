@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.21;
 
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { Step } from "../types/DataTypes.sol";
@@ -13,6 +15,10 @@ interface ISwapper {
     /// @notice thrown when attempting to set an offsetUSD factor which is equal to 0
     /// or larger than ONE_USD (1e8)
     error OffsetOutsideRange();
+
+    /// @notice thrown when attempting to set a maximum acceptable slippage for a given
+    /// token which exceeds ONE_WAD (1e18)
+    error SlippageOutsideRange();
 
     /// @notice thrown when attempting to set a route which has the zero-address as
     /// the address of the adapter
@@ -35,6 +41,16 @@ interface ISwapper {
     event OffsetFactorSet(
         IERC20 indexed from, IERC20 indexed to, uint256 offsetUSD
     );
+
+    /// @notice emitted when the oracle for a given token is set
+    /// @param oracle address of PriceOracleGetter contract
+    event OracleSet(IPriceOracleGetter oracle);
+
+    /// @notice emitted when a new value for the maximum allowed slippage
+    /// for a given token is set
+    /// @param token address of token
+    /// @param slippage maximum allowed value for slippage, between 0 - 1 WAD
+    event SlippageSet(IERC20 token, uint256 slippage);
 
     /// @notice emitted when a route is removed
     /// @param from address of token route ends with
@@ -96,4 +112,25 @@ interface ISwapper {
     /// @param offsetUSD factor between 0 - 1e8 to represent offset (1e8 is 100% offset so 0 value returned)
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external;
+
+    //// @notice sets the maximum acceptable slippage for a token
+    /// @param token address of token
+    /// @param slippage maximum acceptable slippage value between 0 and 1 WAD
+    function setTokenSlippage(IERC20 token, uint256 slippage) external;
+
+    /// @notice sets a new address for the oracle
+    /// @param oracle new IPriceOracleGetter contract address
+    function setOracle(IPriceOracleGetter oracle) external;
+
+    /// @notice returns address of oracle contract
+    /// @return oracle address of oracle contract
+    function getOracle() external view returns (IPriceOracleGetter oracle);
+
+    /// @notice returns maximum acceptable slippage value for a given token
+    /// @param token address of token
+    /// @return slippage maximum acceptable slippage value in WAD
+    function getTokenSlippage(IERC20 token)
+        external
+        view
+        returns (uint256 slippage);
 }
