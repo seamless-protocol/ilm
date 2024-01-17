@@ -52,15 +52,6 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     { }
 
     /// @inheritdoc ISwapper
-    function getRoute(IERC20 from, IERC20 to)
-        external
-        view
-        returns (Step[] memory steps)
-    {
-        return Storage.layout().route[from][to];
-    }
-
-    /// @inheritdoc ISwapper
     function setRoute(IERC20 from, IERC20 to, Step[] calldata steps)
         external
         onlyRole(MANAGER_ROLE)
@@ -89,15 +80,6 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         onlyRole(MANAGER_ROLE)
     {
         _removeRoute(from, to);
-    }
-
-    /// @inheritdoc ISwapper
-    function offsetFactor(IERC20 from, IERC20 to)
-        external
-        view
-        returns (uint256 offsetUSD)
-    {
-        return Storage.layout().offsetUSD[from][to];
     }
 
     /// @inheritdoc ISwapper
@@ -139,6 +121,38 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
+    function swap(
+        IERC20 from,
+        IERC20 to,
+        uint256 fromAmount,
+        address payable beneficiary
+    ) external onlyRole(STRATEGY_ROLE) returns (uint256 toAmount) {
+        Step[] memory steps = Storage.layout().route[from][to];
+
+        from.transferFrom(msg.sender, address(this), fromAmount);
+
+        // execute the swap for each swap-step in the route,
+        // updating `fromAmount` to be the amount received from
+        // each step
+        for (uint256 i; i < steps.length; ++i) {
+            steps[i].from.approve(address(steps[i].adapter), fromAmount);
+
+            // should handle address(0) cases ie for ETH?
+            fromAmount = steps[i].adapter.executeSwap(
+                steps[i].from, steps[i].to, fromAmount, payable(address(this))
+            );
+        }
+
+        // set the received amount as the amount received from the final
+        // step of the route
+        toAmount = fromAmount;
+
+        _enforceSlippageLimit(from, to, fromAmount, toAmount);
+
+        to.transfer(beneficiary, toAmount);
+    }
+
+    /// @inheritdoc ISwapper
     function getTokenSlippage(IERC20 token)
         external
         view
@@ -150,6 +164,33 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     /// @inheritdoc ISwapper
     function getOracle() external view returns (IPriceOracleGetter oracle) {
         return Storage.layout().oracle;
+    }
+
+    /// @inheritdoc ISwapper
+    function getRoute(IERC20 from, IERC20 to)
+        external
+        view
+        returns (Step[] memory steps)
+    {
+        return Storage.layout().route[from][to];
+    }
+
+    /// @inheritdoc ISwapper
+    function offsetFactor(IERC20 from, IERC20 to)
+        external
+        view
+        returns (uint256 offsetUSD)
+    {
+        return Storage.layout().offsetUSD[from][to];
+    }
+
+    /// @notice deletes an existing route
+    /// @param from address of token route ends with
+    /// @param to address of token route starts with
+    function _removeRoute(IERC20 from, IERC20 to) internal {
+        delete Storage.layout().route[from][to];
+
+        emit RouteRemoved(from, to);
     }
 
     /// @notice enforces the maximum slippage allowed for a given swap
@@ -190,46 +231,5 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();
         }
-    }
-
-    /// @inheritdoc ISwapper
-    function swap(
-        IERC20 from,
-        IERC20 to,
-        uint256 fromAmount,
-        address payable beneficiary
-    ) external onlyRole(STRATEGY_ROLE) returns (uint256 toAmount) {
-        Step[] memory steps = Storage.layout().route[from][to];
-
-        from.transferFrom(msg.sender, address(this), fromAmount);
-
-        // execute the swap for each swap-step in the route,
-        // updating `fromAmount` to be the amount received from
-        // each step
-        for (uint256 i; i < steps.length; ++i) {
-            steps[i].from.approve(address(steps[i].adapter), fromAmount);
-
-            // should handle address(0) cases ie for ETH?
-            fromAmount = steps[i].adapter.executeSwap(
-                steps[i].from, steps[i].to, fromAmount, payable(address(this))
-            );
-        }
-
-        // set the received amount as the amount received from the final
-        // step of the route
-        toAmount = fromAmount;
-
-        _enforceSlippageLimit(from, to, fromAmount, toAmount);
-
-        to.transfer(beneficiary, toAmount);
-    }
-
-    /// @notice deletes an existing route
-    /// @param from address of token route ends with
-    /// @param to address of token route starts with
-    function _removeRoute(IERC20 from, IERC20 to) internal {
-        delete Storage.layout().route[from][to];
-
-        emit RouteRemoved(from, to);
     }
 }
