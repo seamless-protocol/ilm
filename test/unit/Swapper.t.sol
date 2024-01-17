@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.21;
 
+import { IPoolAddressesProvider } from
+    "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IAccessControl } from
     "@openzeppelin/contracts/access/IAccessControl.sol";
@@ -38,6 +42,14 @@ contract SwapperTest is BaseForkTest {
         IERC20 indexed from, IERC20 indexed to, uint256 offsetUSD
     );
 
+    /// @notice emitted when the oracle for a given token is set
+    /// @param oracle address of PriceOracleGetter contract
+    event OracleSet(IPriceOracleGetter oracle);
+
+    /// @notice emitted when a new value for the allowed deviation from the offsetFactor
+    /// is set
+    event OffsetDeviationSet(uint256 offsetDeviationUSD);
+
     /// @notice emitted when a route is removed
     /// @param from address of token route ends with
     /// @param to address of token route starts with
@@ -50,6 +62,9 @@ contract SwapperTest is BaseForkTest {
     /// @notice emitted when a strategy is removed from strategies enumerable set
     /// @param strategy address of added strategy
     event StrategyRemoved(address strategy);
+
+    IPoolAddressesProvider public constant poolAddressProvider =
+        IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
 
     Swapper swapper;
     ISwapAdapter wethCbETHAdapter;
@@ -84,6 +99,9 @@ contract SwapperTest is BaseForkTest {
         vm.startPrank(OWNER);
         swapper.grantRole(swapper.MANAGER_ROLE(), OWNER);
         swapper.grantRole(swapper.UPGRADER_ROLE(), OWNER);
+        swapper.setOracle(
+            IPriceOracleGetter(poolAddressProvider.getPriceOracle())
+        );
         vm.stopPrank();
 
         // fake minting some tokens to start with
@@ -267,14 +285,14 @@ contract SwapperTest is BaseForkTest {
     {
         uint256 newOffsetFactor = 1 ether;
 
-        vm.expectRevert(ISwapper.OffsetOutsideRange.selector);
+        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
 
         vm.prank(OWNER);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
 
         newOffsetFactor = 0;
 
-        vm.expectRevert(ISwapper.OffsetOutsideRange.selector);
+        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
 
         vm.prank(OWNER);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
@@ -294,6 +312,81 @@ contract SwapperTest is BaseForkTest {
 
         vm.prank(NO_ROLE);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
+    }
+
+    /// @dev ensures a new oracle address is set and the appropriate event is emitted
+    function test_setOracle_setsNewOracle_and_emitsOracleSetEvent() public {
+        assertEq(
+            address(swapper.getOracle()), poolAddressProvider.getPriceOracle()
+        );
+
+        IPriceOracleGetter newOracle = IPriceOracleGetter(OWNER);
+        vm.expectEmit();
+        emit OracleSet(newOracle);
+
+        vm.startPrank(OWNER);
+        swapper.setOracle(newOracle);
+        vm.stopPrank();
+
+        assertEq(address(swapper.getOracle()), OWNER);
+    }
+
+    /// @dev ensures setOracle call reverts when called by non manager
+    function test_setOracle_revertsWhen_calledByNonManager() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                swapper.MANAGER_ROLE()
+            )
+        );
+
+        vm.prank(NO_ROLE);
+        swapper.setOracle(IPriceOracleGetter(NO_ROLE));
+    }
+
+    /// @dev ensures setOffsetDeviationUSD sets new value for offsetDeviationUSD and emits appropirate event
+    function test_setOffsetDeviationUSD_setsNewValueForOffsetDeviationUSD_and_emitsOffsetDeviationSetEvent(
+    ) public {
+        uint256 newOffsetDeviationUSD = 100;
+
+        assertEq(0, swapper.getOffsetDeviationUSD());
+
+        vm.expectEmit();
+        emit OffsetDeviationSet(newOffsetDeviationUSD);
+
+        vm.startPrank(OWNER);
+        swapper.setOffsetDeviationUSD(newOffsetDeviationUSD);
+        vm.stopPrank();
+
+        assertEq(newOffsetDeviationUSD, swapper.getOffsetDeviationUSD());
+    }
+
+    /// @dev ensures setOffsetDeviationUSD call reverts when new offsetDeviationUSD value is larger
+    /// than one USD
+    function test_setOffsetDeviationUSD_revertsWhen_newValueIsLargerThanOneUSD()
+        public
+    {
+        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
+
+        vm.prank(OWNER);
+        swapper.setOffsetDeviationUSD(type(uint256).max);
+    }
+
+    /// @dev ensures setOffsetDeviationUSD vall reverts when called by non-manager
+    function test_setOffsetDeviationUSD_revertsWhen_calledByNonManager()
+        public
+    {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                swapper.MANAGER_ROLE()
+            )
+        );
+
+        vm.prank(NO_ROLE);
+        swapper.setOffsetDeviationUSD(123);
     }
 
     /// @dev ensures swapping works for a route with a single step
