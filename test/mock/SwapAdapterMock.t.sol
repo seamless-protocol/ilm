@@ -13,7 +13,11 @@ import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 contract SwapAdapterMock is Test, ISwapAdapter {
     address SILENCER = makeAddr("silencer");
 
+    uint256 slippagePCT;
+
     /// @inheritdoc ISwapAdapter
+    /// @dev the slippagePCT allows for setting some slippage
+    /// @dev CRUCIAL: THIS FUNCTION IS NOT INTENDED TO ACCOUNT FOR ASSETS WITH DIFFERING DECIMALS
     function executeSwap(
         IERC20 from,
         IERC20 to,
@@ -24,7 +28,7 @@ contract SwapAdapterMock is Test, ISwapAdapter {
         from.transferFrom(msg.sender, address(this), fromAmount);
 
         // pretend there is no loss to slippage or DEX fees
-        toAmount = fromAmount;
+        toAmount = fromAmount * (100 - slippagePCT) / 100;
         deal(address(to), beneficiary, to.balanceOf(beneficiary) + toAmount);
     }
 
@@ -34,5 +38,9 @@ contract SwapAdapterMock is Test, ISwapAdapter {
     /// @inheritdoc ISwapAdapter
     function getSwapper() external view returns (address swapper) {
         return SILENCER;
+    }
+
+    function setSlippagePCT(uint256 slippage) external {
+        slippagePCT = slippage;
     }
 }

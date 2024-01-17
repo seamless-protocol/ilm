@@ -67,8 +67,8 @@ contract SwapperTest is BaseForkTest {
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
 
     Swapper swapper;
-    ISwapAdapter wethCbETHAdapter;
-    ISwapAdapter CbETHUSDbCAdapter;
+    SwapAdapterMock wethCbETHAdapter;
+    SwapAdapterMock CbETHUSDbCAdapter;
 
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
@@ -472,5 +472,35 @@ contract SwapperTest is BaseForkTest {
 
         swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
         vm.stopPrank();
+    }
+
+    function test_swap_revertsWhen_tooFewEndAssetsAreReceived() public {
+        // add 5% slippage +- 5% so max 5.025% max slippage
+        vm.startPrank(OWNER);
+        swapper.setOffsetFactor(WETH, CbETH, 5e6);
+        swapper.setOffsetDeviationUSD(5e6);
+        vm.stopPrank();
+
+        Step[] memory steps = new Step[](1);
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+
+        vm.startPrank(OWNER);
+        swapper.setRoute(WETH, CbETH, steps);
+        swapper.grantRole(swapper.STRATEGY_ROLE(), ALICE);
+        vm.stopPrank();
+
+        // add 10% slippage to first swap
+        wethCbETHAdapter.setSlippagePCT(10);
+
+        uint256 swapAmount = 1 ether;
+
+        deal(address(WETH), ALICE, WETH.balanceOf(ALICE) + 10 * swapAmount);
+
+        vm.startPrank(ALICE);
+        WETH.approve(address(swapper), swapAmount);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+
+        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
     }
 }
