@@ -36,6 +36,8 @@ library LoopStrategyStorage {
         ISwapper swapper;
         /// @dev maximum amount of loop iterations when rebalancing
         uint16 maxIterations;
+        /// @dev maximum amount total assets (total equity) of the strategy
+        uint256 assetsCap;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.LoopStrategy")) - 1)) & ~bytes32(uint256(0xff));
