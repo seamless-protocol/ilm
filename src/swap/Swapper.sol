@@ -88,7 +88,7 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         onlyRole(MANAGER_ROLE)
     {
         if (offsetUSD == 0 || offsetUSD > USDWadRayMath.USD) {
-            revert OffsetOutsideRange();
+            revert USDValueOutsideRange();
         }
 
         Storage.layout().offsetUSD[from][to] = offsetUSD;
@@ -107,17 +107,14 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
-    function setTokenSlippage(IERC20 token, uint256 slippage)
-        external
-        onlyRole(MANAGER_ROLE)
-    {
-        if (slippage > USDWadRayMath.WAD) {
-            revert SlippageOutsideRange();
+    function setOffsetDeviationUSD(uint256 offsetDeviationUSD) external onlyRole(MANAGER_ROLE) {
+        if (offsetDeviationUSD > USDWadRayMath.USD) {
+            revert USDValueOutsideRange();
         }
 
-        Storage.layout().tokenSlippageWAD[token] = slippage;
+        Storage.layout().offsetDeviationUSD = offsetDeviationUSD;
 
-        emit SlippageSet(token, slippage);
+        emit OffsetDeviationSet(offsetDeviationUSD);
     }
 
     /// @inheritdoc ISwapper
@@ -153,12 +150,12 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
-    function getTokenSlippage(IERC20 token)
+    function getOffsetDeviationUSD()
         external
         view
-        returns (uint256 slippage)
+        returns (uint256 offsetDeviationUSD)
     {
-        return Storage.layout().tokenSlippageWAD[token];
+        return Storage.layout().offsetDeviationUSD;
     }
 
     /// @inheritdoc ISwapper
@@ -221,12 +218,12 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
             IERC20Metadata(address(to)).decimals()
         );
 
+        uint256 maxOffsetUSD = $.offsetUSD[from][to].usdMul($.offsetDeviationUSD).usdDiv(USDWadRayMath.USD);
+
         // 3. ensure these amounts do not differ by more than given slippage
         uint256 maxSlippageUSD = fromAmountUSD.usdMul(
-            USDWadRayMath.wadToUSD(
-                $.tokenSlippageWAD[from].wadDiv(USDWadRayMath.WAD)
-            )
-        );
+            maxOffsetUSD
+        ).usdDiv(USDWadRayMath.USD);
 
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();

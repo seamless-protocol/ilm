@@ -12,9 +12,9 @@ import { Step } from "../types/DataTypes.sol";
 /// @notice interface for Swapper contract
 /// @dev Swapper contract functions as registry and router for Swapper Adapters
 interface ISwapper {
-    /// @notice thrown when attempting to set an offsetUSD factor which is equal to 0
-    /// or larger than ONE_USD (1e8)
-    error OffsetOutsideRange();
+    /// @notice thrown when attempting to set a USD value which is outside the USD range
+    /// of ONE_USD (1e8)
+    error USDValueOutsideRange();
 
     /// @notice thrown when attempting to set a maximum acceptable slippage for a given
     /// token which exceeds ONE_WAD (1e18)
@@ -49,11 +49,9 @@ interface ISwapper {
     /// @param oracle address of PriceOracleGetter contract
     event OracleSet(IPriceOracleGetter oracle);
 
-    /// @notice emitted when a new value for the maximum allowed slippage
-    /// for a given token is set
-    /// @param token address of token
-    /// @param slippage maximum allowed value for slippage, between 0 - 1 WAD
-    event SlippageSet(IERC20 token, uint256 slippage);
+    /// @notice emitted when a new value for the allowed deviation from the offsetFactor
+    /// is set
+    event OffsetDeviationSet(uint256 offsetDeviationUSD);
 
     /// @notice emitted when a route is removed
     /// @param from address of token route ends with
@@ -116,10 +114,9 @@ interface ISwapper {
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external;
 
-    //// @notice sets the maximum acceptable slippage for a token
-    /// @param token address of token
-    /// @param slippage maximum acceptable slippage value between 0 and 1 WAD
-    function setTokenSlippage(IERC20 token, uint256 slippage) external;
+    /// @notice sets a new value for the offsetDeviationUSD from the offsetFactor
+    /// @param offsetDeviationUSD new value for the offsetDeviationUSD
+    function setOffsetDeviationUSD(uint256 offsetDeviationUSD) external;
 
     /// @notice sets a new address for the oracle
     /// @param oracle new IPriceOracleGetter contract address
@@ -129,11 +126,7 @@ interface ISwapper {
     /// @return oracle address of oracle contract
     function getOracle() external view returns (IPriceOracleGetter oracle);
 
-    /// @notice returns maximum acceptable slippage value for a given token
-    /// @param token address of token
-    /// @return slippage maximum acceptable slippage value in WAD
-    function getTokenSlippage(IERC20 token)
-        external
-        view
-        returns (uint256 slippage);
+    /// @notice returns offsetDeviationUSD value
+    /// @return offsetDeviationUSD offsetDeviationUSD value
+    function getOffsetDeviationUSD() external view returns (uint256 offsetDeviationUSD);
 }

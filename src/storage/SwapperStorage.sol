@@ -15,7 +15,7 @@ library SwapperStorage {
         mapping(IERC20 from => mapping(IERC20 to => uint256 offsetUSD))
             offsetUSD;
         mapping(IERC20 from => mapping(IERC20 to => Step[] steps)) route;
-        mapping(IERC20 token => uint256 maxSlippageWAD) tokenSlippageWAD;
+        uint256 offsetDeviationUSD;
         IPriceOracleGetter oracle;
     }
 
