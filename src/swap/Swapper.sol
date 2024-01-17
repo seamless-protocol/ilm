@@ -107,7 +107,10 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
-    function setOffsetDeviationUSD(uint256 offsetDeviationUSD) external onlyRole(MANAGER_ROLE) {
+    function setOffsetDeviationUSD(uint256 offsetDeviationUSD)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
         if (offsetDeviationUSD > USDWadRayMath.USD) {
             revert USDValueOutsideRange();
         }
@@ -218,12 +221,13 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
             IERC20Metadata(address(to)).decimals()
         );
 
-        uint256 maxOffsetUSD = $.offsetUSD[from][to].usdMul($.offsetDeviationUSD).usdDiv(USDWadRayMath.USD);
+        uint256 maxOffsetUSD = $.offsetUSD[from][to].usdMul(
+            $.offsetDeviationUSD
+        ).usdDiv(USDWadRayMath.USD);
 
         // 3. ensure these amounts do not differ by more than given slippage
-        uint256 maxSlippageUSD = fromAmountUSD.usdMul(
-            maxOffsetUSD
-        ).usdDiv(USDWadRayMath.USD);
+        uint256 maxSlippageUSD =
+            fromAmountUSD.usdMul(maxOffsetUSD).usdDiv(USDWadRayMath.USD);
 
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();

@@ -104,7 +104,7 @@ contract SwapperMock is Test, ISwapper {
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
     function setOracle(IPriceOracleGetter oracles) external { }
-    
+
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
     function getOracle() external view returns (IPriceOracleGetter) { }

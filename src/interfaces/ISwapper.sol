@@ -128,5 +128,8 @@ interface ISwapper {
 
     /// @notice returns offsetDeviationUSD value
     /// @return offsetDeviationUSD offsetDeviationUSD value
-    function getOffsetDeviationUSD() external view returns (uint256 offsetDeviationUSD);
+    function getOffsetDeviationUSD()
+        external
+        view
+        returns (uint256 offsetDeviationUSD);
 }
