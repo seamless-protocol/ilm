@@ -389,6 +389,7 @@ contract LoopStrategy is
         emit AssetsCapSet(assetsCap);
     }
 
+    /// @inheritdoc ILoopStrategy
     function setUSDMargin(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
