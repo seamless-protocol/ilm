@@ -35,6 +35,8 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
+import 'forge-std/console.sol';
+
 /// @notice Unit tests for the LoopStrategy redeem flow
 contract LoopStrategyRedeemTest is LoopStrategyTest {
     using USDWadRayMath for uint256;
@@ -245,6 +247,9 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             expectedReceivedAssets,
             MARGIN
         );
+
+        // ensure all debt is repaid
+        assertEq(strategy.debt(), 0);
     }
 
     /// @dev tests that the redeemer incurs no equity cost when the redemption does not throw the collateral ratio
@@ -271,9 +276,17 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 oldCollateralUSD = strategy.collateral();
         uint256 oldEquityUSD = strategy.equityUSD();
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
+        
+        uint256 preRedeemEquityUSD = strategy.equity();
 
         vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
+
+        uint256 postRedeemEquityUSD = strategy.equity();
+
+        // in the case where no strategy-wide rebalance is needed, 
+        // the received collateral _must_ be less than the equity lost by the strategy
+        assertLe(receivedCollateral, preRedeemEquityUSD - postRedeemEquityUSD);
 
         // assert that the expected amount of shares has been burnt
         assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
@@ -363,6 +376,12 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
+    
+        // ensure that the received collateral is less than or equal to the equity lost by the strategy
+        assertLe(
+            receivedCollateral,
+            ConversionMath.convertUSDToAsset(expectedCollateralUSD - expectedDebtUSD - strategy.equityUSD(), DROPPED_COLLATERAL_PRICE, 18)
+        );
 
         // assert that the expected amount of shares has been burnt
         assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
