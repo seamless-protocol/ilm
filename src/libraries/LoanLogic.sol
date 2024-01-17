@@ -199,7 +199,7 @@ library LoanLogic {
     }
 
     /// @notice returns the total amount of borrow for given asset reserve data
-    /// @param reserveData reserve data (external aave type) for the asset
+    /// @param reserveData reserve data (external type) for the asset
     /// @return totalBorrow total borrowed amount
     function _getTotalBorrow(DataTypes.ReserveData memory reserveData)
         internal
