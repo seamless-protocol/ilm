@@ -545,7 +545,11 @@ contract LoopStrategyTest is BaseForkTest {
             abi.encodeWithSelector(ILoopStrategy.MintDisabled.selector)
         );
         strategy.mint(1 ether, address(this));
-        assertEq(strategy.previewMint(1 ether), 0);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ILoopStrategy.MintDisabled.selector)
+        );
+        strategy.previewMint(1 ether);
     }
 
     /// @dev test confimrs that withdraw function is disabled
@@ -553,9 +557,12 @@ contract LoopStrategyTest is BaseForkTest {
         vm.expectRevert(
             abi.encodeWithSelector(ILoopStrategy.WithdrawDisabled.selector)
         );
-
         strategy.withdraw(1 ether, address(this), address(this));
-        assertEq(strategy.previewWithdraw(1 ether), 0);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ILoopStrategy.WithdrawDisabled.selector)
+        );
+        strategy.previewWithdraw(1 ether);
     }
 
     /// @dev test confirms that changing asset price on the price oracle works
@@ -584,6 +591,18 @@ contract LoopStrategyTest is BaseForkTest {
         deal(address(strategyAssets.underlying), user, amount);
         strategyAssets.underlying.approve(address(strategy), amount);
         shares = strategy.deposit(amount, user, minSharesReceived);
+        vm.stopPrank();
+    }
+
+    function _depositForExpectsRevert(address user, uint256 amount, bytes memory revertReason)
+        internal
+        returns (uint256 shares)
+    {
+        vm.startPrank(user);
+        deal(address(strategyAssets.underlying), user, amount);
+        strategyAssets.underlying.approve(address(strategy), amount);
+        vm.expectRevert(revertReason);
+        shares = strategy.deposit(amount, user);
         vm.stopPrank();
     }
 
