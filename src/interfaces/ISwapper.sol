@@ -28,6 +28,9 @@ interface ISwapper {
     /// strategies enumerable set
     error NotStrategy();
 
+    /// @notice thrown when less tokens than the minimum are returned after a swap
+    error MaxSlippageExceeded();
+
     /// @notice emitted when a route is set for a given swap
     /// @param from address of token route ends with
     /// @param to address of token route starts with

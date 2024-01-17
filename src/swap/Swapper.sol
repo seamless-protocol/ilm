@@ -11,6 +11,7 @@ import { IERC20Metadata } from
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import { ConversionMath } from "../libraries/math/ConversionMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { USDWadRayMath } from "../libraries/math/USDWadRayMath.sol";
 import { SwapperStorage as Storage } from "../storage/SwapperStorage.sol";
@@ -23,6 +24,8 @@ import { UUPSUpgradeable } from
 /// @title Swapper
 /// @notice Routing contract for swaps across different DEXs
 contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
+    using USDWadRayMath for uint256;
+
     /// @dev role which can use the swap function, only given to ILM strategies
     bytes32 public constant STRATEGY_ROLE = keccak256("STRATEGY_ROLE");
     /// @dev role which can change routes and offset factor
@@ -149,6 +152,46 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         return Storage.layout().oracle;
     }
 
+    /// @notice enforces the maximum slippage allowed for a given swap
+    /// @param from address of starting token
+    /// @param to address of ending token
+    /// @param fromAmount amount being swapped
+    /// @param toAmount amount received
+    function _enforceSlippageLimit(
+        IERC20 from,
+        IERC20 to,
+        uint256 fromAmount,
+        uint256 toAmount
+    ) internal view {
+        // 1. grab oracle price for `from` and for `to`
+        Storage.Layout storage $ = Storage.layout();
+
+        IPriceOracleGetter oracle = $.oracle;
+
+        // 2. convert to/from amount to dollars
+        uint256 fromAmountUSD = ConversionMath.convertAssetToUSD(
+            fromAmount,
+            oracle.getAssetPrice(address(from)),
+            IERC20Metadata(address(from)).decimals()
+        );
+        uint256 toAmountUSD = ConversionMath.convertAssetToUSD(
+            toAmount,
+            oracle.getAssetPrice(address(to)),
+            IERC20Metadata(address(to)).decimals()
+        );
+
+        // 3. ensure these amounts do not differ by more than given slippage
+        uint256 maxSlippageUSD = fromAmountUSD.usdMul(
+            USDWadRayMath.wadToUSD(
+                $.tokenSlippageWAD[from].wadDiv(USDWadRayMath.WAD)
+            )
+        );
+
+        if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
+            revert MaxSlippageExceeded();
+        }
+    }
+
     /// @inheritdoc ISwapper
     function swap(
         IERC20 from,
@@ -175,6 +218,8 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         // set the received amount as the amount received from the final
         // step of the route
         toAmount = fromAmount;
+
+        _enforceSlippageLimit(from, to, fromAmount, toAmount);
 
         to.transfer(beneficiary, toAmount);
     }
