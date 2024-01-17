@@ -3,7 +3,11 @@
 pragma solidity ^0.8.21;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { CollateralRatio } from "../types/DataTypes.sol";
+import {
+    CollateralRatio,
+    LendingPool,
+    StrategyAssets
+} from "../types/DataTypes.sol";
 
 /// @title IStrategy
 /// @notice interface for Integration Liquiity Market strategies
@@ -17,6 +21,10 @@ interface ILoopStrategy is IERC4626 {
 
     /// @notice reverts when rebalance function is called but collateral ratio is in the target range
     error RebalanceNotNeeded();
+
+    /// @notice reverts when attempting to set collateral ratio targets which are not logically consistent
+    /// in terms of their values
+    error InvalidCollateralRatioTargets();
 
     /// @notice reverts when shares received by user on deposit is lower than given minimum
     /// @param sharesReceived amount of shares received
@@ -41,6 +49,10 @@ interface ILoopStrategy is IERC4626 {
     /// shares to be redeemed
     error RedeemerNotOwner();
 
+    /// @notice emitted when a new value for the collateralRatioTargets is set
+    /// @param targets new value of collateralRatioTargest struct
+    event CollateralRatioTargetsSet(CollateralRatio targets);
+
     /// @notice emitted when a new value for maxIterations is set
     /// @param iterations new value for maxIterations
     event MaxIterationsSet(uint16 iterations);
@@ -56,6 +68,10 @@ interface ILoopStrategy is IERC4626 {
     /// @notice emitted when a new value for assets cap is set
     /// @param assetsCap new value for assets cap
     event AssetsCapSet(uint256 assetsCap);
+
+    /// @notice emitted when a new value for the swapper address is set
+    /// @param swapper new address of swapper contract
+    event SwapperSet(address swapper);
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
@@ -146,13 +162,52 @@ interface ILoopStrategy is IERC4626 {
 
     /// @notice sets the usdMarginUSD value
     /// @param marginUSD new value of usdMarginUSD
-    function setUSDMarginUSD(uint256 marginUSD) external;
+    function setUSDMargin(uint256 marginUSD) external;
 
     /// @notice sets the ratioMarginUSD value
     /// @param marginUSD new value of ratioMarginUSD
-    function setRatioMarginUSD(uint256 marginUSD) external;
+    function setRatioMargin(uint256 marginUSD) external;
 
     /// @notice sets the maxIterations value
     /// @param iterations new value of maxIterations
     function setMaxIterations(uint16 iterations) external;
+
+    /// @notice sets the swapper contract address
+    /// @param swapper address of swapper contract
+    function setSwapper(address swapper) external;
+
+    /// @notice returns underlying StrategyAssets struct
+    /// @return assets underlying StrategyAssets struct
+    function getAssets() external view returns (StrategyAssets memory assets);
+
+    /// @notice returns poolAddressProvider contract address
+    /// @return poolAddressProvider poolAddressProvider contract address
+    function getPoolAddressProvider()
+        external
+        view
+        returns (address poolAddressProvider);
+
+    /// @notice returns LendingPool struct
+    /// @return pool LendingPool struct
+    function getLendingPool() external view returns (LendingPool memory pool);
+
+    /// @notice returns address of oracle contract
+    /// @return oracle address of oracle contract
+    function getOracle() external view returns (address oracle);
+
+    /// @notice returns address of swapper contract
+    /// @return swapper address of swapper contract
+    function getSwapper() external view returns (address swapper);
+
+    /// @notice returns value of usdMargin
+    /// @return marginUSD usdMargin value
+    function getUSDMargin() external view returns (uint256 marginUSD);
+
+    /// @notice returns value of ratioMargin
+    /// @return marginUSD ratioMargin value
+    function getRatioMagin() external view returns (uint256 marginUSD);
+
+    /// @notice returns value of maxIterations
+    /// @return iterations maxIterations value
+    function getMaxIterations() external view returns (uint256 iterations);
 }

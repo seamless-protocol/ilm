@@ -207,13 +207,12 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         strategy.setAssetsCap(assetsCap);
 
         uint256 depositAlice = 15 ether;
-        bytes memory revertReason =
-            abi.encodeWithSelector(
-                ERC4626Upgradeable.ERC4626ExceededMaxDeposit.selector,
-                alice,
-                depositAlice,
-                assetsCap
-            );
+        bytes memory revertReason = abi.encodeWithSelector(
+            ERC4626Upgradeable.ERC4626ExceededMaxDeposit.selector,
+            alice,
+            depositAlice,
+            assetsCap
+        );
 
         _depositForExpectsRevert(alice, depositAlice, revertReason);
     }

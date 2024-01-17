@@ -133,10 +133,23 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setCollateralRatioTargets(
-        CollateralRatio memory _collateralRatioTargets
-    ) external override onlyRole(MANAGER_ROLE) {
-        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
+    function setCollateralRatioTargets(CollateralRatio memory targets)
+        external
+        override
+        onlyRole(MANAGER_ROLE)
+    {
+        if (
+            targets.minForRebalance > targets.target
+                || targets.maxForRebalance < targets.target
+                || targets.minForRebalance > targets.minForWithdrawRebalance
+                || targets.maxForRebalance < targets.maxForDepositRebalance
+        ) {
+            revert InvalidCollateralRatioTargets();
+        }
+
+        Storage.layout().collateralRatioTargets = targets;
+
+        emit CollateralRatioTargetsSet(targets);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -229,7 +242,12 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc IERC4626
-    function maxDeposit(address) public view override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxDeposit(address)
+        public
+        view
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return Storage.layout().assetsCap - totalAssets();
     }
 
@@ -264,9 +282,14 @@ contract LoopStrategy is
             totalAssets()
         );
     }
-    
+
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
-    function maxMint(address) public pure override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxMint(address)
+        public
+        pure
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return 0;
     }
 
@@ -292,13 +315,18 @@ contract LoopStrategy is
         revert MintDisabled();
     }
 
-    /// @notice withdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
-    function maxWithdraw(address) public pure override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxWithdraw(address)
+        public
+        pure
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return 0;
     }
 
-    /// @notice withdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
     function withdraw(uint256, address, address)
         public
@@ -310,7 +338,7 @@ contract LoopStrategy is
         revert WithdrawDisabled();
     }
 
-    /// @notice withdraw function is disabled because the exact amount of shares for a number of 
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
     function previewWithdraw(uint256)
         public
@@ -362,10 +390,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setUSDMarginUSD(uint256 marginUSD)
-        external
-        onlyRole(MANAGER_ROLE)
-    {
+    function setUSDMargin(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
         }
@@ -376,7 +401,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setRatioMarginUSD(uint256 marginUSD)
+    function setRatioMargin(uint256 marginUSD)
         external
         onlyRole(MANAGER_ROLE)
     {
@@ -397,6 +422,57 @@ contract LoopStrategy is
         Storage.layout().maxIterations = iterations;
 
         emit MaxIterationsSet(iterations);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setSwapper(address swapper) external onlyRole(MANAGER_ROLE) {
+        Storage.layout().swapper = ISwapper(swapper);
+
+        emit SwapperSet(swapper);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getAssets() external view returns (StrategyAssets memory assets) {
+        return Storage.layout().assets;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getPoolAddressProvider()
+        external
+        view
+        returns (address poolAddressProvider)
+    {
+        return address(Storage.layout().poolAddressProvider);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getLendingPool() external view returns (LendingPool memory pool) {
+        return Storage.layout().lendingPool;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getOracle() external view returns (address oracle) {
+        return address(Storage.layout().oracle);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getSwapper() external view returns (address swapper) {
+        return address(Storage.layout().swapper);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getUSDMargin() external view returns (uint256 marginUSD) {
+        return Storage.layout().usdMargin;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getRatioMagin() external view returns (uint256 marginUSD) {
+        return Storage.layout().ratioMargin;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getMaxIterations() external view returns (uint256 iterations) {
+        return Storage.layout().maxIterations;
     }
 
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
@@ -531,7 +607,11 @@ contract LoopStrategy is
 
     /// @notice converts the USD value to the amount of underlying token assets
     /// @param usdValue amount of USD to convert
-    function _convertUSDValueToUnderlyingAsset(uint256 usdValue) view internal returns(uint256) {
+    function _convertUSDValueToUnderlyingAsset(uint256 usdValue)
+        internal
+        view
+        returns (uint256)
+    {
         Storage.Layout storage $ = Storage.layout();
 
         // get underlying price and decimals

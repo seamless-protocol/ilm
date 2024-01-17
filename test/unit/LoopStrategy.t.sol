@@ -43,6 +43,30 @@ import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 contract LoopStrategyTest is BaseForkTest {
     using stdStorage for StdStorage;
 
+    /////////////////////////////
+    ///// REPLICATED EVENTS /////
+    /////////////////////////////
+
+    // @notice emitted when a new value for maxIterations is set
+    /// @param iterations new value for maxIterations
+    event MaxIterationsSet(uint16 iterations);
+
+    /// @notice emitted when a new value for ratioMargin is set
+    /// @param margin new value for ratioMargin
+    event RatioMarginSet(uint256 margin);
+
+    /// @notice emitted when a new value for usdMargin is set
+    /// @param margin new value for usdMargin
+    event USDMarginSet(uint256 margin);
+
+    /// @notice emitted when a new value for the swapper address is set
+    /// @param swapper new address of swapper contract
+    event SwapperSet(address swapper);
+
+    /// @notice emitted when a new value for the collateralRatioTargets is set
+    /// @param targets new value of collateralRatioTargest struct
+    event CollateralRatioTargetsSet(CollateralRatio targets);
+
     IPoolAddressesProvider public constant poolAddressProvider =
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
