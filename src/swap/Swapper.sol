@@ -129,6 +129,8 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     ) external onlyRole(STRATEGY_ROLE) returns (uint256 toAmount) {
         Step[] memory steps = Storage.layout().route[from][to];
 
+        uint256 initialAmount = fromAmount;
+
         from.transferFrom(msg.sender, address(this), fromAmount);
 
         // execute the swap for each swap-step in the route,
@@ -147,7 +149,7 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         // step of the route
         toAmount = fromAmount;
 
-        _enforceSlippageLimit(from, to, fromAmount, toAmount);
+        _enforceSlippageLimit(from, to, initialAmount, toAmount);
 
         to.transfer(beneficiary, toAmount);
     }
@@ -228,7 +230,7 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         // 3. ensure these amounts do not differ by more than given slippage
         uint256 maxSlippageUSD =
             fromAmountUSD.usdMul(maxOffsetUSD).usdDiv(USDWadRayMath.USD);
-
+        
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();
         }
