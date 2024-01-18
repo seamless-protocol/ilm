@@ -429,7 +429,7 @@ library RebalanceLogic {
                 break;
             }
 
-            // borrow _assets from AaveV3 _pool
+            // borrow _assets from lending _pool
             LoanLogic.borrow($.lendingPool, $.assets.debt, borrowAmountAsset);
 
             // approve _swapper contract to swap asset
@@ -447,7 +447,7 @@ library RebalanceLogic {
                 break;
             }
 
-            // collateralize _assets in AaveV3 _pool
+            // collateralize _assets in lending _pool
             _state = LoanLogic.supply(
                 $.lendingPool, $.assets.collateral, collateralAmountAsset
             );
@@ -515,7 +515,7 @@ library RebalanceLogic {
                 break;
             }
 
-            // repay debt to AaveV3 _pool
+            // repay debt to lending _pool
             state =
                 LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
 
@@ -572,7 +572,7 @@ library RebalanceLogic {
                 break;
             }
 
-            // repay debt to AaveV3 _pool
+            // repay debt to lending _pool
             state =
                 LoanLogic.repay($.lendingPool, $.assets.debt, borrowAmountAsset);
 
@@ -595,7 +595,7 @@ library RebalanceLogic {
         Storage.Layout storage $,
         uint256 collateralAmountAsset
     ) internal returns (uint256 borrowAmountAsset) {
-        // withdraw collateral tokens from Aave _pool
+        // withdraw collateral tokens from lending _pool
         LoanLogic.withdraw(
             $.lendingPool, $.assets.collateral, collateralAmountAsset
         );
