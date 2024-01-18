@@ -214,12 +214,10 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 fromAmount,
         uint256 toAmount
     ) internal view {
-        // 1. grab oracle price for `from` and for `to`
         Storage.Layout storage $ = Storage.layout();
-
         IPriceOracleGetter oracle = $.oracle;
 
-        // 2. convert to/from amount to dollars
+        // convert to/from amount to dollars
         uint256 fromAmountUSD = ConversionMath.convertAssetToUSD(
             fromAmount,
             oracle.getAssetPrice(address(from)),
@@ -231,13 +229,14 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
             IERC20Metadata(address(to)).decimals()
         );
 
-        uint256 maxOffsetUSD = $.offsetUSD[from][to].usdMul(
+        uint256 offsetUSD = $.offsetUSD[from][to];
+        uint256 maxDeviationUSD = offsetUSD.usdMul(
             $.offsetDeviationUSD
         ).usdDiv(USDWadRayMath.USD);
 
-        // 3. ensure these amounts do not differ by more than given slippage
+        // ensure these amounts do not differ by more than given slippage
         uint256 maxSlippageUSD =
-            fromAmountUSD.usdMul(maxOffsetUSD).usdDiv(USDWadRayMath.USD);
+            fromAmountUSD.usdMul(offsetUSD + maxDeviationUSD).usdDiv(USDWadRayMath.USD);
 
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();
