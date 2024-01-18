@@ -56,8 +56,7 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
   LoopStrategy public strategy;
 
   function run() public {
-    deployerPrivateKey = vm.envUint("DEPLOYER_PK");
-    deployerAddress = vm.addr(deployerPrivateKey);
+    _setDeployer(vm.envUint("DEPLOYER_PK"));
 
     _deployWrappedCbETH();
     _setupWrappedCbETH();
@@ -70,6 +69,11 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     _deployLoopStrategy();
 
     _setupRoles();
+  }
+
+  function _setDeployer(uint256 _deployerPrivateKey) internal {
+    deployerPrivateKey = _deployerPrivateKey; 
+    deployerAddress = vm.addr(deployerPrivateKey);
   }
 
   function _logAddress(string memory _name, address _address) internal view {
@@ -213,7 +217,10 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
 
       vm.startBroadcast(deployerPrivateKey);
       swapper.setRoute(IERC20(address(wrappedCbETH)), WETH, stepsWrappedToWETH);
+      swapper.setOffsetFactor(IERC20(address(wrappedCbETH)), WETH, swapperOffsetFactor);
+
       swapper.setRoute(WETH, IERC20(address(wrappedCbETH)), stepsWETHtoWrapped);
+      swapper.setOffsetFactor(WETH, IERC20(address(wrappedCbETH)), swapperOffsetFactor);
       vm.stopBroadcast();
   }
 

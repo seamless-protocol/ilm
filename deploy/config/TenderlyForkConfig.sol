@@ -35,4 +35,6 @@ abstract contract TenderlyForkConfig is BaseMainnetConstants {
   uint256 public constant wrappedCbETH_LTV = 90_00;
   uint256 public constant wrappedCbETH_LiquidationTrashold = 92_00;
   uint256 public constant wrappedCbETH_LiquidationBonus = 100_00 + 5_00;
+
+  uint256 public constant swapperOffsetFactor = 300000; // 0.3
 }
