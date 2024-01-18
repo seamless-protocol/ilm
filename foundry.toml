@@ -9,6 +9,7 @@ solc = "0.8.21"
 block_number = 5950437
 verbosity = 2
 evm_version = "paris"
+fs_permissions = [{ access = "write", path = "./"}]
 
 [fmt]
 line_length = 80
