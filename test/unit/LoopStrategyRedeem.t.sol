@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.21;
 
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from
@@ -34,6 +34,8 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
+
+import "forge-std/console.sol";
 
 /// @notice Unit tests for the LoopStrategy redeem flow
 contract LoopStrategyRedeemTest is LoopStrategyTest {
@@ -245,6 +247,9 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             expectedReceivedAssets,
             MARGIN
         );
+
+        // ensure all debt is repaid
+        assertEq(strategy.debt(), 0);
     }
 
     /// @dev tests that the redeemer incurs no equity cost when the redemption does not throw the collateral ratio
@@ -272,8 +277,16 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 oldEquityUSD = strategy.equityUSD();
         uint256 oldCollateralAssetBalance = CbETH.balanceOf(alice);
 
+        uint256 preRedeemEquityUSD = strategy.equity();
+
         vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
+
+        uint256 postRedeemEquityUSD = strategy.equity();
+
+        // in the case where no strategy-wide rebalance is needed,
+        // the received collateral _must_ be less than the equity lost by the strategy
+        assertLe(receivedCollateral, preRedeemEquityUSD - postRedeemEquityUSD);
 
         // assert that the expected amount of shares has been burnt
         assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
@@ -363,6 +376,16 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         vm.prank(alice);
         uint256 receivedCollateral = strategy.redeem(redeemAmount, alice, alice);
+
+        // ensure that the received collateral is less than or equal to the equity lost by the strategy
+        assertLe(
+            receivedCollateral,
+            ConversionMath.convertUSDToAsset(
+                expectedCollateralUSD - expectedDebtUSD - strategy.equityUSD(),
+                DROPPED_COLLATERAL_PRICE,
+                18
+            )
+        );
 
         // assert that the expected amount of shares has been burnt
         assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
@@ -468,6 +491,59 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         assert(
             strategy.currentCollateralRatio() > targets.minForWithdrawRebalance
         );
+    }
+
+    /// @dev ensures that redemptions work as intended even when the borrow capacity
+    /// of the lending pool has been reached
+    function test_redeem_afterBorrowCapOnLendingPoolIsExceeded() public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+        _depositFor(bob, depositAmount);
+
+        assertEq(
+            strategy.currentCollateralRatio(),
+            strategy.getCollateralRatioTargets().maxForDepositRebalance
+        );
+
+        // change borrow cap so that it is now exceeded
+        _changeBorrowCap(USDbC, 100_000);
+
+        // deposit to increase strategy collateral ratio greatly
+        _depositFor(bob, depositAmount);
+
+        assert(
+            strategy.currentCollateralRatio()
+                > strategy.getCollateralRatioTargets().maxForRebalance
+        );
+
+        uint256 initialTotalSupply = strategy.totalSupply();
+
+        // grab pre-redeem key parameters of strategy/user state
+        uint256 initialCollateralUSD = strategy.collateral();
+        uint256 initialDebtUSD = strategy.debt();
+
+        // calculate amount of debt, collateral and equity corresponding to shares to be redeemed
+        uint256 initialShareDebtUSD = initialDebtUSD.usdMul(
+            USDWadRayMath.wadToUSD(aliceShares.wadDiv(initialTotalSupply))
+        );
+        uint256 initialShareCollateralUSD = initialCollateralUSD.usdMul(
+            USDWadRayMath.wadToUSD(aliceShares.wadDiv(initialTotalSupply))
+        );
+        uint256 initialShareEquityUSD =
+            initialShareCollateralUSD - initialShareDebtUSD;
+
+        vm.prank(alice);
+        uint256 receivedAssets = strategy.redeem(aliceShares, alice, alice);
+
+        // since strategy has a much higher collateral ratio, it should follow that redemption
+        // incurs no equity cost
+        uint256 expectedAssets = ConversionMath.convertUSDToAsset(
+            initialShareEquityUSD, COLLATERAL_PRICE, 18
+        );
+
+        assertEq(receivedAssets, expectedAssets);
     }
 
     /// @dev ensures that the predicted assets returned by the preview redeem call

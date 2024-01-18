@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.21;
 
 import { ERC4626Upgradeable } from
     "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
@@ -96,6 +96,9 @@ contract LoopStrategy is
             interestRateMode: 2
         });
 
+        // there is no assets cap until it's otherwise set by the setter function
+        $.assetsCap = type(uint256).max;
+
         // approving to lending pool collateral and debt assets in advance
         $.assets.collateral.approve(
             address($.lendingPool.pool), type(uint256).max
@@ -130,10 +133,23 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setCollateralRatioTargets(
-        CollateralRatio memory _collateralRatioTargets
-    ) external override onlyRole(MANAGER_ROLE) {
-        Storage.layout().collateralRatioTargets = _collateralRatioTargets;
+    function setCollateralRatioTargets(CollateralRatio memory targets)
+        external
+        override
+        onlyRole(MANAGER_ROLE)
+    {
+        if (
+            targets.minForRebalance > targets.target
+                || targets.maxForRebalance < targets.target
+                || targets.minForRebalance > targets.minForWithdrawRebalance
+                || targets.maxForRebalance < targets.maxForDepositRebalance
+        ) {
+            revert InvalidCollateralRatioTargets();
+        }
+
+        Storage.layout().collateralRatioTargets = targets;
+
+        emit CollateralRatioTargetsSet(targets);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -155,16 +171,7 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function equity() public view override returns (uint256 amount) {
-        Storage.Layout storage $ = Storage.layout();
-        // get underlying price and decimals
-        uint256 underlyingPriceUSD =
-            $.oracle.getAssetPrice(address($.assets.underlying));
-        uint256 underlyingDecimals =
-            IERC20Metadata(address($.assets.underlying)).decimals();
-
-        return ConversionMath.convertUSDToAsset(
-            equityUSD(), underlyingPriceUSD, underlyingDecimals
-        );
+        return _convertUSDValueToUnderlyingAsset(equityUSD());
     }
 
     /// @inheritdoc ILoopStrategy
@@ -235,6 +242,16 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc IERC4626
+    function maxDeposit(address)
+        public
+        view
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
+        return Storage.layout().assetsCap - totalAssets();
+    }
+
+    /// @inheritdoc IERC4626
     function deposit(uint256 assets, address receiver)
         public
         override(ERC4626Upgradeable, IERC4626)
@@ -267,6 +284,16 @@ contract LoopStrategy is
     }
 
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
+    function maxMint(address)
+        public
+        pure
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
+        return 0;
+    }
+
+    /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
     function mint(uint256, address)
         public
         view
@@ -278,7 +305,6 @@ contract LoopStrategy is
     }
 
     /// @notice mint function is disabled because we can't get exact amount of input assets for given amount of resulting shares
-    /// @dev returning 0 because previewMint function must not revert by the ERC4626 standard
     function previewMint(uint256)
         public
         view
@@ -286,10 +312,22 @@ contract LoopStrategy is
         whenNotPaused
         returns (uint256)
     {
+        revert MintDisabled();
+    }
+
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
+    /// tokens cannot be calculated accurately
+    function maxWithdraw(address)
+        public
+        pure
+        override(ERC4626Upgradeable, IERC4626)
+        returns (uint256)
+    {
         return 0;
     }
 
-    /// @inheritdoc IERC4626
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
+    /// tokens cannot be calculated accurately
     function withdraw(uint256, address, address)
         public
         view
@@ -300,9 +338,8 @@ contract LoopStrategy is
         revert WithdrawDisabled();
     }
 
-    /// @notice previewWithdraw function is disabled because the exact amount of shares for a number of
+    /// @notice withdraw function is disabled because the exact amount of shares for a number of
     /// tokens cannot be calculated accurately
-    /// @dev returning 0 because previewWithdraw function must not revert by the ERC4626 standard
     function previewWithdraw(uint256)
         public
         view
@@ -310,7 +347,7 @@ contract LoopStrategy is
         whenNotPaused
         returns (uint256)
     {
-        return 0;
+        revert WithdrawDisabled();
     }
 
     /// @inheritdoc IERC4626
@@ -346,10 +383,14 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setUSDMarginUSD(uint256 marginUSD)
-        external
-        onlyRole(MANAGER_ROLE)
-    {
+    function setAssetsCap(uint256 assetsCap) external onlyRole(MANAGER_ROLE) {
+        Storage.layout().assetsCap = assetsCap;
+
+        emit AssetsCapSet(assetsCap);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function setUSDMargin(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
         }
@@ -360,7 +401,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function setRatioMarginUSD(uint256 marginUSD)
+    function setRatioMargin(uint256 marginUSD)
         external
         onlyRole(MANAGER_ROLE)
     {
@@ -383,6 +424,57 @@ contract LoopStrategy is
         emit MaxIterationsSet(iterations);
     }
 
+    /// @inheritdoc ILoopStrategy
+    function setSwapper(address swapper) external onlyRole(MANAGER_ROLE) {
+        Storage.layout().swapper = ISwapper(swapper);
+
+        emit SwapperSet(swapper);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getAssets() external view returns (StrategyAssets memory assets) {
+        return Storage.layout().assets;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getPoolAddressProvider()
+        external
+        view
+        returns (address poolAddressProvider)
+    {
+        return address(Storage.layout().poolAddressProvider);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getLendingPool() external view returns (LendingPool memory pool) {
+        return Storage.layout().lendingPool;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getOracle() external view returns (address oracle) {
+        return address(Storage.layout().oracle);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getSwapper() external view returns (address swapper) {
+        return address(Storage.layout().swapper);
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getUSDMargin() external view returns (uint256 marginUSD) {
+        return Storage.layout().usdMargin;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getRatioMagin() external view returns (uint256 marginUSD) {
+        return Storage.layout().ratioMargin;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getMaxIterations() external view returns (uint256 iterations) {
+        return Storage.layout().maxIterations;
+    }
+
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
@@ -394,6 +486,12 @@ contract LoopStrategy is
         uint256 minSharesReceived
     ) internal returns (uint256 shares) {
         Storage.Layout storage $ = Storage.layout();
+
+        uint256 maxAssets = maxDeposit(receiver);
+        if (assets > maxAssets) {
+            revert ERC4626ExceededMaxDeposit(receiver, assets, maxAssets);
+        }
+
         SafeERC20.safeTransferFrom(
             $.assets.underlying, msg.sender, address(this), assets
         );
@@ -505,5 +603,25 @@ contract LoopStrategy is
                 .withdraw(collateralAmountAsset);
         }
         underlyingAmountAsset = collateralAmountAsset;
+    }
+
+    /// @notice converts the USD value to the amount of underlying token assets
+    /// @param usdValue amount of USD to convert
+    function _convertUSDValueToUnderlyingAsset(uint256 usdValue)
+        internal
+        view
+        returns (uint256)
+    {
+        Storage.Layout storage $ = Storage.layout();
+
+        // get underlying price and decimals
+        uint256 underlyingPriceUSD =
+            $.oracle.getAssetPrice(address($.assets.underlying));
+        uint256 underlyingDecimals =
+            IERC20Metadata(address($.assets.underlying)).decimals();
+
+        return ConversionMath.convertUSDToAsset(
+            usdValue, underlyingPriceUSD, underlyingDecimals
+        );
     }
 }

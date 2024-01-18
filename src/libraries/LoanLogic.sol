@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.21;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from
@@ -199,7 +199,7 @@ library LoanLogic {
     }
 
     /// @notice returns the total amount of borrow for given asset reserve data
-    /// @param reserveData reserve data (external aave type) for the asset
+    /// @param reserveData reserve data (external type) for the asset
     /// @return totalBorrow total borrowed amount
     function _getTotalBorrow(DataTypes.ReserveData memory reserveData)
         internal

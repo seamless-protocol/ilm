@@ -8,6 +8,7 @@ optimizer_runs = 1_000_000
 solc = "0.8.21"
 block_number = 5950437
 verbosity = 2
+evm_version = "paris"
 
 [fmt]
 line_length = 80
