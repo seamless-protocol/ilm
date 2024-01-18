@@ -38,10 +38,18 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @dev initializer function for Swapper contract
-    function Swapper_init(address _initialAdmin) external initializer {
+    function Swapper_init(
+        address initialAdmin,
+        IPriceOracleGetter oracle,
+        uint256 offsetDeviationUSD
+    ) external initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+
+        Storage.Layout storage $ = Storage.layout();
+        $.oracle = oracle;
+        $.offsetDeviationUSD = offsetDeviationUSD;
     }
 
     /// @inheritdoc UUPSUpgradeable

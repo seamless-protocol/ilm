@@ -8,6 +8,8 @@ import { SwapAdapterBase } from "./SwapAdapterBase.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { WrappedTokenAdapterStorage as Storage } from
     "../../storage/WrappedTokenAdapterStorage.sol";
+import { SwapAdapterBaseStorage as BaseStorage } from
+    "../../storage/SwapAdapterBaseStorage.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "../../interfaces/IWrappedERC20PermissionedDeposit.sol";
 import { IWrappedTokenAdapter } from "../../interfaces/IWrappedTokenAdapter.sol";
@@ -29,8 +31,12 @@ contract WrappedTokenAdapter is SwapAdapterBase, IWrappedTokenAdapter {
     event WrapperRemoved(IERC20 from, IERC20 to);
 
     /// @inheritdoc IWrappedTokenAdapter
-    function WrappedTokenAdapter__Init(address owner) external initializer {
+    function WrappedTokenAdapter__Init(address owner, address swapper)
+        external
+        initializer
+    {
         __Ownable_init(owner);
+        BaseStorage.layout().swapper = swapper;
     }
 
     /// @inheritdoc ISwapAdapter
