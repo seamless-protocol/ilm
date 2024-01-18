@@ -90,7 +90,9 @@ contract SwapperTest is BaseForkTest {
             address(swapperImplementation),
             abi.encodeWithSelector(
                 Swapper.Swapper_init.selector, 
-                OWNER
+                OWNER,
+                IPriceOracleGetter(poolAddressProvider.getPriceOracle()),
+                1
             )
         );
 
@@ -99,9 +101,6 @@ contract SwapperTest is BaseForkTest {
         vm.startPrank(OWNER);
         swapper.grantRole(swapper.MANAGER_ROLE(), OWNER);
         swapper.grantRole(swapper.UPGRADER_ROLE(), OWNER);
-        swapper.setOracle(
-            IPriceOracleGetter(poolAddressProvider.getPriceOracle())
-        );
         vm.stopPrank();
 
         // fake minting some tokens to start with
@@ -350,7 +349,7 @@ contract SwapperTest is BaseForkTest {
     ) public {
         uint256 newOffsetDeviationUSD = 100;
 
-        assertEq(0, swapper.getOffsetDeviationUSD());
+        assertEq(1, swapper.getOffsetDeviationUSD());
 
         vm.expectEmit();
         emit OffsetDeviationSet(newOffsetDeviationUSD);
