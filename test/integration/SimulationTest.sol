@@ -13,6 +13,8 @@ import { IntegrationBase } from "./IntegrationBase.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 import "forge-std/console.sol";
 
+/// @notice Simulates large number of deposit and withdraw transactions on the strategy through time 
+/// @notice and writes parameters in the json output
 contract SimulationTest is IntegrationBase {
     SimulationHandler public handler;
 
@@ -48,6 +50,8 @@ contract SimulationTest is IntegrationBase {
         _changePrice(wrappedCbETH, currCbETHPrice);
     }
 
+    /// @notice Simulates large number of deposit and withdraw transactions on the strategy through time 
+    /// @notice and writes parameters in the json output
     function test_e2eSimulation() public {
         uint256 actions = 100;
         uint256 seed = 1;
@@ -71,10 +75,16 @@ contract SimulationTest is IntegrationBase {
         handler.saveJson();
     }
 
+    /// @dev used to generate the next random seed
+    /// @param seed previous random seed
     function _nextSeed(uint256 seed) internal pure returns (uint256) {
         return uint256(keccak256(abi.encodePacked(seed)));
     }
 
+    /// @dev passes time on the pool, and updates prices of WETH/CbETH
+    /// @dev price of WETH is changed randomly up to +-2%
+    /// @dev price of CbETH follows defined APY in regards to ETH price
+    /// @param seed random seed
     function _passTimeAndUpdatePrices(uint256 seed) internal {
         uint256 duration = 7 days;
         skip(duration);
@@ -104,6 +114,9 @@ contract SimulationTest is IntegrationBase {
         _changePrice(wrappedCbETH, cbETHPrice);
     }
 
+    /// @dev changes price for the given token
+    /// @param token token which price is changed
+    /// @param price new price
     function _changePrice(IERC20 token, uint256 price) internal {
         mockOracle.setAssetPrice(address(token), price);
     }

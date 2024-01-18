@@ -39,6 +39,8 @@ import { VmSafe } from "forge-std/Vm.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import "forge-std/console.sol";
 
+/// @notice Setup contract for the integration tests
+/// @notice deploys all related contracts on the fork, and setup lending pool parameters
 contract IntegrationBase is Test, DeployTenderlyFork {
     using stdStorage for StdStorage;
 

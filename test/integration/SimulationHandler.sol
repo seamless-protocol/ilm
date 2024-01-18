@@ -40,6 +40,8 @@ import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { IntegrationBase } from "./IntegrationBase.sol";
 import "forge-std/console.sol";
 
+/// @notice Helper contract used from SimulationTest to run transactions on the pool and capture data
+/// @notice On each transaction parameters before and after are captured and checked for basic correctness
 contract SimulationHandler is Test {
     using stdStorage for StdStorage;
 
@@ -83,6 +85,8 @@ contract SimulationHandler is Test {
         }
     }
 
+    /// @dev deposits assets to the strategy
+    /// @param seed random seed used to generate user and amount for deposit
     function deposit(uint256 seed) public {
         uint256 userId = bound(seed, 1, numUsers);
         address user = vm.addr(userId);
@@ -107,6 +111,8 @@ contract SimulationHandler is Test {
         );
     }
 
+    /// @dev redeems assets from the strategy
+    /// @param seed random seed used to generate user
     function redeem(uint256 seed) public {
         uint256 userId = bound(seed, 1, numUsers);
         address user = vm.addr(bound(seed, 1, numUsers));
@@ -130,6 +136,8 @@ contract SimulationHandler is Test {
         }
     }
 
+    /// @dev captures the current stratgy data, including some user data
+    /// @param user address of the user which data is captured
     function _getStrategyData(address user)
         internal
         view
@@ -148,6 +156,9 @@ contract SimulationHandler is Test {
         });
     }
 
+    /// @dev checks if equity after transaction is always greater or equalt to equity before transaction
+    /// @param dataBefore strategy data before transaction
+    /// @param dataAfter strategy data after transaction
     function _checkEquity(
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
@@ -175,6 +186,9 @@ contract SimulationHandler is Test {
         }
     }
 
+    /// @dev checks difference in the strategy data before and after the deposit transaciton
+    /// @param dataBefore strategy data before transaction
+    /// @param dataAfter strategy data after transaction
     function _checkDepositData(
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
@@ -187,6 +201,9 @@ contract SimulationHandler is Test {
         _checkEquity(dataBefore, dataAfter);
     }
 
+    /// @dev checks difference in the strategy data before and after the redeem transaciton
+    /// @param dataBefore strategy data before transaction
+    /// @param dataAfter strategy data after transaction
     function _checkRedeemData(
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
@@ -198,10 +215,13 @@ contract SimulationHandler is Test {
         _checkEquity(dataBefore, dataAfter);
     }
 
+    /// @dev saves the current json to the file
     function saveJson() public {
         vm.writeJson(jsonOut, jsonPath);
     }
 
+    /// @dev serializes strategy data to the json object
+    /// @param data stragey data
     function _serializeStrategyData(StrategyData memory data)
         internal
         returns (string memory)
@@ -220,6 +240,13 @@ contract SimulationHandler is Test {
         return out;
     }
 
+    /// @dev serializes deposit transaction data and adds it to the global json
+    /// @param user address of the user
+    /// @param userId user id
+    /// @param amount amount of underlying tokens
+    /// @param previewDeposit expected shares returned by previewDeposit function
+    /// @param dataBefore strategy data before transaction
+    /// @param dataAfter strategy data after transaction
     function _addDepositDataPoint(
         address user,
         uint256 userId,
@@ -251,6 +278,13 @@ contract SimulationHandler is Test {
         jsonOut = vm.serializeString(json, Strings.toString(dataId), out);
     }
 
+    /// @dev serializes redeem transaction data and adds it to the global json
+    /// @param user address of the user
+    /// @param userId user id
+    /// @param amount amount of shares redeemed
+    /// @param previewRedeem expected shares returned by previewRedeem function
+    /// @param dataBefore strategy data before transaction
+    /// @param dataAfter strategy data after transaction
     function _addRedeemDataPoint(
         address user,
         uint256 userId,
@@ -282,7 +316,10 @@ contract SimulationHandler is Test {
         jsonOut = vm.serializeString(json, Strings.toString(dataId), out);
     }
 
-    function _getPrice(IERC20 token) internal view returns (uint256) {
+    /// @dev returns the price of the given token
+    /// @param token token to return price for
+    /// @return price price of the token
+    function _getPrice(IERC20 token) internal view returns (uint256 price) {
         return IPriceOracleGetter(strategy.getOracle()).getAssetPrice(
             address(token)
         );

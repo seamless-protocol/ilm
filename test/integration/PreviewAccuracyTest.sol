@@ -40,9 +40,11 @@ import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { IntegrationBase } from "./IntegrationBase.sol";
 import "forge-std/console.sol";
 
+/// @notice Measures the accuracy of previewDeposti and previewRedeem functions
 contract PreviewAccuracyTest is IntegrationBase {
     using stdStorage for StdStorage;
 
+    /// @notice Measures the accuracy of previewDeposti and previewRedeem functions
     function test_previewDepositAccuracy() public {
         uint256 seed = 1;
 
