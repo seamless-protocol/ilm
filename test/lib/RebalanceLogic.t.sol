@@ -137,33 +137,6 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, margin);
     }
 
-    function test_rebalanceUp_revertsWhen_slippageIsTooHigh() public {
-        _setupSwapperWithMockAdapter();
-        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
-
-        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-
-        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
-        uint256 currentCR =
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
-
-        //console.log('debtPricseUSD: ', $.oracle.getAssetPrice(address($.assets.debt)));
-        console.log("$.assets.debt: ", address($.assets.debt), address(CbETH));
-        console.log(
-            "$.assets.collateral: ", address($.assets.collateral), address(WETH)
-        );
-        console.log("swapper: ", address($.swapper));
-        console.log("oracle: ", address($.oracle));
-
-        uint256 ratio = RebalanceLogic.rebalanceUp(
-            $, state, currentCR, $.collateralRatioTargets.target
-        );
-
-        console.log("ratio: ", ratio);
-    }
-
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// when rebalancing requires a single iteration
     function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration(
@@ -353,5 +326,48 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         }
 
         assertApproxEqAbs(state.debtUSD, targetDebtUSD, usdMargin);
+    }
+
+    /// @dev ensures that rebalanceTo reverts when calling rebalanceUp if slippage is too high
+    function test_rebalanceTo_inRebalanceUpCall_revertsWhen_slippageIsTooHigh()
+        public
+    {
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
+
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+        RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
+    }
+
+    /// @dev ensures that rebalanceTo reverts when calling rebalanceDown if slippage is too high
+    function test_rebalanceTo_inRebalanceDownCall_revetsWhen_slippageIsTooHigh()
+        public
+    {
+        // with 0.75 LTV, we have a min CR of 1.33e8
+        // given by CR_min = 1 / LTV
+        targetCR = 1.35e8;
+
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
+
+        targetCR = 3.5e8;
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+        RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
     }
 }

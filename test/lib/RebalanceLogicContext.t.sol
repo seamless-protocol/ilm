@@ -27,10 +27,8 @@ import {
     Step
 } from "../../src/types/DataTypes.sol";
 
-import "forge-std/console.sol";
 /// @title RebalanceLogicContext contract
 /// @dev Setup for the context in which the RebalanceLogic library is tested.
-
 abstract contract RebalanceLogicContext is BaseForkTest {
     /// contracts needed for setting up and testing RebalanceLogic
     IPoolAddressesProvider public constant poolAddressProvider =
@@ -90,8 +88,6 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         });
         $.maxIterations = 15;
 
-        console.log("priceOracle: ", address($.oracle));
-
         // getting token prices
         WETH_price = $.oracle.getAssetPrice(address(WETH));
         USDbC_price = $.oracle.getAssetPrice(address(USDbC));
@@ -138,7 +134,6 @@ abstract contract RebalanceLogicContext is BaseForkTest {
 
         $.swapper = Swapper(address(swapperProxy));
 
-        console.log("setup swapper: ", address($.swapper));
         Swapper(address($.swapper)).grantRole(
             Swapper(address($.swapper)).MANAGER_ROLE(), address(this)
         );
