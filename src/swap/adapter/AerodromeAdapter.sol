@@ -9,6 +9,8 @@ import { IAerodromeAdapter } from "../../interfaces/IAerodromeAdapter.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { AerodromeAdapterStorage as Storage } from
     "../../storage/AerodromeAdapterStorage.sol";
+import { SwapAdapterBaseStorage as BaseStorage } from
+    "../../storage/SwapAdapterBaseStorage.sol";
 import { IPoolFactory } from "../../vendor/aerodrome/IPoolFactory.sol";
 import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
 
@@ -19,13 +21,16 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
     function AerodromeAdapter__Init(
         address owner,
         address router,
-        address factory
+        address factory,
+        address swapper
     ) external initializer {
         __Ownable_init(owner);
 
         Storage.Layout storage $ = Storage.layout();
         $.router = router;
         $.poolFactory = factory;
+
+        BaseStorage.layout().swapper = swapper;
     }
 
     /// @inheritdoc ISwapAdapter
