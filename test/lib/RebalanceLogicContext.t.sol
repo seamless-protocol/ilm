@@ -151,7 +151,5 @@ abstract contract RebalanceLogicContext is BaseForkTest {
 
         $.assets.collateral = WETH;
         $.assets.debt = CbETH;
-
-        // $.swapper.setOffsetFactor(WETH, CbETH, )
     }
 }
