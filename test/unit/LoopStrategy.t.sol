@@ -254,4 +254,42 @@ contract LoopStrategyTest is BaseForkTest {
         );
         vm.stopPrank();
     }
+
+    /// @dev sets up a `Swapper` implementation with a single mock adapter
+    function _setupSwapperWithMockAdapter() internal {
+        // deploy one mock swap adapter
+        wethCbETHAdapter = new SwapAdapterMock();
+
+        // deploy and initiliaze swapper
+        Swapper swapperImplementation = new Swapper();
+        ERC1967Proxy swapperProxy = new ERC1967Proxy(
+            address(swapperImplementation),
+            abi.encodeWithSelector(
+                Swapper.Swapper_init.selector, 
+                address(this),
+                $.oracle,
+                OFFSET_DEVIATION_USD
+            )
+        );
+
+        strategy.setSwapper(ISwapper(address(swapperProxy)));
+
+        Swapper(address(swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).MANAGER_ROLE(), address(this)
+        );
+        Swapper(address($swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).UPGRADER_ROLE(), address(this)
+        );
+        Swapper(address(swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).STRATEGY_ROLE(), address(this)
+        );
+
+        Step[] memory steps = new Step[](1);
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+
+        Swapper(address(swapperProxy)).setRoute(WETH, CbETH, steps);
+
+        $.assets.collateral = WETH;
+        $.assets.debt = CbETH;
+    }
 }
