@@ -27,9 +27,10 @@ import {
     Step
 } from "../../src/types/DataTypes.sol";
 
-import 'forge-std/console.sol';
+import "forge-std/console.sol";
 /// @title RebalanceLogicContext contract
 /// @dev Setup for the context in which the RebalanceLogic library is tested.
+
 abstract contract RebalanceLogicContext is BaseForkTest {
     /// contracts needed for setting up and testing RebalanceLogic
     IPoolAddressesProvider public constant poolAddressProvider =
@@ -64,8 +65,8 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     uint256 internal constant MAX_FOR_REBALANCE_CR = 166_666_666;
     uint256 internal constant MIN_FOR_WITHDRAW_REBALANCE_CR = 1.55e8;
     uint256 internal constant MAX_FOR_DEPOSIT_REBALANCE_CR = 1.45e8;
-    
-    uint256 internal constant OFFSET_DEVIATION_USD = 1e6; // 1% at 1e8 
+
+    uint256 internal constant OFFSET_DEVIATION_USD = 1e6; // 1% at 1e8
 
     /// @dev sets up auxiliary contracts and context for RebalanceLogic tests
     function setUp() public virtual {
@@ -88,9 +89,8 @@ abstract contract RebalanceLogicContext is BaseForkTest {
             minForWithdrawRebalance: MAX_FOR_DEPOSIT_REBALANCE_CR
         });
         $.maxIterations = 15;
-        
-                
-        console.log('priceOracle: ', address($.oracle));
+
+        console.log("priceOracle: ", address($.oracle));
 
         // getting token prices
         WETH_price = $.oracle.getAssetPrice(address(WETH));
@@ -124,7 +124,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         // deploy one mock swap adapter
         wethCbETHAdapter = new SwapAdapterMock();
 
-         // deploy and initiliaze swapper
+        // deploy and initiliaze swapper
         Swapper swapperImplementation = new Swapper();
         ERC1967Proxy swapperProxy = new ERC1967Proxy(
             address(swapperImplementation),
@@ -138,10 +138,16 @@ abstract contract RebalanceLogicContext is BaseForkTest {
 
         $.swapper = Swapper(address(swapperProxy));
 
-        console.log('setup swapper: ', address($.swapper));
-        Swapper(address($.swapper)).grantRole(Swapper(address($.swapper)).MANAGER_ROLE(), address(this));
-        Swapper(address($.swapper)).grantRole(Swapper(address($.swapper)).UPGRADER_ROLE(), address(this));
-        Swapper(address($.swapper)).grantRole(Swapper(address($.swapper)).STRATEGY_ROLE(), address(this));
+        console.log("setup swapper: ", address($.swapper));
+        Swapper(address($.swapper)).grantRole(
+            Swapper(address($.swapper)).MANAGER_ROLE(), address(this)
+        );
+        Swapper(address($.swapper)).grantRole(
+            Swapper(address($.swapper)).UPGRADER_ROLE(), address(this)
+        );
+        Swapper(address($.swapper)).grantRole(
+            Swapper(address($.swapper)).STRATEGY_ROLE(), address(this)
+        );
 
         Step[] memory steps = new Step[](1);
         steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });

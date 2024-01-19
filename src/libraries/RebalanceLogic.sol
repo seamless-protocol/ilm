@@ -21,7 +21,7 @@ import {
     CollateralRatio
 } from "../types/DataTypes.sol";
 
-import 'forge-std/console.sol';
+import "forge-std/console.sol";
 
 /// @title RebalanceLogic
 /// @notice Contains all logic required for rebalancing
@@ -384,25 +384,25 @@ library RebalanceLogic {
         uint256 _currentCR,
         uint256 _targetCR
     ) internal returns (uint256 ratio) {
-        console.log('in rebalance');
+        console.log("in rebalance");
         // current collateral ratio
         ratio = _currentCR;
 
         uint256 debtPriceUSD = $.oracle.getAssetPrice(address($.assets.debt));
-        console.log('after asset price');
+        console.log("after asset price");
         uint8 debtDecimals = IERC20Metadata(address($.assets.debt)).decimals();
 
-        console.log('after token data');
+        console.log("after token data");
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
 
-        console.log('after offset: ', offsetFactor);
+        console.log("after offset: ", offsetFactor);
         uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
         uint256 count;
 
         do {
-            console.log('in do');
+            console.log("in do");
             // maximum borrowable amount in USD
             uint256 borrowAmountUSD = LoanLogic.getMaxBorrowUSD(
                 $.lendingPool,
@@ -410,7 +410,7 @@ library RebalanceLogic {
                 $.oracle.getAssetPrice(address($.assets.debt))
             );
 
-            console.log('after maxborrow');
+            console.log("after maxborrow");
             {
                 // calculate how much borrow amount in USD is needed to reach
                 // targetCR

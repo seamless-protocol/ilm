@@ -11,7 +11,7 @@ import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
-import 'forge-std/console.sol';
+import "forge-std/console.sol";
 
 /// @title RebalanceLogicTest
 /// @dev RebalanceLogicTest contract which exposes RebalanceLogic library functions
@@ -150,16 +150,18 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
 
         //console.log('debtPricseUSD: ', $.oracle.getAssetPrice(address($.assets.debt)));
-        console.log('$.assets.debt: ', address($.assets.debt), address(CbETH));
-        console.log('$.assets.collateral: ', address($.assets.collateral), address(WETH));
+        console.log("$.assets.debt: ", address($.assets.debt), address(CbETH));
+        console.log(
+            "$.assets.collateral: ", address($.assets.collateral), address(WETH)
+        );
         console.log("swapper: ", address($.swapper));
-        console.log('oracle: ', address($.oracle));
+        console.log("oracle: ", address($.oracle));
 
         uint256 ratio = RebalanceLogic.rebalanceUp(
             $, state, currentCR, $.collateralRatioTargets.target
         );
 
-        console.log('ratio: ', ratio);
+        console.log("ratio: ", ratio);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
