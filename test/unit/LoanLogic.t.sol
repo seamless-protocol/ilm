@@ -24,6 +24,8 @@ import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LendingPool, LoanState } from "../../src/types/DataTypes.sol";
 
+import "forge-std/console.sol";
+
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
@@ -83,6 +85,9 @@ contract LoanLogicTest is BaseForkTest {
         // approve tokens for pool to use on supplying and repaying
         WETH.approve(poolAddressProvider.getPool(), 100 ether);
         USDbC.approve(poolAddressProvider.getPool(), 1_000_000 * ONE_USDbC);
+
+        _changeSupplyAndBorrowCap(USDbC, 100_000_000, 100_000_000);
+        _changeSupplyAndBorrowCap(WETH, 100_000_000, 100_000_000);
     }
 
     /// @dev test confirming that loan state is valid after withdrawing
@@ -335,6 +340,7 @@ contract LoanLogicTest is BaseForkTest {
             lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
 
+        console.log("after first");
         // max borrow is limited by asset borrow cap
         uint256 totalBorrowed = LoanLogic._getTotalBorrow(
             lendingPool.pool.getReserveData(address(USDbC))
@@ -343,6 +349,8 @@ contract LoanLogicTest is BaseForkTest {
         maxBorrow = LoanLogic.getMaxBorrowUSD(
             lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
+        console.log("after 2nd");
+        console.log(200_000 * ONE_USDbC, totalBorrowed);
         uint256 expectedMaxBorrow =
             ((200_000 * ONE_USDbC - totalBorrowed) * USDbC_price) / ONE_USDbC;
         // max relative diff is set to 0.05% because of precision errors
@@ -352,10 +360,14 @@ contract LoanLogicTest is BaseForkTest {
         _changeBorrowCap(USDbC, 10_000_000);
         deal(address(WETH), address(this), 10_000 ether);
         WETH.approve(address(lendingPool.pool), 10_000 ether);
+        console.log("before supply");
         loanState = LoanLogic.supply(lendingPool, WETH, 10_000 ether);
+        console.log("after supply");
         maxBorrow = LoanLogic.getMaxBorrowUSD(
             lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
+
+        console.log("after third");
         // max relative diff is set to 0.05% because of precision errors
         uint256 totalSupplyUSDbCUSD =
             (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
@@ -368,6 +380,24 @@ contract LoanLogicTest is BaseForkTest {
     function _changeBorrowCap(IERC20 asset, uint256 borrowCap) internal {
         address aclAdmin = poolAddressProvider.getACLAdmin();
         vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), borrowCap);
+        vm.stopPrank();
+    }
+
+    /// @dev changes the borrow and cap parameter for the given asset
+    /// @param asset asset to change borrow cap
+    /// @param supplyCap new supply cap amount (in the whole token amount of asset - i.e. no decimals)
+    /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
+    function _changeSupplyAndBorrowCap(
+        IERC20 asset,
+        uint256 supplyCap,
+        uint256 borrowCap
+    ) internal {
+        address aclAdmin = poolAddressProvider.getACLAdmin();
+        vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), supplyCap);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
             .setBorrowCap(address(asset), borrowCap);
         vm.stopPrank();
