@@ -10,18 +10,24 @@ import { IPoolDataProvider } from
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { ERC1967Proxy } from
+    "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
+import { SwapAdapterMock } from "../mock/SwapAdapterMock.t.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
+import { Swapper } from "../../src/swap/Swapper.sol";
 import {
     CollateralRatio,
     LendingPool,
     LoanState,
-    StrategyAssets
+    StrategyAssets,
+    Step
 } from "../../src/types/DataTypes.sol";
 
+import 'forge-std/console.sol';
 /// @title RebalanceLogicContext contract
 /// @dev Setup for the context in which the RebalanceLogic library is tested.
 abstract contract RebalanceLogicContext is BaseForkTest {
@@ -35,12 +41,16 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     // SwapperMock public swapper;
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
+    IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
+
+    SwapAdapterMock wethCbETHAdapter;
 
     Storage.Layout $;
 
     /// values required for setting up and testing RebalanceLogic
     uint256 public WETH_price;
     uint256 public USDbC_price;
+    uint256 public CbETH_price;
 
     uint256 internal constant BASIS = 1e8;
     uint256 internal constant MINT_AMOUNT = 1000 ether;
@@ -54,6 +64,8 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     uint256 internal constant MAX_FOR_REBALANCE_CR = 166_666_666;
     uint256 internal constant MIN_FOR_WITHDRAW_REBALANCE_CR = 1.55e8;
     uint256 internal constant MAX_FOR_DEPOSIT_REBALANCE_CR = 1.45e8;
+    
+    uint256 internal constant OFFSET_DEVIATION_USD = 1e6; // 1% at 1e8 
 
     /// @dev sets up auxiliary contracts and context for RebalanceLogic tests
     function setUp() public virtual {
@@ -76,10 +88,14 @@ abstract contract RebalanceLogicContext is BaseForkTest {
             minForWithdrawRebalance: MAX_FOR_DEPOSIT_REBALANCE_CR
         });
         $.maxIterations = 15;
+        
+                
+        console.log('priceOracle: ', address($.oracle));
 
         // getting token prices
         WETH_price = $.oracle.getAssetPrice(address(WETH));
         USDbC_price = $.oracle.getAssetPrice(address(USDbC));
+        CbETH_price = $.oracle.getAssetPrice(address(CbETH));
 
         // deploy mock swapper instance
         $.swapper =
@@ -101,5 +117,40 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         // approve tokens for pool to use on supplying and repaying
         WETH.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
         USDbC.approve(poolAddressProvider.getPool(), MINT_AMOUNT);
+    }
+
+    /// @dev sets up a `Swapper` implementation with a single mock adapter
+    function _setupSwapperWithMockAdapter() internal {
+        // deploy one mock swap adapter
+        wethCbETHAdapter = new SwapAdapterMock();
+
+         // deploy and initiliaze swapper
+        Swapper swapperImplementation = new Swapper();
+        ERC1967Proxy swapperProxy = new ERC1967Proxy(
+            address(swapperImplementation),
+            abi.encodeWithSelector(
+                Swapper.Swapper_init.selector, 
+                address(this),
+                $.oracle,
+                OFFSET_DEVIATION_USD
+            )
+        );
+
+        $.swapper = Swapper(address(swapperProxy));
+
+        console.log('setup swapper: ', address($.swapper));
+        Swapper(address($.swapper)).grantRole(Swapper(address($.swapper)).MANAGER_ROLE(), address(this));
+        Swapper(address($.swapper)).grantRole(Swapper(address($.swapper)).UPGRADER_ROLE(), address(this));
+        Swapper(address($.swapper)).grantRole(Swapper(address($.swapper)).STRATEGY_ROLE(), address(this));
+
+        Step[] memory steps = new Step[](1);
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+
+        Swapper(address($.swapper)).setRoute(WETH, CbETH, steps);
+
+        $.assets.collateral = WETH;
+        $.assets.debt = CbETH;
+
+        // $.swapper.setOffsetFactor(WETH, CbETH, )
     }
 }
