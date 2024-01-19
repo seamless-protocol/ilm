@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.21;
 
+import { IPoolConfigurator } from
+    "@aave/contracts/interfaces/IPoolConfigurator.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+
 import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
@@ -26,6 +30,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         );
 
         targetCR = $.collateralRatioTargets.target;
+
+        _changeSupplyAndBorrowCap(USDbC, 100_000_000, 100_000_000);
+        _changeSupplyAndBorrowCap(WETH, 100_000_000, 100_000_000);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
@@ -323,5 +330,27 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         }
 
         assertApproxEqAbs(state.debtUSD, targetDebtUSD, usdMargin);
+    }
+
+    /////////////////////
+    ////// HELPERS //////
+    /////////////////////
+
+    /// @dev changes the borrow and cap parameter for the given asset
+    /// @param asset asset to change borrow cap
+    /// @param supplyCap new supply cap amount (in the whole token amount of asset - i.e. no decimals)
+    /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
+    function _changeSupplyAndBorrowCap(
+        IERC20 asset,
+        uint256 supplyCap,
+        uint256 borrowCap
+    ) internal {
+        address aclAdmin = poolAddressProvider.getACLAdmin();
+        vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), supplyCap);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), borrowCap);
+        vm.stopPrank();
     }
 }

@@ -35,8 +35,6 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Unit tests for the LoopStrategy redeem flow
 contract LoopStrategyRedeemTest is LoopStrategyTest {
     using USDWadRayMath for uint256;
@@ -257,10 +255,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
     function test_redeem_redeemerIncursNoEquityCost_when_redeemDoesNotThrowCollateralRatioBelow_minForWithdrawRebalanceLimit(
     ) public {
         assertEq(strategy.totalSupply(), 0);
-        uint256 depositAmount = 1 ether;
+        uint256 depositAmount = 0.1 ether;
 
         uint256 aliceShares = _depositFor(alice, depositAmount);
-        _depositFor(bob, depositAmount * 100); // deposit for bob, no need to account for their shares
+        _depositFor(bob, depositAmount * 10); // deposit for bob, no need to account for their shares
         // ensure Alices's redeem is small enough to not need a rebalance after a redemption
         uint256 redeemAmount = aliceShares / 100_000;
         uint256 initialCR = strategy.currentCollateralRatio();
@@ -328,10 +326,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
     function test_redeem_performsStrategyWideRebalance_noRedeemerRebalanceNecessary(
     ) public {
         assertEq(strategy.totalSupply(), 0);
-        uint256 depositAmount = 1 ether;
+        uint256 depositAmount = 0.1 ether;
 
         uint256 aliceShares = _depositFor(alice, depositAmount);
-        _depositFor(bob, depositAmount * 100); // deposit for bob, no need to account for their shares
+        _depositFor(bob, depositAmount * 10); // deposit for bob, no need to account for their shares
 
         // ensure Alices's redeem is small enough to not need a rebalance after a redemption
         uint256 redeemAmount = aliceShares / 100_000;
@@ -467,10 +465,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
     function test_previewRedeem_accurateEquityPrediction_whenRedemptionResultsInRatioLargerThan_minForWithdrawRebalance(
     ) public {
         assertEq(strategy.totalSupply(), 0);
-        uint256 depositAmount = 1 ether;
+        uint256 depositAmount = 0.1 ether;
 
         uint256 aliceShares = _depositFor(alice, depositAmount);
-        _depositFor(bob, depositAmount * 100); // deposit for bob, no need to account for their shares
+        _depositFor(bob, depositAmount * 10); // deposit for bob, no need to account for their shares
         // ensure Alices's redeem is small enough to not need a rebalance after a redemption
         uint256 redeemAmount = aliceShares / 100_000;
         uint256 initialCR = strategy.currentCollateralRatio();
