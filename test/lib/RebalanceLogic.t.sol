@@ -376,7 +376,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     /// and without a harness contract the first external call is picked up by `expectRevert`
     /// which is _within_ the `rebalanceDownToDebt` call, so the vm.expectRevert cheatcode
     /// cuts the test short as the first external call passes
-    function testFail_rebalanceDownToDebt_revertsWhen_slippageIsTooHigh() public {
+    function testFail_rebalanceDownToDebt_revertsWhen_slippageIsTooHigh()
+        public
+    {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
         targetCR = 1.35e8;
