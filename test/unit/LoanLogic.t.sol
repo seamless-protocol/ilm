@@ -335,7 +335,7 @@ contract LoanLogicTest is BaseForkTest {
         loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
 
         // max borrow is limited by user's collateral
-        _changeBorrowCap(USDbC, 500_000);
+        _changeBorrowCap(USDbC, 50_000_000);
         uint256 maxBorrow = LoanLogic.getMaxBorrowUSD(
             lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
@@ -345,14 +345,16 @@ contract LoanLogicTest is BaseForkTest {
         uint256 totalBorrowed = LoanLogic._getTotalBorrow(
             lendingPool.pool.getReserveData(address(USDbC))
         );
-        _changeBorrowCap(USDbC, 200_000);
+        _changeBorrowCap(USDbC, 10_000_000);
         maxBorrow = LoanLogic.getMaxBorrowUSD(
             lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
         );
         console.log("after 2nd");
-        console.log(200_000 * ONE_USDbC, totalBorrowed);
+        console.log(
+            "this check is an underflow: ", 200_000 * ONE_USDbC, totalBorrowed
+        );
         uint256 expectedMaxBorrow =
-            ((200_000 * ONE_USDbC - totalBorrowed) * USDbC_price) / ONE_USDbC;
+            ((10_000_000 * ONE_USDbC - totalBorrowed) * USDbC_price) / ONE_USDbC;
         // max relative diff is set to 0.05% because of precision errors
         assertApproxEqRel(maxBorrow, expectedMaxBorrow, 0.0005 ether);
 
@@ -397,7 +399,7 @@ contract LoanLogicTest is BaseForkTest {
         address aclAdmin = poolAddressProvider.getACLAdmin();
         vm.startPrank(aclAdmin);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
-            .setBorrowCap(address(asset), supplyCap);
+            .setSupplyCap(address(asset), supplyCap);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
             .setBorrowCap(address(asset), borrowCap);
         vm.stopPrank();
