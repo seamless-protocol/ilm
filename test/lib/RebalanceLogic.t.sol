@@ -370,4 +370,35 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
         RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
     }
+
+    /// @dev ensures that rebalanceDownToDebt reverts when slippage is too high
+    /// `testFail` had to be used as `rebalanceDownToDebt` is an internal function,
+    /// and without a harness contract the first external call is picked up by `expectRevert`
+    /// which is _within_ the `rebalanceDownToDebt` call, so the vm.expectRevert cheatcode
+    /// cuts the test short as the first external call passes
+    function testFail_rebalanceDownToDebt_revertsWhen_slippageIsTooHigh() public {
+        // with 0.75 LTV, we have a min CR of 1.33e8
+        // given by CR_min = 1 / LTV
+        targetCR = 1.35e8;
+
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
+
+        state = LoanLogic.getLoanState($.lendingPool);
+        uint256 debtRepayment = 100 * USDWadRayMath.USD;
+        uint256 targetDebtUSD = state.debtUSD - debtRepayment;
+
+        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+    }
 }
