@@ -348,7 +348,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         address aclAdmin = poolAddressProvider.getACLAdmin();
         vm.startPrank(aclAdmin);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
-            .setBorrowCap(address(asset), supplyCap);
+            .setSupplyCap(address(asset), supplyCap);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
             .setBorrowCap(address(asset), borrowCap);
         vm.stopPrank();
