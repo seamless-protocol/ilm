@@ -224,8 +224,11 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
 
         uint256 depositAlice = 3 ether;
 
-        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
-        _depositFor(alice, depositAlice);
+        _depositForExpectsRevert(
+            alice,
+            depositAlice,
+            bytes(abi.encodePacked(ISwapper.MaxSlippageExceeded.selector))
+        );
     }
 
     /// @dev validates current collateral ratio with relative error max 0.01%

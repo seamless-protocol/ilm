@@ -303,8 +303,8 @@ contract LoopStrategyTest is BaseForkTest {
         Swapper(address(swapperProxy)).setRoute(WETH, CbETH, steps);
 
         Step[] memory stepsTwo = new Step[](1);
-        stepTest[0] = Step({ from: CbETH, to: WETH, adapter: wethCbETHAdapter });
-        Swapper(address(swapperProxy)).setRoute(CbETH, WETH, stepTwo);
+        stepsTwo[0] = Step({ from: CbETH, to: WETH, adapter: wethCbETHAdapter });
+        Swapper(address(swapperProxy)).setRoute(CbETH, WETH, stepsTwo);
 
         // manually set debt asset to be WETH
         uint256 assetsDebtStorageSlot = uint256(Storage.STORAGE_SLOT) + 2;
