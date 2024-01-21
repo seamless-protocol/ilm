@@ -21,8 +21,6 @@ import { AccessControlUpgradeable } from
 import { UUPSUpgradeable } from
     "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "forge-std/console.sol";
-
 /// @title Swapper
 /// @notice Routing contract for swaps across different DEXs
 contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
@@ -141,10 +139,8 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
 
         uint256 initialAmount = fromAmount;
 
-        console.log("before transfer");
         from.transferFrom(msg.sender, address(this), fromAmount);
 
-        console.log("after transfer");
         // execute the swap for each swap-step in the route,
         // updating `fromAmount` to be the amount received from
         // each step
@@ -242,9 +238,6 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
             offsetUSD + maxDeviationUSD
         ).usdDiv(USDWadRayMath.USD);
 
-        console.log("fromAmountUSD :", fromAmountUSD);
-        console.log("toAmountUSD :", toAmountUSD);
-        console.log("maxSlippageUSD :", maxSlippageUSD);
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();
         }
