@@ -40,7 +40,7 @@ import { AerodromeAdapter } from "../src/swap/adapter/AerodromeAdapter.sol";
 /// @notice Assumes that deployer has roles for the Seamless pool configuration (ACL_ADMIN and POOL_ADMIN)
 /// @notice To obtain roles on the fork, run the simulation on Tenderly UI.  
 /// @dev deploy with the command: 
-/// @dev forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_FORK_RPC} --broadcast --slow --delay 20 --force
+/// @dev forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_RPC_FORK} --broadcast --slow --delay 20 --force
 contract DeployTenderlyFork is Script, TenderlyForkConfig {
   IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
   IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
@@ -145,7 +145,9 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
           address(swapperImplementation),
           abi.encodeWithSelector(
               Swapper.Swapper_init.selector, 
-              deployerAddress
+              deployerAddress,
+              IPriceOracleGetter(poolAddressesProvider.getPriceOracle()),
+              swapperOffsetDeviation
           )
       );
 
@@ -163,8 +165,7 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     
     // WrappedCbETH Adapter
     wrappedTokenAdapter = new WrappedTokenAdapter();
-    wrappedTokenAdapter.WrappedTokenAdapter__Init(deployerAddress);
-    wrappedTokenAdapter.setSwapper(address(swapper));
+    wrappedTokenAdapter.WrappedTokenAdapter__Init(deployerAddress, address(swapper));
     wrappedTokenAdapter.setWrapper(
       CbETH, 
       IERC20(address(wrappedCbETH)), 
@@ -175,9 +176,8 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     // CbETH <-> WETH Aerodrome Adapter
     aerodromeAdapter = new AerodromeAdapter();
     aerodromeAdapter.AerodromeAdapter__Init(
-        deployerAddress, AERODROME_ROUTER, AERODROME_FACTORY
+        deployerAddress, AERODROME_ROUTER, AERODROME_FACTORY, address(swapper)
     );
-    aerodromeAdapter.setSwapper(address(swapper));
 
     IRouter.Route[] memory routesCbETHtoWETH = new IRouter.Route[](1);
     routesCbETHtoWETH[0] = IRouter.Route({

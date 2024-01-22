@@ -15,10 +15,10 @@ abstract contract TenderlyForkConfig is BaseMainnetConstants {
   
   CollateralRatio public collateralRatioTargets = CollateralRatio({
     target: USDWadRayMath.usdDiv(300, 200), // 3x
-    minForRebalance: USDWadRayMath.usdDiv(400, 300),  // 4x
+    minForRebalance: USDWadRayMath.usdDiv(330, 230),  // 3.3x
     maxForRebalance: USDWadRayMath.usdDiv(270, 170),  // 2.7x
-    maxForDepositRebalance: USDWadRayMath.usdDiv(301, 201),  // 3.01x 
-    minForWithdrawRebalance: USDWadRayMath.usdDiv(299, 199)  // 2.99x
+    maxForDepositRebalance: USDWadRayMath.usdDiv(299, 199), // 2.99x
+    minForWithdrawRebalance: USDWadRayMath.usdDiv(301, 201)  // 3.01x 
   });
 
   uint256 public constant ratioMargin = 10 ** 4; // 0.01% ratio margin
@@ -36,5 +36,6 @@ abstract contract TenderlyForkConfig is BaseMainnetConstants {
   uint256 public constant wrappedCbETH_LiquidationTrashold = 92_00;
   uint256 public constant wrappedCbETH_LiquidationBonus = 100_00 + 5_00;
 
-  uint256 public constant swapperOffsetFactor = 300000; // 0.3
+  uint256 public constant swapperOffsetFactor = 300000; // 0.3 %
+  uint256 public constant swapperOffsetDeviation = 50000000; // 50%
 }
