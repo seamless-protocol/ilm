@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.21;
 
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { Step } from "../types/DataTypes.sol";
@@ -10,9 +12,13 @@ import { Step } from "../types/DataTypes.sol";
 /// @notice interface for Swapper contract
 /// @dev Swapper contract functions as registry and router for Swapper Adapters
 interface ISwapper {
-    /// @notice thrown when attempting to set an offsetUSD factor which is equal to 0
-    /// or larger than ONE_USD (1e8)
-    error OffsetOutsideRange();
+    /// @notice thrown when attempting to set a USD value which is outside the USD range
+    /// of ONE_USD (1e8)
+    error USDValueOutsideRange();
+
+    /// @notice thrown when attempting to set a maximum acceptable slippage for a given
+    /// token which exceeds ONE_WAD (1e18)
+    error SlippageOutsideRange();
 
     /// @notice thrown when attempting to set a route which has the zero-address as
     /// the address of the adapter
@@ -21,6 +27,9 @@ interface ISwapper {
     /// @notice thrown when msg.sender attempting to call executeSwap without being part of the
     /// strategies enumerable set
     error NotStrategy();
+
+    /// @notice thrown when less tokens than the minimum are returned after a swap
+    error MaxSlippageExceeded();
 
     /// @notice emitted when a route is set for a given swap
     /// @param from address of token route ends with
@@ -35,6 +44,14 @@ interface ISwapper {
     event OffsetFactorSet(
         IERC20 indexed from, IERC20 indexed to, uint256 offsetUSD
     );
+
+    /// @notice emitted when the oracle for a given token is set
+    /// @param oracle address of PriceOracleGetter contract
+    event OracleSet(IPriceOracleGetter oracle);
+
+    /// @notice emitted when a new value for the allowed deviation from the offsetFactor
+    /// is set
+    event OffsetDeviationSet(uint256 offsetDeviationUSD);
 
     /// @notice emitted when a route is removed
     /// @param from address of token route ends with
@@ -96,4 +113,23 @@ interface ISwapper {
     /// @param offsetUSD factor between 0 - 1e8 to represent offset (1e8 is 100% offset so 0 value returned)
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external;
+
+    /// @notice sets a new value for the offsetDeviationUSD from the offsetFactor
+    /// @param offsetDeviationUSD new value for the offsetDeviationUSD
+    function setOffsetDeviationUSD(uint256 offsetDeviationUSD) external;
+
+    /// @notice sets a new address for the oracle
+    /// @param oracle new IPriceOracleGetter contract address
+    function setOracle(IPriceOracleGetter oracle) external;
+
+    /// @notice returns address of oracle contract
+    /// @return oracle address of oracle contract
+    function getOracle() external view returns (IPriceOracleGetter oracle);
+
+    /// @notice returns offsetDeviationUSD value
+    /// @return offsetDeviationUSD offsetDeviationUSD value
+    function getOffsetDeviationUSD()
+        external
+        view
+        returns (uint256 offsetDeviationUSD);
 }

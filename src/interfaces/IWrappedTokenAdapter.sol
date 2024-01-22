@@ -12,7 +12,9 @@ import { IWrappedERC20PermissionedDeposit } from
 interface IWrappedTokenAdapter {
     /// @notice initializing function of adapter
     /// @param owner address of adapter owner
-    function WrappedTokenAdapter__Init(address owner) external;
+    /// @param swapper address of swapper
+    function WrappedTokenAdapter__Init(address owner, address swapper)
+        external;
 
     /// @notice sets the wrapper contract for a given token pair
     /// @param from token to wrap/unwrap

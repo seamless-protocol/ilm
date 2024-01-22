@@ -37,10 +37,12 @@ interface IAerodromeAdapter {
     /// @param owner address of adapter owner
     /// @param router address of Aerodrome router
     /// @param factory address of Aerodrome pair factory
+    /// @param swapper address of swapper
     function AerodromeAdapter__Init(
         address owner,
         address router,
-        address factory
+        address factory,
+        address swapper
     ) external;
 
     /// @notice sets the `isPoolStable` boolean for a given pair

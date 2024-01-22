@@ -52,7 +52,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     function setUp() public {
         adapter = new WrappedTokenAdapter();
 
-        adapter.WrappedTokenAdapter__Init(OWNER);
+        adapter.WrappedTokenAdapter__Init(OWNER, alice);
 
         mockERC20 = new MockERC20("Mock", "M");
         wrappedCbETH =
@@ -74,8 +74,6 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
-        vm.prank(OWNER);
-        adapter.setSwapper(alice);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
@@ -103,8 +101,6 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
-        vm.prank(OWNER);
-        adapter.setSwapper(alice);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
@@ -146,6 +142,8 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     function test_executeSwap_revertsWhen_callerIsNotSwapper() public {
         vm.prank(OWNER);
         adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        vm.prank(OWNER);
+        adapter.setSwapper(OWNER);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);

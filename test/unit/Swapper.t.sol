@@ -2,6 +2,10 @@
 
 pragma solidity ^0.8.21;
 
+import { IPoolAddressesProvider } from
+    "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IAccessControl } from
     "@openzeppelin/contracts/access/IAccessControl.sol";
@@ -38,6 +42,14 @@ contract SwapperTest is BaseForkTest {
         IERC20 indexed from, IERC20 indexed to, uint256 offsetUSD
     );
 
+    /// @notice emitted when the oracle for a given token is set
+    /// @param oracle address of PriceOracleGetter contract
+    event OracleSet(IPriceOracleGetter oracle);
+
+    /// @notice emitted when a new value for the allowed deviation from the offsetFactor
+    /// is set
+    event OffsetDeviationSet(uint256 offsetDeviationUSD);
+
     /// @notice emitted when a route is removed
     /// @param from address of token route ends with
     /// @param to address of token route starts with
@@ -51,9 +63,12 @@ contract SwapperTest is BaseForkTest {
     /// @param strategy address of added strategy
     event StrategyRemoved(address strategy);
 
+    IPoolAddressesProvider public constant poolAddressProvider =
+        IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
+
     Swapper swapper;
-    ISwapAdapter wethCbETHAdapter;
-    ISwapAdapter CbETHUSDbCAdapter;
+    SwapAdapterMock wethCbETHAdapter;
+    SwapAdapterMock CbETHUSDbCAdapter;
 
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
@@ -75,7 +90,9 @@ contract SwapperTest is BaseForkTest {
             address(swapperImplementation),
             abi.encodeWithSelector(
                 Swapper.Swapper_init.selector, 
-                OWNER
+                OWNER,
+                IPriceOracleGetter(poolAddressProvider.getPriceOracle()),
+                1
             )
         );
 
@@ -267,14 +284,14 @@ contract SwapperTest is BaseForkTest {
     {
         uint256 newOffsetFactor = 1 ether;
 
-        vm.expectRevert(ISwapper.OffsetOutsideRange.selector);
+        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
 
         vm.prank(OWNER);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
 
         newOffsetFactor = 0;
 
-        vm.expectRevert(ISwapper.OffsetOutsideRange.selector);
+        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
 
         vm.prank(OWNER);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
@@ -294,6 +311,81 @@ contract SwapperTest is BaseForkTest {
 
         vm.prank(NO_ROLE);
         swapper.setOffsetFactor(WETH, USDbC, newOffsetFactor);
+    }
+
+    /// @dev ensures a new oracle address is set and the appropriate event is emitted
+    function test_setOracle_setsNewOracle_and_emitsOracleSetEvent() public {
+        assertEq(
+            address(swapper.getOracle()), poolAddressProvider.getPriceOracle()
+        );
+
+        IPriceOracleGetter newOracle = IPriceOracleGetter(OWNER);
+        vm.expectEmit();
+        emit OracleSet(newOracle);
+
+        vm.startPrank(OWNER);
+        swapper.setOracle(newOracle);
+        vm.stopPrank();
+
+        assertEq(address(swapper.getOracle()), OWNER);
+    }
+
+    /// @dev ensures setOracle call reverts when called by non manager
+    function test_setOracle_revertsWhen_calledByNonManager() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                swapper.MANAGER_ROLE()
+            )
+        );
+
+        vm.prank(NO_ROLE);
+        swapper.setOracle(IPriceOracleGetter(NO_ROLE));
+    }
+
+    /// @dev ensures setOffsetDeviationUSD sets new value for offsetDeviationUSD and emits appropirate event
+    function test_setOffsetDeviationUSD_setsNewValueForOffsetDeviationUSD_and_emitsOffsetDeviationSetEvent(
+    ) public {
+        uint256 newOffsetDeviationUSD = 100;
+
+        assertEq(1, swapper.getOffsetDeviationUSD());
+
+        vm.expectEmit();
+        emit OffsetDeviationSet(newOffsetDeviationUSD);
+
+        vm.startPrank(OWNER);
+        swapper.setOffsetDeviationUSD(newOffsetDeviationUSD);
+        vm.stopPrank();
+
+        assertEq(newOffsetDeviationUSD, swapper.getOffsetDeviationUSD());
+    }
+
+    /// @dev ensures setOffsetDeviationUSD call reverts when new offsetDeviationUSD value is larger
+    /// than one USD
+    function test_setOffsetDeviationUSD_revertsWhen_newValueIsLargerThanOneUSD()
+        public
+    {
+        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
+
+        vm.prank(OWNER);
+        swapper.setOffsetDeviationUSD(type(uint256).max);
+    }
+
+    /// @dev ensures setOffsetDeviationUSD vall reverts when called by non-manager
+    function test_setOffsetDeviationUSD_revertsWhen_calledByNonManager()
+        public
+    {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                NO_ROLE,
+                swapper.MANAGER_ROLE()
+            )
+        );
+
+        vm.prank(NO_ROLE);
+        swapper.setOffsetDeviationUSD(123);
     }
 
     /// @dev ensures swapping works for a route with a single step
@@ -379,5 +471,35 @@ contract SwapperTest is BaseForkTest {
 
         swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
         vm.stopPrank();
+    }
+
+    function test_swap_revertsWhen_tooFewEndAssetsAreReceived() public {
+        // add 5% slippage +- 5% so max 5.025% max slippage
+        vm.startPrank(OWNER);
+        swapper.setOffsetFactor(WETH, CbETH, 5e6);
+        swapper.setOffsetDeviationUSD(5e6);
+        vm.stopPrank();
+
+        Step[] memory steps = new Step[](1);
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+
+        vm.startPrank(OWNER);
+        swapper.setRoute(WETH, CbETH, steps);
+        swapper.grantRole(swapper.STRATEGY_ROLE(), ALICE);
+        vm.stopPrank();
+
+        // add 10% slippage to first swap
+        wethCbETHAdapter.setSlippagePCT(10);
+
+        uint256 swapAmount = 1 ether;
+
+        deal(address(WETH), ALICE, WETH.balanceOf(ALICE) + 10 * swapAmount);
+
+        vm.startPrank(ALICE);
+        WETH.approve(address(swapper), swapAmount);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+
+        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
     }
 }

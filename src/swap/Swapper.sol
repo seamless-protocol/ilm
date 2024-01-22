@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.21;
 
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from
@@ -9,6 +11,7 @@ import { IERC20Metadata } from
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import { ConversionMath } from "../libraries/math/ConversionMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { USDWadRayMath } from "../libraries/math/USDWadRayMath.sol";
 import { SwapperStorage as Storage } from "../storage/SwapperStorage.sol";
@@ -21,6 +24,8 @@ import { UUPSUpgradeable } from
 /// @title Swapper
 /// @notice Routing contract for swaps across different DEXs
 contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
+    using USDWadRayMath for uint256;
+
     /// @dev role which can use the swap function, only given to ILM strategies
     bytes32 public constant STRATEGY_ROLE = keccak256("STRATEGY_ROLE");
     /// @dev role which can change routes and offset factor
@@ -33,10 +38,18 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @dev initializer function for Swapper contract
-    function Swapper_init(address _initialAdmin) external initializer {
+    function Swapper_init(
+        address initialAdmin,
+        IPriceOracleGetter oracle,
+        uint256 offsetDeviationUSD
+    ) external initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+
+        Storage.Layout storage $ = Storage.layout();
+        $.oracle = oracle;
+        $.offsetDeviationUSD = offsetDeviationUSD;
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -45,15 +58,6 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         override
         onlyRole(UPGRADER_ROLE)
     { }
-
-    /// @inheritdoc ISwapper
-    function getRoute(IERC20 from, IERC20 to)
-        external
-        view
-        returns (Step[] memory steps)
-    {
-        return Storage.layout().route[from][to];
-    }
 
     /// @inheritdoc ISwapper
     function setRoute(IERC20 from, IERC20 to, Step[] calldata steps)
@@ -87,26 +91,41 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
-    function offsetFactor(IERC20 from, IERC20 to)
-        external
-        view
-        returns (uint256 offsetUSD)
-    {
-        return Storage.layout().offsetUSD[from][to];
-    }
-
-    /// @inheritdoc ISwapper
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external
         onlyRole(MANAGER_ROLE)
     {
         if (offsetUSD == 0 || offsetUSD > USDWadRayMath.USD) {
-            revert OffsetOutsideRange();
+            revert USDValueOutsideRange();
         }
 
         Storage.layout().offsetUSD[from][to] = offsetUSD;
 
         emit OffsetFactorSet(from, to, offsetUSD);
+    }
+
+    /// @inheritdoc ISwapper
+    function setOracle(IPriceOracleGetter oracle)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        Storage.layout().oracle = oracle;
+
+        emit OracleSet(oracle);
+    }
+
+    /// @inheritdoc ISwapper
+    function setOffsetDeviationUSD(uint256 offsetDeviationUSD)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        if (offsetDeviationUSD > USDWadRayMath.USD) {
+            revert USDValueOutsideRange();
+        }
+
+        Storage.layout().offsetDeviationUSD = offsetDeviationUSD;
+
+        emit OffsetDeviationSet(offsetDeviationUSD);
     }
 
     /// @inheritdoc ISwapper
@@ -117,6 +136,8 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         address payable beneficiary
     ) external onlyRole(STRATEGY_ROLE) returns (uint256 toAmount) {
         Step[] memory steps = Storage.layout().route[from][to];
+
+        uint256 initialAmount = fromAmount;
 
         from.transferFrom(msg.sender, address(this), fromAmount);
 
@@ -136,7 +157,41 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         // step of the route
         toAmount = fromAmount;
 
+        _enforceSlippageLimit(from, to, initialAmount, toAmount);
+
         to.transfer(beneficiary, toAmount);
+    }
+
+    /// @inheritdoc ISwapper
+    function getOffsetDeviationUSD()
+        external
+        view
+        returns (uint256 offsetDeviationUSD)
+    {
+        return Storage.layout().offsetDeviationUSD;
+    }
+
+    /// @inheritdoc ISwapper
+    function getOracle() external view returns (IPriceOracleGetter oracle) {
+        return Storage.layout().oracle;
+    }
+
+    /// @inheritdoc ISwapper
+    function getRoute(IERC20 from, IERC20 to)
+        external
+        view
+        returns (Step[] memory steps)
+    {
+        return Storage.layout().route[from][to];
+    }
+
+    /// @inheritdoc ISwapper
+    function offsetFactor(IERC20 from, IERC20 to)
+        external
+        view
+        returns (uint256 offsetUSD)
+    {
+        return Storage.layout().offsetUSD[from][to];
     }
 
     /// @notice deletes an existing route
@@ -146,5 +201,45 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         delete Storage.layout().route[from][to];
 
         emit RouteRemoved(from, to);
+    }
+
+    /// @notice enforces the maximum slippage allowed for a given swap
+    /// @param from address of starting token
+    /// @param to address of ending token
+    /// @param fromAmount amount being swapped
+    /// @param toAmount amount received
+    function _enforceSlippageLimit(
+        IERC20 from,
+        IERC20 to,
+        uint256 fromAmount,
+        uint256 toAmount
+    ) internal view {
+        Storage.Layout storage $ = Storage.layout();
+        IPriceOracleGetter oracle = $.oracle;
+
+        // convert to/from amount to dollars
+        uint256 fromAmountUSD = ConversionMath.convertAssetToUSD(
+            fromAmount,
+            oracle.getAssetPrice(address(from)),
+            IERC20Metadata(address(from)).decimals()
+        );
+        uint256 toAmountUSD = ConversionMath.convertAssetToUSD(
+            toAmount,
+            oracle.getAssetPrice(address(to)),
+            IERC20Metadata(address(to)).decimals()
+        );
+
+        uint256 offsetUSD = $.offsetUSD[from][to];
+        uint256 maxDeviationUSD =
+            offsetUSD.usdMul($.offsetDeviationUSD).usdDiv(USDWadRayMath.USD);
+
+        // ensure these amounts do not differ by more than given slippage
+        uint256 maxSlippageUSD = fromAmountUSD.usdMul(
+            offsetUSD + maxDeviationUSD
+        ).usdDiv(USDWadRayMath.USD);
+
+        if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
+            revert MaxSlippageExceeded();
+        }
     }
 }
