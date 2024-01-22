@@ -166,6 +166,7 @@ contract LoopStrategyTest is BaseForkTest {
 
         _changeSupplyAndBorrowCap(USDbC, 30_000_000_000, 10_000_000_000);
         _changeSupplyAndBorrowCap(WETH, 30_000_000_000, 10_000_000_000);
+        _changeSupplyAndBorrowCap(CbETH, 30_000_000_000, 10_000_000_000);
     }
 
     /// @dev mints user new underlying token assets, approves and calls deposit function on the strategy
