@@ -424,6 +424,76 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         assertApproxEqRel(strategy.currentCollateralRatio(), expectedCR, MARGIN);
     }
 
+    /// @dev ensures that if a redemption leads to more equity being given to the strategy (equity extracted
+    /// from the DEX), redeemer receives full equity value of shares, strategy equity increases, and share
+    /// debt is paid in full
+    function test_redeem_redeemerReceivesAllShareEquityValue_when_strategyGainsEquityFromSwap(
+    ) public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+
+        // ensure strategy is above minForWithdrawRebalance limit
+        assert(
+            strategy.totalSupply() == aliceShares
+                && strategy.balanceOf(alice) == aliceShares
+        );
+        assert(
+            targets.minForWithdrawRebalance <= strategy.currentCollateralRatio()
+        );
+        console.log("curr CR 1: ", strategy.currentCollateralRatio());
+        console.log("targetCR: ", targets.target);
+        assertApproxEqRel(
+            strategy.currentCollateralRatio(), targets.target, MARGIN
+        );
+
+        uint256 initialTotalSupply = strategy.totalSupply();
+        uint256 redeemAmount = aliceShares / 2;
+        uint256 initialAliceShares = strategy.balanceOf(alice);
+
+        // grab pre-redeem key parameters of strategy/user state
+        uint256 initialCollateralUSD = strategy.collateral();
+        uint256 initialDebtUSD = strategy.debt();
+        uint256 initialEquityUSD = strategy.equityUSD();
+        uint256 initialAliceAssets = CbETH.balanceOf(alice);
+
+        // calculate amount of debt, collateral and equity corresponding to shares to be redeemed
+        uint256 initialShareDebtUSD = initialDebtUSD.usdMul(
+            USDWadRayMath.wadToUSD(redeemAmount.wadDiv(initialTotalSupply))
+        );
+        uint256 initialShareCollateralUSD = initialCollateralUSD.usdMul(
+            USDWadRayMath.wadToUSD(redeemAmount.wadDiv(initialTotalSupply))
+        );
+        uint256 initialShareEquityUSD =
+            initialShareCollateralUSD - initialShareDebtUSD;
+
+        uint256 realOffset = 1e8 + 15e6;
+        // set offsets so that swap returns net positive value
+        SwapperMock(address(swapper)).setRealOffsets(realOffset, realOffset);
+
+        // redeem half of alice's shares
+        vm.prank(alice);
+        uint256 receivedAssets = strategy.redeem(redeemAmount, alice, alice);
+
+        // assert that the expected amount of shares has been burnt
+        assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
+        assert(initialAliceShares - redeemAmount == strategy.balanceOf(alice));
+
+        // assets received by redeemer should be equivalent in value to the initialShareEquityUSD
+        // since excess equity was received by the strategy
+        uint256 expectedReceivedAssets = ConversionMath.convertUSDToAsset(
+            (initialShareEquityUSD), COLLATERAL_PRICE, 18
+        );
+
+        assertEq(expectedReceivedAssets, receivedAssets);
+
+        // strategy equity should increase since swap gave net positive equity
+        assertLe(initialEquityUSD - initialShareEquityUSD, strategy.equityUSD());
+
+        // assert that at least the initialShareDebtUSD value has been repaid
+        assertLt(initialShareDebtUSD, initialDebtUSD - strategy.debt());
+    }
+
     /// @dev ensures that the predicted assets returned by the preview redeem call
     /// match the amount returned by the actual call when the redemption results in
     /// collateral ratio falling below minForWithdrawRebalance

@@ -23,7 +23,6 @@ contract SwapperMock is Test, ISwapper {
     uint256 public estimatedBorrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
     uint256 public estimatedCollateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
 
-
     uint256 public constant BASIS = 1e8;
     IPriceOracleGetter public oracle;
 
@@ -89,7 +88,7 @@ contract SwapperMock is Test, ISwapper {
 
         /// mock account for the offset of DEX swaps
         // IMPORTANT NOTE:
-        // To allow for an "equity gain" from a swap,  offsetFactor can be set above 1e8 
+        // To allow for an "equity gain" from a swap,  offsetFactor can be set above 1e8
         // (it cannot be in production)
         uint256 offset = realOffsetFactor(_from, _to);
         if (offset < BASIS) {
@@ -97,7 +96,6 @@ contract SwapperMock is Test, ISwapper {
         } else {
             toAmount += (toAmount * (offset - BASIS)) / BASIS;
         }
-       
 
         deal(address(_to), _beneficiary, _to.balanceOf(_beneficiary) + toAmount);
     }
