@@ -59,7 +59,7 @@ contract AerodromeAdapterTest is BaseForkTest {
         adapter = new AerodromeAdapter();
 
         adapter.AerodromeAdapter__Init(
-            OWNER, AERODROME_ROUTER, AERODROME_FACTORY
+            OWNER, AERODROME_ROUTER, AERODROME_FACTORY, alice
         );
 
         deal(address(WETH), address(alice), 100 ether);
@@ -83,8 +83,6 @@ contract AerodromeAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setRoutes(WETH, CbETH, routes);
-        vm.prank(OWNER);
-        adapter.setSwapper(alice);
 
         vm.prank(alice);
         WETH.approve(address(adapter), swapAmount);
@@ -113,6 +111,8 @@ contract AerodromeAdapterTest is BaseForkTest {
 
         vm.prank(OWNER);
         adapter.setRoutes(WETH, CbETH, routes);
+        vm.prank(OWNER);
+        adapter.setSwapper(OWNER);
 
         vm.prank(alice);
         WETH.approve(address(adapter), swapAmount);
