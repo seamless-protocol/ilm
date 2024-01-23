@@ -488,8 +488,10 @@ contract SwapperTest is BaseForkTest {
         swapper.grantRole(swapper.STRATEGY_ROLE(), ALICE);
         vm.stopPrank();
 
-        // add 10% slippage to first swap
-        wethCbETHAdapter.setSlippagePCT(10);
+        // add 50% slippage **in terms of tokens** to first swap
+        // note: the price differential may at some point exceed this so its in fact
+        // less than 5.025 % slippage, however this is unlikely
+        wethCbETHAdapter.setSlippagePCT(50);
 
         uint256 swapAmount = 1 ether;
 
