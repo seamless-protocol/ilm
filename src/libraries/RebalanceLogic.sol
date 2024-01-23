@@ -139,8 +139,10 @@ library RebalanceLogic {
 
             // shares lose equity equal to the amount of equity lost for
             // the rebalance to pay the adjusted debt
-            shareEquityUSD -=
-                initialEquityUSD - (state.collateralUSD - state.debtUSD);
+            if (initialEquityUSD > (state.collateralUSD - state.debtUSD)) {
+                shareEquityUSD -=
+                    initialEquityUSD - (state.collateralUSD - state.debtUSD);
+            }
         }
 
         // convert equity to collateral asset
