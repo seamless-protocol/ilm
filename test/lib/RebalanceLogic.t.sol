@@ -353,7 +353,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(state.debtUSD, targetDebtUSD, usdMargin);
     }
 
-     /// @dev ensures that rebalanceTo reverts when calling rebalanceUp if slippage is too high
+    /// @dev ensures that rebalanceTo reverts when calling rebalanceUp if slippage is too high
     function test_rebalanceTo_inRebalanceUpCall_revertsWhen_slippageIsTooHigh()
         public
     {
@@ -428,7 +428,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
     }
-    
+
     /////////////////////
     ////// HELPERS //////
     /////////////////////
