@@ -63,7 +63,9 @@ contract ConversionMathTest is Test {
         } else {
             assertEq(
                 assetAmount,
-                (usdAmount * 10 ** (assetDecimals - USD_DECIMALS)).usdDiv(priceInUSD)  
+                (usdAmount * 10 ** (assetDecimals - USD_DECIMALS)).usdDiv(
+                    priceInUSD
+                )
             );
         }
     }

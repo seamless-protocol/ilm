@@ -491,6 +491,7 @@ contract SwapperTest is BaseForkTest {
         // add 50% slippage **in terms of tokens** to first swap
         // note: the price differential may at some point exceed this so its in fact
         // less than 5.025 % slippage, however this is unlikely
+        // ideally would be calculated using USD price differential
         wethCbETHAdapter.setSlippagePCT(50);
 
         uint256 swapAmount = 1 ether;

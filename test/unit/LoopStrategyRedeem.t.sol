@@ -410,7 +410,9 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 expectedTransferedTokens = ConversionMath.convertUSDToAsset(
             oldEquityUSD - strategy.equityUSD(), DROPPED_COLLATERAL_PRICE, 18
         );
-        assertApproxEqRel(receivedCollateral, expectedTransferedTokens, MARGIN, "asdasd");
+        assertApproxEqRel(
+            receivedCollateral, expectedTransferedTokens, MARGIN, "asdasd"
+        );
         assertApproxEqRel(
             CbETH.balanceOf(alice) - oldCollateralAssetBalance,
             expectedTransferedTokens,
