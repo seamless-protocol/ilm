@@ -175,7 +175,9 @@ contract LoopStrategyTest is BaseForkTest {
         swapOffset =
             swapper.offsetFactor(strategyAssets.debt, strategyAssets.collateral);
 
-        _changeBorrowCap(USDbC, 1_000_000);
+        _changeSupplyAndBorrowCap(USDbC, 30_000_000_000, 10_000_000_000);
+        _changeSupplyAndBorrowCap(WETH, 30_000_000_000, 10_000_000_000);
+        _changeSupplyAndBorrowCap(CbETH, 30_000_000_000, 10_000_000_000);
     }
 
     /// @dev mints user new underlying token assets, approves and calls deposit function on the strategy
@@ -241,6 +243,24 @@ contract LoopStrategyTest is BaseForkTest {
     function _changeBorrowCap(IERC20 asset, uint256 borrowCap) internal {
         address aclAdmin = poolAddressProvider.getACLAdmin();
         vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setBorrowCap(address(asset), borrowCap);
+        vm.stopPrank();
+    }
+
+    /// @dev changes the borrow and cap parameter for the given asset
+    /// @param asset asset to change borrow cap
+    /// @param supplyCap new supply cap amount (in the whole token amount of asset - i.e. no decimals)
+    /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
+    function _changeSupplyAndBorrowCap(
+        IERC20 asset,
+        uint256 supplyCap,
+        uint256 borrowCap
+    ) internal {
+        address aclAdmin = poolAddressProvider.getACLAdmin();
+        vm.startPrank(aclAdmin);
+        IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
+            .setSupplyCap(address(asset), supplyCap);
         IPoolConfigurator(poolAddressProvider.getPoolConfigurator())
             .setBorrowCap(address(asset), borrowCap);
         vm.stopPrank();

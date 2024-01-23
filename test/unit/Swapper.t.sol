@@ -473,11 +473,15 @@ contract SwapperTest is BaseForkTest {
         vm.stopPrank();
     }
 
+    /// @dev ensures that when slippage is high enough, swapping reverts
     function test_swap_revertsWhen_tooFewEndAssetsAreReceived() public {
+        uint256 offsetFactor = 5e6;
+        uint256 offsetDeviation = 5e6;
+
         // add 5% slippage +- 5% so max 5.025% max slippage
         vm.startPrank(OWNER);
-        swapper.setOffsetFactor(WETH, CbETH, 5e6);
-        swapper.setOffsetDeviationUSD(5e6);
+        swapper.setOffsetFactor(WETH, CbETH, offsetFactor);
+        swapper.setOffsetDeviationUSD(offsetDeviation);
         vm.stopPrank();
 
         Step[] memory steps = new Step[](1);
@@ -488,8 +492,11 @@ contract SwapperTest is BaseForkTest {
         swapper.grantRole(swapper.STRATEGY_ROLE(), ALICE);
         vm.stopPrank();
 
-        // add 10% slippage to first swap
-        wethCbETHAdapter.setSlippagePCT(10);
+        // add 50% slippage **in terms of tokens** to first swap
+        // note: the price differential may at some point exceed this so its in fact
+        // less than 5.025 % slippage, however this is unlikely
+        // ideally would be calculated using USD price differential
+        wethCbETHAdapter.setSlippagePCT(50);
 
         uint256 swapAmount = 1 ether;
 
