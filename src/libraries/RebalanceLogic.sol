@@ -26,7 +26,7 @@ import {
 library RebalanceLogic {
     using USDWadRayMath for uint256;
 
-    /// @notice thrown when the final ratio after a rebalanceUp operation is outside 
+    /// @notice thrown when the final ratio after a rebalanceUp operation is outside
     /// the allowed range
     error RatioOutsideRange();
 

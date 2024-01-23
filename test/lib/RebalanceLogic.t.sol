@@ -255,11 +255,11 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// @param targetRatio fuzzed value of targetRatio
-    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget_ZeroValueWithdrawal(
+    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(
         uint256 targetRatio
     ) public {
-        // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-        targetCR = 1.34e8;
+        // slightly above min CR for rebalance to allow for lack of precision owed to conversions
+        targetCR = MIN_FOR_REBALANCE_CR + 10;
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
