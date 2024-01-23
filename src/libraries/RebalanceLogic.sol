@@ -26,6 +26,10 @@ import {
 library RebalanceLogic {
     using USDWadRayMath for uint256;
 
+    /// @notice thrown when the final ratio after a rebalanceUp operation is outside
+    /// the allowed range
+    error RatioOutsideRange();
+
     /// @dev ONE in USD scale and in WAD scale
     uint256 internal constant ONE_USD = 1e8;
     uint256 internal constant ONE_WAD = USDWadRayMath.WAD;
@@ -463,6 +467,11 @@ library RebalanceLogic {
                 break;
             }
         } while (_targetCR + margin < ratio);
+
+        // prevent over exposure
+        if (ratio < $.collateralRatioTargets.minForRebalance) {
+            revert RatioOutsideRange();
+        }
     }
 
     /// @notice performs all operations necessary to rebalance the loan state of the strategy downwards
