@@ -439,8 +439,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         assert(
             targets.minForWithdrawRebalance <= strategy.currentCollateralRatio()
         );
-        console.log("curr CR 1: ", strategy.currentCollateralRatio());
-        console.log("targetCR: ", targets.target);
+
         assertApproxEqRel(
             strategy.currentCollateralRatio(), targets.target, MARGIN
         );
