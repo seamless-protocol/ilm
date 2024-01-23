@@ -134,6 +134,24 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, margin);
     }
 
+    /// @dev ensures that rebalanceUp reverts if the final ratio after the rebalance operation
+    /// is outside the limit range (ie less than `minForWithdraw` limit)
+    /// note: `rebalanceTo` is used to circumvent foundry enforcing check on first external call
+    /// which is to the oracle
+    function test_rebalanceUp_revertsWhen_finalRatioIsLessThanMinForWithdrawLimit(
+    ) public {
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        // set target CR to be less than MIN_FOR_REBALANCE_CR
+        targetCR = MIN_FOR_REBALANCE_CR - 1e5;
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        vm.expectRevert(RebalanceLogic.RatioOutsideRange.selector);
+        RebalanceLogic.rebalanceTo($, state, targetCR);
+    }
+
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// when rebalancing requires a single iteration
     function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration(
