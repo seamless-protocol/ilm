@@ -160,7 +160,10 @@ contract LoopStrategyTest is BaseForkTest {
         // fake minting some tokens to start with
         deal(address(CbETH), address(this), 100 ether);
 
+        // set both offsets to be the same value
+        SwapperMock(address(swapper)).setRealOffsets(5e5, 5e5);
         SwapperMock(address(swapper)).setOffsets(5e5, 5e5);
+
         swapOffset =
             swapper.offsetFactor(strategyAssets.debt, strategyAssets.collateral);
 

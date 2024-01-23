@@ -72,6 +72,7 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _changePrice(USDbC, 1_00000000);
         swapOffset = 5e6;
         SwapperMock(address(swapper)).setOffsets(swapOffset, swapOffset);
+        SwapperMock(address(swapper)).setRealOffsets(swapOffset, swapOffset);
 
         _changeLtv(CbETH, 80_00, 85_00, 105_00);
 
