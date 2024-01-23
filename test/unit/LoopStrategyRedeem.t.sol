@@ -613,4 +613,21 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         vm.prank(bob);
         strategy.redeem(redeemAmount, bob, alice);
     }
+
+    /// @dev ensures that if slippage is too high, then redeem call will revert
+    function test_redeem_revertsWhen_slippageIsTooHigh() public {
+        assertEq(strategy.totalSupply(), 0);
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+
+        uint256 redeemAmount = aliceShares / 2;
+
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+
+        vm.prank(alice);
+        strategy.redeem(redeemAmount, alice, alice);
+    }
 }

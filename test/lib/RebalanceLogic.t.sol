@@ -7,12 +7,15 @@ import { IPoolConfigurator } from
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
+import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoanState } from "../../src/types/DataTypes.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
+
+import "forge-std/console.sol";
 
 /// @title RebalanceLogicTest
 /// @dev RebalanceLogicTest contract which exposes RebalanceLogic library functions
@@ -141,6 +144,24 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(ratio, targetCR, margin);
     }
 
+    /// @dev ensures that rebalanceUp reverts if the final ratio after the rebalance operation
+    /// is outside the limit range (ie less than `minForWithdraw` limit)
+    /// note: `rebalanceTo` is used to circumvent foundry enforcing check on first external call
+    /// which is to the oracle
+    function test_rebalanceUp_revertsWhen_finalRatioIsLessThanMinForWithdrawLimit(
+    ) public {
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        // set target CR to be less than MIN_FOR_REBALANCE_CR
+        targetCR = MIN_FOR_REBALANCE_CR - 1e5;
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        vm.expectRevert(RebalanceLogic.RatioOutsideRange.selector);
+        RebalanceLogic.rebalanceTo($, state, targetCR);
+    }
+
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// when rebalancing requires a single iteration
     function test_rebalanceDown_bringsCollateralRatioToTarget_RequiringOneIteration(
@@ -262,11 +283,11 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
     /// @param targetRatio fuzzed value of targetRatio
-    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget_ZeroValueWithdrawal(
+    function testFuzz_rebalanceDown_bringsCollateralRatioToTarget(
         uint256 targetRatio
     ) public {
-        // slightly above min CR of 1.33e8 to allow for lack of precision owed to conversions
-        targetCR = 1.34e8;
+        // slightly above min CR for rebalance to allow for lack of precision owed to conversions
+        targetCR = MIN_FOR_REBALANCE_CR + 10;
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
@@ -332,6 +353,82 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         assertApproxEqAbs(state.debtUSD, targetDebtUSD, usdMargin);
     }
 
+     /// @dev ensures that rebalanceTo reverts when calling rebalanceUp if slippage is too high
+    function test_rebalanceTo_inRebalanceUpCall_revertsWhen_slippageIsTooHigh()
+        public
+    {
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
+
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+        RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
+    }
+
+    /// @dev ensures that rebalanceTo reverts when calling rebalanceDown if slippage is too high
+    function test_rebalanceTo_inRebalanceDownCall_revetsWhen_slippageIsTooHigh()
+        public
+    {
+        // with 0.75 LTV, we have a min CR of 1.33e8
+        // given by CR_min = 1 / LTV
+        targetCR = 1.35e8;
+
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
+
+        targetCR = 3.5e8;
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+        RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
+    }
+
+    /// @dev ensures that rebalanceDownToDebt reverts when slippage is too high
+    /// `testFail` had to be used as `rebalanceDownToDebt` is an internal function,
+    /// and without a harness contract the first external call is picked up by `expectRevert`
+    /// which is _within_ the `rebalanceDownToDebt` call, so the vm.expectRevert cheatcode
+    /// cuts the test short as the first external call passes
+    function testFail_rebalanceDownToDebt_revertsWhen_slippageIsTooHigh()
+        public
+    {
+        // with 0.75 LTV, we have a min CR of 1.33e8
+        // given by CR_min = 1 / LTV
+        targetCR = 1.35e8;
+
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+        uint256 currentCR =
+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+
+        uint256 ratio =
+            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+
+        uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
+
+        assertApproxEqAbs(ratio, targetCR, margin);
+
+        _setupSwapperWithMockAdapter();
+        wethCbETHAdapter.setSlippagePCT(25); // set slippage percentage to 25%
+
+        state = LoanLogic.getLoanState($.lendingPool);
+        uint256 debtRepayment = 100 * USDWadRayMath.USD;
+        uint256 targetDebtUSD = state.debtUSD - debtRepayment;
+
+        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+    }
+    
     /////////////////////
     ////// HELPERS //////
     /////////////////////
