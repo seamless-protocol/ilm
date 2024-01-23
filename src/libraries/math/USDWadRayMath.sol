@@ -60,6 +60,22 @@ library USDWadRayMath {
         }
     }
 
+    function usdDivRoundDown(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
+        // to avoid overflow, a <= (type(uint256).max - halfB) / USD
+        assembly {
+            if or(
+                iszero(b),
+                iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), USD))))
+            ) { revert(0, 0) }
+
+            c := div(mul(a, USD), b)
+        }
+    }
+
     /// @dev Multiplies two USD, rounding half up to the nearest USD
     /// @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
     /// @param a USD

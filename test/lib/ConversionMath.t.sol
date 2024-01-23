@@ -44,9 +44,9 @@ contract ConversionMathTest is Test {
         uint256 priceInUSD,
         uint256 assetDecimals
     ) public {
-        vm.assume(assetDecimals <= 18 && assetDecimals != 0); // assume no tokens with more than 18 decimals would be used as assets
-        vm.assume(priceInUSD <= 250_000 * 10 ** 8 && priceInUSD != 0); // assume no token has a price larger than 250000 USD
-        vm.assume(usdAmount <= 5 * 10 ** 60 && usdAmount != 0); // assume no astronomical value of USD to be converted
+        assetDecimals = bound(assetDecimals, 1, 18); // assume no tokens with more than 18 decimals would be used as assets
+        priceInUSD = bound(priceInUSD, 1, 250_000 * 10 ** 8); // assume no token has a price larger than 250000 USD
+        usdAmount = bound(usdAmount, 1, 5 * 10 ** 50); // assume no astronomical value of USD to be converted
 
         uint256 assetAmount = ConversionMath.convertUSDToAsset(
             usdAmount, priceInUSD, assetDecimals
@@ -63,8 +63,7 @@ contract ConversionMathTest is Test {
         } else {
             assertEq(
                 assetAmount,
-                usdAmount.usdDiv(priceInUSD)
-                    * 10 ** (assetDecimals - USD_DECIMALS)
+                (usdAmount * 10 ** (assetDecimals - USD_DECIMALS)).usdDiv(priceInUSD)  
             );
         }
     }
