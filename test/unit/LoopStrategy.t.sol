@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.21;
 
+import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
+
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
@@ -21,23 +23,28 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
     "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
-import { ISwapper } from "../../src/interfaces/ISwapper.sol";
+
+import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 import { SwapperMock } from "../mock/SwapperMock.t.sol";
+import { SwapAdapterMock } from "../mock/SwapAdapterMock.t.sol";
 import { BaseForkTest } from "../BaseForkTest.t.sol";
 import {
     LendingPool,
     LoanState,
     StrategyAssets,
-    CollateralRatio
+    CollateralRatio,
+    Step
 } from "../../src/types/DataTypes.sol";
 import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
-import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
+import { IPausable } from "../../src/interfaces/IPausable.sol";
+import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
-import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
-import { IPausable } from "../../src/interfaces/IPausable.sol";
-import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
+import { LoopStrategyStorage as Storage } from
+    "../../src/storage/LoopStrategyStorage.sol";
+import { Swapper } from "../../src/swap/Swapper.sol";
+import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
 
 /// @notice Setup for the tests for the LoopStrategy contract
 contract LoopStrategyTest is BaseForkTest {
@@ -83,9 +90,12 @@ contract LoopStrategyTest is BaseForkTest {
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
     WrappedCbETH public wrappedCbETH;
 
+    SwapAdapterMock wethCbETHAdapter;
+
     uint256 COLLATERAL_PRICE = 2000 * 1e8;
     uint256 DEBT_PRICE = 1e8;
 
+    uint256 OFFSET_DEVIATION_USD = 1e6; // 1% at 1e8
     uint256 swapOffset;
 
     address alice = makeAddr("alice");
@@ -111,6 +121,7 @@ contract LoopStrategyTest is BaseForkTest {
 
         _changePrice(USDbC, DEBT_PRICE);
         _changePrice(CbETH, COLLATERAL_PRICE);
+        _changePrice(WETH, COLLATERAL_PRICE * 80 / 100);
 
         wrappedCbETH =
             new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
@@ -253,5 +264,55 @@ contract LoopStrategyTest is BaseForkTest {
             address(asset), ltv, liquidationThreshold, liquidationBonus
         );
         vm.stopPrank();
+    }
+
+    /// @dev sets up a `Swapper` implementation with a single mock adapter
+    function _setupSwapperWithMockAdapter() internal {
+        // deploy one mock swap adapter
+        wethCbETHAdapter = new SwapAdapterMock();
+
+        // deploy and initiliaze swapper
+        Swapper swapperImplementation = new Swapper();
+        ERC1967Proxy swapperProxy = new ERC1967Proxy(
+            address(swapperImplementation),
+            abi.encodeWithSelector(
+                Swapper.Swapper_init.selector,
+                address(this),
+                priceOracle,
+                OFFSET_DEVIATION_USD
+            )
+        );
+
+        strategy.setSwapper(address(swapperProxy));
+
+        Swapper(address(swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).MANAGER_ROLE(), address(this)
+        );
+        Swapper(address(swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).UPGRADER_ROLE(), address(this)
+        );
+        Swapper(address(swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).STRATEGY_ROLE(), address(this)
+        );
+        Swapper(address(swapperProxy)).grantRole(
+            Swapper(address(swapperProxy)).STRATEGY_ROLE(), address(strategy)
+        );
+
+        Step[] memory steps = new Step[](1);
+        steps[0] = Step({ from: WETH, to: CbETH, adapter: wethCbETHAdapter });
+        Swapper(address(swapperProxy)).setRoute(WETH, CbETH, steps);
+
+        Step[] memory stepsTwo = new Step[](1);
+        stepsTwo[0] = Step({ from: CbETH, to: WETH, adapter: wethCbETHAdapter });
+        Swapper(address(swapperProxy)).setRoute(CbETH, WETH, stepsTwo);
+
+        // manually set debt asset to be WETH
+        uint256 assetsDebtStorageSlot = uint256(Storage.STORAGE_SLOT) + 2;
+
+        vm.store(
+            address(strategy),
+            bytes32(assetsDebtStorageSlot),
+            bytes32(uint256(uint160(address(WETH))))
+        );
     }
 }
