@@ -473,11 +473,15 @@ contract SwapperTest is BaseForkTest {
         vm.stopPrank();
     }
 
+    /// @dev ensures that when slippage is high enough, swapping reverts
     function test_swap_revertsWhen_tooFewEndAssetsAreReceived() public {
+        uint256 offsetFactor = 5e6;
+        uint256 offsetDeviation = 5e6;
+
         // add 5% slippage +- 5% so max 5.025% max slippage
         vm.startPrank(OWNER);
-        swapper.setOffsetFactor(WETH, CbETH, 5e6);
-        swapper.setOffsetDeviationUSD(5e6);
+        swapper.setOffsetFactor(WETH, CbETH, offsetFactor);
+        swapper.setOffsetDeviationUSD(offsetDeviation);
         vm.stopPrank();
 
         Step[] memory steps = new Step[](1);
