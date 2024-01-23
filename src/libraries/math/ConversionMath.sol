@@ -35,8 +35,8 @@ library ConversionMath {
             assetAmount = usdAmount.usdDiv(priceInUSD)
                 / (10 ** (USD_DECIMALS - assetDecimals));
         } else {
-            assetAmount = usdAmount.usdDiv(priceInUSD)
-                * (10 ** (assetDecimals - USD_DECIMALS));
+            assetAmount = (usdAmount * (10 ** (assetDecimals - USD_DECIMALS)))
+                .usdDiv(priceInUSD);
         }
     }
 }

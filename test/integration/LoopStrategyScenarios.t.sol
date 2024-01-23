@@ -104,7 +104,7 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         assertEq(strategy.collateral(), 1798_87843722);
         assertEq(strategy.debt(), 1199_25229100);
         assertEq(strategy.currentCollateralRatio(), 1_50000000);
-        assertEq(strategy.totalAssets(), 333333330000000000);
+        assertEq(strategy.totalAssets(), 333333333600166261);
         assertEq(strategy.totalSupply(), 1000 ether);
 
         _depositFor(alice, 0.1 ether);
@@ -128,7 +128,7 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         assertEq(strategy.collateral(), 1798_87843722);
         assertEq(strategy.debt(), 1349_15882700);
         assertEq(strategy.currentCollateralRatio(), 1_33333333);
-        assertEq(strategy.totalAssets(), 250000000000000000);
+        assertEq(strategy.totalAssets(), 250000000508650268);
         assertEq(strategy.totalSupply(), 1000 ether);
 
         _depositFor(alice, 0.01 ether);
@@ -152,7 +152,7 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         assertEq(strategy.collateral(), 179887_84372200);
         assertEq(strategy.debt(), 119925_22914800);
         assertEq(strategy.currentCollateralRatio(), 1_50000000);
-        assertEq(strategy.totalAssets(), 33333333330000000000);
+        assertEq(strategy.totalAssets(), 33333333333333333333);
         assertEq(strategy.totalSupply(), 1000 ether);
         assertEq(strategy.balanceOf(alice), 30 ether);
 
@@ -182,7 +182,7 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         assertEq(strategy.collateral(), 179887_84372200);
         assertEq(strategy.debt(), 134915_88279100);
         assertEq(strategy.currentCollateralRatio(), 1_33333333);
-        assertEq(strategy.totalAssets(), 25000000000000000000);
+        assertEq(strategy.totalAssets(), 25000000000277950966);
         assertEq(strategy.totalSupply(), 1000 ether);
         assertEq(strategy.balanceOf(alice), 30 ether);
 
