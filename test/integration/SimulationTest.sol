@@ -13,7 +13,7 @@ import { IntegrationBase } from "./IntegrationBase.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 import "forge-std/console.sol";
 
-/// @notice Simulates large number of deposit and withdraw transactions on the strategy through time 
+/// @notice Simulates large number of deposit and withdraw transactions on the strategy through time
 /// @notice and writes parameters in the json output
 contract SimulationTest is IntegrationBase {
     SimulationHandler public handler;
@@ -50,7 +50,7 @@ contract SimulationTest is IntegrationBase {
         _changePrice(wrappedCbETH, currCbETHPrice);
     }
 
-    /// @notice Simulates large number of deposit and withdraw transactions on the strategy through time 
+    /// @notice Simulates large number of deposit and withdraw transactions on the strategy through time
     /// @notice and writes parameters in the json output
     function test_e2eSimulation() public {
         uint256 actions = 100;
