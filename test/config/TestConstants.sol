@@ -22,6 +22,22 @@ abstract contract TestConstants {
     address public constant AERODROME_FACTORY =
         0x420DD381b31aEf6683db6B902084cB0FFECe40Da;
 
+    address public constant CHAINLINK_CBETH_USD_ORACLE =
+        0xd7818272B9e248357d13057AAb0B417aF31E817d;
+
     // USDbC has 6 decimals
     uint256 public constant ONE_USDbC = 1e6;
+
+    address public constant SEAMLESS_ATOKEN_IMPL =
+        0x27076A995387458da63b23d9AFe3df851727A8dB;
+    address public constant SEAMLESS_STABLE_DEBT_TOKEN_IMPL =
+        0xb4D5e163738682A955404737f88FDCF15C1391bF;
+    address public constant SEAMLESS_VARIABLE_DEBT_TOKEN_IMPL =
+        0x3800DA378e17A5B8D07D0144c321163591475977;
+    address public constant SEAMLESS_CBETH_INTEREST_RATE_STRATEGY_ADDRESS =
+        0xcEd653F5C689eC80881b1A8b9Ab2b64DF2B963Bd;
+    address public constant SEAMLESS_TREASURY =
+        0x982F3A0e3183896f9970b8A9Ea6B69Cd53AF1089;
+    address public constant SEAMLESS_INCENTIVES_CONTROLLER =
+        0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 }

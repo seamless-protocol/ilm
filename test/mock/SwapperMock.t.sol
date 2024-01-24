@@ -18,8 +18,11 @@ import { Step } from "../../src/types/DataTypes.sol";
 contract SwapperMock is Test, ISwapper {
     IERC20 public immutable collateralAsset;
     IERC20 public immutable borrowAsset;
-    uint256 public borrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
-    uint256 public collateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
+    uint256 public realBorrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
+    uint256 public realCollateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
+    uint256 public estimatedBorrowToCollateralOffset = 5e6; // 5% assuming basis is 1e8
+    uint256 public estimatedCollateralToBorrowOffset = 5e6; // 5% assuming basis is 1e8
+
     uint256 public constant BASIS = 1e8;
     IPriceOracleGetter public oracle;
 
@@ -40,9 +43,22 @@ contract SwapperMock is Test, ISwapper {
         returns (uint256 offset)
     {
         if (_from == collateralAsset && _to == borrowAsset) {
-            offset = collateralToBorrowOffset;
+            offset = estimatedCollateralToBorrowOffset;
         } else {
-            offset = borrowToCollateralOffset;
+            offset = estimatedBorrowToCollateralOffset;
+        }
+    }
+
+    /// @dev returns the real offset factor
+    function realOffsetFactor(IERC20 _from, IERC20 _to)
+        public
+        view
+        returns (uint256 offset)
+    {
+        if (_from == collateralAsset && _to == borrowAsset) {
+            offset = realCollateralToBorrowOffset;
+        } else {
+            offset = realBorrowToCollateralOffset;
         }
     }
 
@@ -71,7 +87,15 @@ contract SwapperMock is Test, ISwapper {
         }
 
         /// mock account for the offset of DEX swaps
-        toAmount -= (toAmount * offsetFactor(_from, _to)) / BASIS;
+        // IMPORTANT NOTE:
+        // To allow for an "equity gain" from a swap,  offsetFactor can be set above 1e8
+        // (it cannot be in production)
+        uint256 offset = realOffsetFactor(_from, _to);
+        if (offset < BASIS) {
+            toAmount -= (toAmount * offset) / BASIS;
+        } else {
+            toAmount += (toAmount * (offset - BASIS)) / BASIS;
+        }
 
         deal(address(_to), _beneficiary, _to.balanceOf(_beneficiary) + toAmount);
     }
@@ -121,7 +145,15 @@ contract SwapperMock is Test, ISwapper {
         uint256 _borrowToCollateralOffset,
         uint256 _collateralToBorrowOffset
     ) external {
-        borrowToCollateralOffset = _borrowToCollateralOffset;
-        collateralToBorrowOffset = _collateralToBorrowOffset;
+        estimatedBorrowToCollateralOffset = _borrowToCollateralOffset;
+        estimatedCollateralToBorrowOffset = _collateralToBorrowOffset;
+    }
+
+    function setRealOffsets(
+        uint256 _borrowToCollateralOffset,
+        uint256 _collateralToBorrowOffset
+    ) external {
+        realBorrowToCollateralOffset = _borrowToCollateralOffset;
+        realCollateralToBorrowOffset = _collateralToBorrowOffset;
     }
 }

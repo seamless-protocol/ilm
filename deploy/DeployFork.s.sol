@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.21;
 
-import "forge-std/script.sol";
-import { TenderlyForkConfig } from "./config/TenderlyForkConfig.sol";
+import { Script } from "forge-std/Script.sol";
+import { DeployForkConfig } from "./config/DeployForkConfig.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
     "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -33,15 +33,16 @@ import { LoopStrategy, ILoopStrategy } from "../src/LoopStrategy.sol";
 import { WrappedTokenAdapter } from
     "../src/swap/adapter/WrappedTokenAdapter.sol";
 import { AerodromeAdapter } from "../src/swap/adapter/AerodromeAdapter.sol";
+import "forge-std/console.sol";
 
-/// @title DeployTenderlyFork
+/// @title DeployFork
 /// @notice Deploys and setups all contracts needed for ILM LoopStrategy, when collateral is CbETH and borrow asset is WETH
 /// @notice Made for using on fork of the Base Mainnet.
 /// @notice Assumes that deployer has roles for the Seamless pool configuration (ACL_ADMIN and POOL_ADMIN)
 /// @notice To obtain roles on the fork, run the simulation on Tenderly UI.  
 /// @dev deploy with the command: 
-/// @dev forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_FORK_RPC} --broadcast --slow --delay 20 --force
-contract DeployTenderlyFork is Script, TenderlyForkConfig {
+/// @dev forge script ./deploy/DeployFork.s.sol --rpc-url ${FORK_RPC} --broadcast --slow --delay 20 --force
+contract DeployForkScript is Script, DeployForkConfig {
   IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
   IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
   IPoolAddressesProvider public constant poolAddressesProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
@@ -56,8 +57,7 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
   LoopStrategy public strategy;
 
   function run() public {
-    deployerPrivateKey = vm.envUint("DEPLOYER_PK");
-    deployerAddress = vm.addr(deployerPrivateKey);
+    _setDeployer(vm.envUint("DEPLOYER_PK"));
 
     _deployWrappedCbETH();
     _setupWrappedCbETH();
@@ -70,6 +70,11 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     _deployLoopStrategy();
 
     _setupRoles();
+  }
+
+  function _setDeployer(uint256 _deployerPrivateKey) internal {
+    deployerPrivateKey = _deployerPrivateKey; 
+    deployerAddress = vm.addr(deployerPrivateKey);
   }
 
   function _logAddress(string memory _name, address _address) internal view {
@@ -141,7 +146,9 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
           address(swapperImplementation),
           abi.encodeWithSelector(
               Swapper.Swapper_init.selector, 
-              deployerAddress
+              deployerAddress,
+              IPriceOracleGetter(poolAddressesProvider.getPriceOracle()),
+              swapperOffsetDeviation
           )
       );
 
@@ -159,8 +166,7 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     
     // WrappedCbETH Adapter
     wrappedTokenAdapter = new WrappedTokenAdapter();
-    wrappedTokenAdapter.WrappedTokenAdapter__Init(deployerAddress);
-    wrappedTokenAdapter.setSwapper(address(swapper));
+    wrappedTokenAdapter.WrappedTokenAdapter__Init(deployerAddress, address(swapper));
     wrappedTokenAdapter.setWrapper(
       CbETH, 
       IERC20(address(wrappedCbETH)), 
@@ -171,9 +177,8 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
     // CbETH <-> WETH Aerodrome Adapter
     aerodromeAdapter = new AerodromeAdapter();
     aerodromeAdapter.AerodromeAdapter__Init(
-        deployerAddress, AERODROME_ROUTER, AERODROME_FACTORY
+        deployerAddress, AERODROME_ROUTER, AERODROME_FACTORY, address(swapper)
     );
-    aerodromeAdapter.setSwapper(address(swapper));
 
     IRouter.Route[] memory routesCbETHtoWETH = new IRouter.Route[](1);
     routesCbETHtoWETH[0] = IRouter.Route({
@@ -213,7 +218,10 @@ contract DeployTenderlyFork is Script, TenderlyForkConfig {
 
       vm.startBroadcast(deployerPrivateKey);
       swapper.setRoute(IERC20(address(wrappedCbETH)), WETH, stepsWrappedToWETH);
+      swapper.setOffsetFactor(IERC20(address(wrappedCbETH)), WETH, swapperOffsetFactor);
+
       swapper.setRoute(WETH, IERC20(address(wrappedCbETH)), stepsWETHtoWrapped);
+      swapper.setOffsetFactor(WETH, IERC20(address(wrappedCbETH)), swapperOffsetFactor);
       vm.stopBroadcast();
   }
 

@@ -28,3 +28,5 @@ out/
 # pnpm
 pnpm-lock.yaml
 
+# simulation output
+test/integration/output
