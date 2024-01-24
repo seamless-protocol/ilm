@@ -48,8 +48,8 @@ contract SimulationHandler is Test {
     LoopStrategy public strategy;
     uint256 public numUsers;
 
-    uint256 public constant minDeposit = 0.1 ether;
-    uint256 public constant maxDeposit = 5 ether;
+    uint256 public constant minDeposit = 0.01 ether;
+    uint256 public constant maxDeposit = 0.3 ether;
 
     string public constant json = "json";
     string public jsonPath;
