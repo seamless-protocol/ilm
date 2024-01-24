@@ -34,7 +34,7 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "../unit/LoopStrategy.t.sol";
-import { DeployTenderlyFork } from "../../deploy/DeployTenderlyFork.s.sol";
+import { DeployForkScript } from "../../deploy/DeployFork.s.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { IntegrationBase } from "./IntegrationBase.sol";

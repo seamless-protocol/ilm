@@ -6,9 +6,9 @@ import { BaseMainnetConstants } from "./BaseMainnetConstants.sol";
 import { CollateralRatio } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
-/// @title TenderlyForkConfig
-/// @notice configuration and constants used on Tenderly fork deployment
-abstract contract TenderlyForkConfig is BaseMainnetConstants {
+/// @title DeployForkConfig
+/// @notice configuration and constants used on fork deployment
+abstract contract DeployForkConfig is BaseMainnetConstants {
 
   string public constant STRATEGY_ERC20_NAME = "CbETH/WETH Seamless ILM";
   string public constant STRATEGY_ERC20_SYMBOL = "ilmCbETH";

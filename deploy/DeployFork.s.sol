@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import "forge-std/script.sol";
-import { TenderlyForkConfig } from "./config/TenderlyForkConfig.sol";
+import { DeployForkConfig } from "./config/DeployForkConfig.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
     "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -34,14 +34,14 @@ import { WrappedTokenAdapter } from
     "../src/swap/adapter/WrappedTokenAdapter.sol";
 import { AerodromeAdapter } from "../src/swap/adapter/AerodromeAdapter.sol";
 
-/// @title DeployTenderlyFork
+/// @title DeployFork
 /// @notice Deploys and setups all contracts needed for ILM LoopStrategy, when collateral is CbETH and borrow asset is WETH
 /// @notice Made for using on fork of the Base Mainnet.
 /// @notice Assumes that deployer has roles for the Seamless pool configuration (ACL_ADMIN and POOL_ADMIN)
 /// @notice To obtain roles on the fork, run the simulation on Tenderly UI.  
 /// @dev deploy with the command: 
-/// @dev forge script ./deploy/DeployTenderlyFork.s.sol --rpc-url ${TENDERLY_RPC_FORK} --broadcast --slow --delay 20 --force
-contract DeployTenderlyFork is Script, TenderlyForkConfig {
+/// @dev forge script ./deploy/DeployFork.s.sol --rpc-url ${FORK_RPC} --broadcast --slow --delay 20 --force
+contract DeployForkScript is Script, DeployForkConfig {
   IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
   IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
   IPoolAddressesProvider public constant poolAddressesProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);

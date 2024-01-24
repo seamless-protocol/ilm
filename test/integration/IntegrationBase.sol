@@ -34,14 +34,14 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "../unit/LoopStrategy.t.sol";
-import { DeployTenderlyFork } from "../../deploy/DeployTenderlyFork.s.sol";
+import { DeployForkScript } from "../../deploy/DeployFork.s.sol";
 import { VmSafe } from "forge-std/Vm.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import "forge-std/console.sol";
 
 /// @notice Setup contract for the integration tests
 /// @notice deploys all related contracts on the fork, and setup lending pool parameters
-contract IntegrationBase is Test, DeployTenderlyFork {
+contract IntegrationBase is Test, DeployForkScript {
     using stdStorage for StdStorage;
 
     string internal BASE_RPC_URL = vm.envString("BASE_MAINNET_RPC_URL");
