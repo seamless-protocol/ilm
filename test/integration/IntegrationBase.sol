@@ -7,7 +7,6 @@ import { Test } from "forge-std/Test.sol";
 import { IACLManager } from "@aave/contracts/interfaces/IACLManager.sol";
 import { DeployForkScript } from "../../deploy/DeployFork.s.sol";
 import { VmSafe } from "forge-std/Vm.sol";
-import "forge-std/console.sol";
 
 /// @notice Setup contract for the integration tests
 /// @notice deploys all related contracts on the fork, and setup lending pool parameters

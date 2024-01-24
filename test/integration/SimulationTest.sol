@@ -11,7 +11,6 @@ import { PercentageMath } from
 import { SimulationHandler } from "./SimulationHandler.sol";
 import { IntegrationBase } from "./IntegrationBase.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
-import "forge-std/console.sol";
 
 /// @notice Simulates large number of deposit and withdraw transactions on the strategy through time
 /// @notice and writes parameters in the json output

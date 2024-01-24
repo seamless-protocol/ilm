@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.21;
 
-import "forge-std/script.sol";
+import { Script } from "forge-std/Script.sol";
 import { DeployForkConfig } from "./config/DeployForkConfig.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
