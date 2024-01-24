@@ -33,6 +33,7 @@ import { LoopStrategy, ILoopStrategy } from "../src/LoopStrategy.sol";
 import { WrappedTokenAdapter } from
     "../src/swap/adapter/WrappedTokenAdapter.sol";
 import { AerodromeAdapter } from "../src/swap/adapter/AerodromeAdapter.sol";
+import "forge-std/console.sol";
 
 /// @title DeployFork
 /// @notice Deploys and setups all contracts needed for ILM LoopStrategy, when collateral is CbETH and borrow asset is WETH
