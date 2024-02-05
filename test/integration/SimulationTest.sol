@@ -21,8 +21,12 @@ contract SimulationTest is IntegrationBase {
 
     MockAaveOracle public mockOracle;
 
+    IERC20 public CbETH;
+
     function setUp() public virtual override {
         super.setUp();
+
+        CbETH = IERC20(config.underlyingTokenAddress);
 
         uint256 numUsers = 10;
         uint256 startAmount = 100 ether;
@@ -46,7 +50,7 @@ contract SimulationTest is IntegrationBase {
 
         _changePrice(WETH, currWethPrice);
         _changePrice(CbETH, currCbETHPrice);
-        _changePrice(wrappedCbETH, currCbETHPrice);
+        _changePrice(wrappedToken, currCbETHPrice);
     }
 
     /// @notice Simulates large number of deposit and withdraw transactions on the strategy through time
@@ -110,7 +114,7 @@ contract SimulationTest is IntegrationBase {
 
         _changePrice(WETH, ethPrice);
         _changePrice(CbETH, cbETHPrice);
-        _changePrice(wrappedCbETH, cbETHPrice);
+        _changePrice(wrappedToken, cbETHPrice);
     }
 
     /// @dev changes price for the given token
