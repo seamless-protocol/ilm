@@ -11,7 +11,6 @@ import { VmSafe } from "forge-std/Vm.sol";
 /// @notice Setup contract for the integration tests
 /// @notice deploys all related contracts on the fork, and setup lending pool parameters
 contract IntegrationBase is Test, DeployForkScript {
-
     string internal BASE_RPC_URL = vm.envString("BASE_MAINNET_RPC_URL");
 
     VmSafe.Wallet public testDeployer = vm.createWallet("deployer");
