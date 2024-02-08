@@ -296,7 +296,7 @@ contract DeployHelper is BaseMainnetConstants {
   /// @dev requires caller to have MANAGER_ROLE on the Swapper contract
   /// @param swapper address of the Swapper contract
   /// @param strategy address of the LoopStrategy contract
-  function _setupWrappedSwapperRoles(
+  function _setupSwapperRoles(
     Swapper swapper,
     LoopStrategy strategy
   ) internal {
