@@ -8,7 +8,7 @@ import { LoopStrategyConfig, ERC20Config, ReserveConfig, CollateralRatioConfig }
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
     "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { Swapper } from "../src/swap/Swapper.sol";
+import { ISwapper, Swapper } from "../src/swap/Swapper.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
@@ -37,54 +37,42 @@ import { WrappedTokenAdapter } from
 import { AerodromeAdapter } from "../src/swap/adapter/AerodromeAdapter.sol";
 import "forge-std/console.sol";
 
-/// @title DeployFork
-/// @notice Deploys and setups all contracts needed for ILM LoopStrategy, when collateral is CbETH and borrow asset is WETH
-/// @notice Made for using on fork of the Base Mainnet.
-/// @notice Assumes that deployer has roles for the Seamless pool configuration (ACL_ADMIN and POOL_ADMIN)
-/// @notice To obtain roles on the fork, run the simulation on Tenderly UI.  
-/// @dev deploy with the command: 
-/// @dev forge script ./deploy/DeployFork.s.sol --rpc-url ${FORK_RPC} --broadcast --slow --delay 20 --force
+/// @title DeployHelper
+/// @notice This contract contains functions to deploy and setup ILM LoopStrategy contracts
 contract DeployHelper is BaseMainnetConstants {
   IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
   IPoolAddressesProvider public constant poolAddressesProvider = IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
 
-  // uint256 deployerPrivateKey;
-  // address deployerAddress;
-
-  // LoopStrategyConfig public config;
-
-  // WrappedCbETH public wrappedCbETH;
-  // Swapper public swapper;
-  // WrappedTokenAdapter public wrappedTokenAdapter;
-  // AerodromeAdapter public aerodromeAdapter;
-  // LoopStrategy public strategy;
-
-  // function _setDeployer(uint256 _deployerPrivateKey) internal {
-  //   deployerPrivateKey = _deployerPrivateKey; 
-  //   deployerAddress = vm.addr(deployerPrivateKey);
-  // }
-
+  /// @dev logs the contract address on the console output
   function _logAddress(string memory _name, address _address) internal view {
     console.log("%s: %s", _name, _address);
   }
 
+  /// @dev deploys the WrappedToken contract
+  /// @param initialAdmin initial DEFAULT_ADMIN role on the contract
+  /// @param wrappedTokenERC20Config ERC20 configuration of the wrapped token
+  /// @param underlyingToken address of the underlying token which is wrapped
+  /// @return wrappedToken address of the deployed WrappedToken contract
   function _deployWrappedToken(
     address initialAdmin,
     ERC20Config memory wrappedTokenERC20Config,
     IERC20 underlyingToken
   ) internal returns (WrappedCbETH wrappedToken) {
-    // vm.startBroadcast(deployerPrivateKey);
     wrappedToken = new WrappedCbETH(
       wrappedTokenERC20Config.name, 
       wrappedTokenERC20Config.symbol, 
       underlyingToken,
       initialAdmin
     );
-    // vm.stopBroadcast();
 
     _logAddress("WrappedToken", address(wrappedToken));
   }
 
+  /// @dev set up the wrapped token on the lending pool
+  /// @dev requires from the caller to have ACL_ADMIN or POOL_ADMIN role on the lending pool
+  /// @param wrappedToken address of the WrappedToken contract
+  /// @param wrappedTokenReserveConfig all configuration parameters for setting up the token as reserve on the lending pool
+  /// @param underlyingTokenOracle address of the price oracle for the wrapped token (it's underlying token)
   function _setupWrappedToken(
     WrappedCbETH wrappedToken, 
     ReserveConfig memory wrappedTokenReserveConfig,
@@ -111,8 +99,6 @@ contract DeployHelper is BaseMainnetConstants {
       params: bytes('')
     });
 
-    // vm.startBroadcast(deployerPrivateKey);
-
     IPoolConfigurator poolConfigurator = IPoolConfigurator(poolAddressesProvider.getPoolConfigurator());
     
     poolConfigurator.initReserves(initReserveInputs);
@@ -130,20 +116,17 @@ contract DeployHelper is BaseMainnetConstants {
     sources[0] = underlyingTokenOracle;
 
     IAaveOracle(poolAddressesProvider.getPriceOracle()).setAssetSources(assets, sources);
-    // vm.stopBroadcast();
   }
 
-  function _setupWETHborrowCap() internal {
-    // vm.startBroadcast(deployerPrivateKey);
-    IPoolConfigurator(poolAddressesProvider.getPoolConfigurator()).setBorrowCap(address(WETH), 1000000);
-    // vm.stopBroadcast();
-  }
-
+  /// @dev deploys the Swapper contract
+  /// @dev requires for the caller to be the same address as `initialAdmin`
+  /// @param initialAdmin initial DEFAULT_ADMIN, MANAGER_ROLE and UPGRADER_ROLE roles on the contract
+  /// @param swapperOffsetDeviation maximal offset deviation of the price from the offsetFactor (in percent)
+  /// @return swapper address of the deployed Swapper contract
   function _deploySwapper(
     address initialAdmin,
     uint256 swapperOffsetDeviation
   ) internal returns (Swapper swapper) {
-      // vm.startBroadcast(deployerPrivateKey);
       Swapper swapperImplementation = new Swapper();
       ERC1967Proxy swapperProxy = new ERC1967Proxy(
           address(swapperImplementation),
@@ -159,20 +142,24 @@ contract DeployHelper is BaseMainnetConstants {
 
       swapper.grantRole(swapper.MANAGER_ROLE(), initialAdmin);
       swapper.grantRole(swapper.UPGRADER_ROLE(), initialAdmin);
-      // vm.stopBroadcast();
 
       _logAddress("Swapper", address(swapper));
   }
 
+  /// @dev deploys SwapAdapters (WrappedTokenAdapter and AerodromeAdapter) and set up those contracts
+  /// @dev requires for the caller to be the same address as `initialAdmin`
+  /// @param swapper address of the Swapper contract
+  /// @param wrappedToken address of the WrappedToken contract
+  /// @param initialAdmin initial Owner role on the contracts
+  /// @return wrappedTokenAdapter address of the deployed WrappedTokenAdapter contract
+  /// @return aerodromeAdapter address of the deployed AerodromeAdapter contract
   function _deploySwapAdapters(
     Swapper swapper,
     WrappedCbETH wrappedToken,
-    address initialAdmin,
-    address underlyingTokenAddress
+    address initialAdmin
   ) internal returns(WrappedTokenAdapter wrappedTokenAdapter, AerodromeAdapter aerodromeAdapter) {
-    // vm.startBroadcast(deployerPrivateKey);
 
-    IERC20 underlyingToken = IERC20(underlyingTokenAddress);
+    IERC20 underlyingToken = wrappedToken.underlying();
     
     // WrappedToken Adapter
     wrappedTokenAdapter = new WrappedTokenAdapter();
@@ -191,7 +178,7 @@ contract DeployHelper is BaseMainnetConstants {
 
     IRouter.Route[] memory routesUnderlyingtoWETH = new IRouter.Route[](1);
     routesUnderlyingtoWETH[0] = IRouter.Route({
-        from: underlyingTokenAddress,
+        from: address(underlyingToken),
         to: address(WETH),
         stable: false,
         factory: AERODROME_FACTORY
@@ -200,29 +187,33 @@ contract DeployHelper is BaseMainnetConstants {
     IRouter.Route[] memory routesWETHtoUnderlying = new IRouter.Route[](1);
     routesWETHtoUnderlying[0] = IRouter.Route({
         from: address(WETH),
-        to: underlyingTokenAddress,
+        to: address(underlyingToken),
         stable: false,
         factory: AERODROME_FACTORY
     });
 
     aerodromeAdapter.setRoutes(underlyingToken, WETH, routesUnderlyingtoWETH);
     aerodromeAdapter.setRoutes(WETH, underlyingToken, routesWETHtoUnderlying);
-    // vm.stopBroadcast();
 
     _logAddress("WrappedTokenAdapter", address(wrappedTokenAdapter));
     _logAddress("AerodromeAdapter", address(aerodromeAdapter));
   }
 
-
+  /// @dev set up the routes for swapping (wrappedToken <-> WETH)
+  /// @dev requires for the caller to have MANAGER_ROLE on the Swapper contract
+  /// @param swapper address of the Swapper contract
+  /// @param wrappedToken address of the WrappedToken contract
+  /// @param wrappedTokenAdapter address of the WrappedTokenAdapter contract
+  /// @param aerodromeAdapter address of the AerodromeAdapter contract
+  /// @param swapperOffsetFactor offsetFactor for this swapping routes
   function _setupSwapperRoutes(
     Swapper swapper,
     WrappedCbETH wrappedToken,
     WrappedTokenAdapter wrappedTokenAdapter,
     AerodromeAdapter aerodromeAdapter,
-    address underlyingTokenAddress,
     uint256 swapperOffsetFactor
   ) internal {
-      IERC20 underlyingToken = IERC20(underlyingTokenAddress);
+      IERC20 underlyingToken = wrappedToken.underlying();
 
       // from wrappedToken -> WETH
       Step[] memory stepsWrappedToWETH = new Step[](2);
@@ -234,19 +225,24 @@ contract DeployHelper is BaseMainnetConstants {
       stepsWETHtoWrapped[0] = Step({ from: WETH, to: underlyingToken, adapter: aerodromeAdapter });
       stepsWETHtoWrapped[1] = Step({ from: underlyingToken, to: IERC20(address(wrappedToken)), adapter: wrappedTokenAdapter });
 
-      // vm.startBroadcast(deployerPrivateKey);
       swapper.setRoute(IERC20(address(wrappedToken)), WETH, stepsWrappedToWETH);
       swapper.setOffsetFactor(IERC20(address(wrappedToken)), WETH, swapperOffsetFactor);
 
       swapper.setRoute(WETH, IERC20(address(wrappedToken)), stepsWETHtoWrapped);
       swapper.setOffsetFactor(WETH, IERC20(address(wrappedToken)), swapperOffsetFactor);
-      // vm.stopBroadcast();
   }
 
+  /// @dev deploys LoopStrategy contract
+  /// @dev requires for the caller to be the same address as `initialAdmin`
+  /// @param wrappedToken address of the WrappedToken contract
+  /// @param initialAdmin initial DEFAULT_ADMIN, MANAGER_ROLE, UPGRADER_ROLE and PAUSER_ROLE roles on the contract
+  /// @param swapper address of the Swapper contract
+  /// @param config configuration paramteres for the LoopStrategy contract
+  /// @return strategy address of the deployed LoopStrategy contract
   function _deployLoopStrategy(
     WrappedCbETH wrappedToken,
     address initialAdmin,
-    Swapper swapper,
+    ISwapper swapper,
     LoopStrategyConfig memory config
   ) internal returns (LoopStrategy strategy) {
       StrategyAssets memory strategyAssets = StrategyAssets({
@@ -255,7 +251,6 @@ contract DeployHelper is BaseMainnetConstants {
           debt: WETH
       });
 
-      // vm.startBroadcast(deployerPrivateKey);
       LoopStrategy strategyImplementation = new LoopStrategy();
 
       ERC1967Proxy strategyProxy = new ERC1967Proxy(
@@ -279,28 +274,32 @@ contract DeployHelper is BaseMainnetConstants {
       strategy.grantRole(strategy.PAUSER_ROLE(), initialAdmin);
       strategy.grantRole(strategy.MANAGER_ROLE(), initialAdmin);
       strategy.grantRole(strategy.UPGRADER_ROLE(), initialAdmin);
-      // vm.stopBroadcast();
 
       _logAddress("Strategy", address(strategy));
   }
 
+  /// @dev set deposit permissions to the LoopStrategy and WrappedTokenAdapter contracts
+  /// @dev requires caller to have MANAGER_ROLE on the WrappedToken contract
+  /// @param wrappedToken address of the WrappedTokenContract
+  /// @param wrappedTokenAdapter address of the WrappedTokenAdapter contract
+  /// @param strategy address of the LoopStrategy contract
   function _setupWrappedTokenRoles(
     WrappedCbETH wrappedToken,
-    WrappedTokenAdapter wrappedTokenAdapter,
-    LoopStrategy strategy
+    address wrappedTokenAdapter,
+    address strategy
   ) internal {
-    // vm.startBroadcast(deployerPrivateKey);
-    wrappedToken.setDepositPermission(address(strategy), true);
-    wrappedToken.setDepositPermission(address(wrappedTokenAdapter), true);
-    // vm.stopBroadcast();
+    wrappedToken.setDepositPermission(strategy, true);
+    wrappedToken.setDepositPermission(wrappedTokenAdapter, true);
   }
 
+  /// @dev set STRATEGY_ROLE to the LoopStrategy contract
+  /// @dev requires caller to have MANAGER_ROLE on the Swapper contract
+  /// @param swapper address of the Swapper contract
+  /// @param strategy address of the LoopStrategy contract
   function _setupWrappedSwapperRoles(
     Swapper swapper,
     LoopStrategy strategy
   ) internal {
-    // vm.startBroadcast(deployerPrivateKey);
     swapper.grantRole(swapper.STRATEGY_ROLE(), address(strategy));
-    // vm.stopBroadcast();
   }
 }

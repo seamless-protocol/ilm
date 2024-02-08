@@ -6,6 +6,8 @@ import { LoopStrategyConfig, ERC20Config, ReserveConfig, CollateralRatioConfig, 
 import { CollateralRatio } from "../../src/types/DataTypes.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
+/// @title DeployForkConfigs
+/// @notice contains configurations for the cbETH/ETH and wstETH/ETH LoopStrategies for the fork testing deployment
 contract DeployForkConfigs {
 
   LoopStrategyConfig public cbETHconfig = LoopStrategyConfig({
