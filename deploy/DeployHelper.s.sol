@@ -85,7 +85,7 @@ contract DeployHelper is BaseMainnetConstants {
       aTokenImpl: SEAMLESS_ATOKEN_IMPL,
       stableDebtTokenImpl: SEAMLESS_STABLE_DEBT_TOKEN_IMPL,
       variableDebtTokenImpl: SEAMLESS_VARIABLE_DEBT_TOKEN_IMPL,
-      underlyingAssetDecimals: 18,
+      underlyingAssetDecimals: wrappedToken.decimals(),
       interestRateStrategyAddress: wrappedTokenReserveConfig.interestRateStrategyAddress,
       underlyingAsset: address(wrappedToken),
       treasury: SEAMLESS_TREASURY,
