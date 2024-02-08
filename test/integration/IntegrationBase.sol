@@ -5,11 +5,14 @@ pragma solidity ^0.8.21;
 import { Test } from "forge-std/Test.sol";
 
 import { IACLManager } from "@aave/contracts/interfaces/IACLManager.sol";
+import { IPoolConfigurator } from
+    "@aave/contracts/interfaces/IPoolConfigurator.sol";
+import { DefaultReserveInterestRateStrategy } from "@aave/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { DeployHelper } from "../../deploy/DeployHelper.s.sol";
 import { LoopStrategyConfig } from "../../deploy/config/LoopStrategyConfig.sol";
 import { DeployForkConfigs } from "../../deploy/config/DeployForkConfigs.sol";
-import { Swapper } from "../../src/swap/Swapper.sol";
+import { ISwapper, Swapper } from "../../src/swap/Swapper.sol";
 import {
     WrappedCbETH,
     IWrappedERC20PermissionedDeposit
@@ -38,15 +41,13 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
     IERC20 public underlyingToken;
 
     WrappedCbETH public wrappedToken;
-    Swapper public swapper;
+    ISwapper public swapper;
     WrappedTokenAdapter public wrappedTokenAdapter;
     AerodromeAdapter public aerodromeAdapter;
     LoopStrategy public strategy;
 
     function setUp() public virtual {
-        vm.createSelectFork(BASE_RPC_URL);
-
-        // _setDeployer(testDeployer.privateKey);
+        vm.createSelectFork(BASE_RPC_URL, 10131522);
 
         address aclAdmin = poolAddressesProvider.getACLAdmin();
         vm.startPrank(aclAdmin);
@@ -71,7 +72,8 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
             config.wrappedTokenReserveConfig,
             config.underlyingTokenOracle
         );
-        _setupWETHborrowCap();
+
+        IPoolConfigurator(poolAddressesProvider.getPoolConfigurator()).setBorrowCap(address(WETH), 1000000);
 
         swapper = _deploySwapper(
             testDeployer.addr,
@@ -79,17 +81,15 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
         );
         (wrappedTokenAdapter, aerodromeAdapter) = 
             _deploySwapAdapters(
-                swapper,
+                Swapper(address(swapper)),
                 wrappedToken,
-                testDeployer.addr,
-                config.underlyingTokenAddress
+                testDeployer.addr
             );
         _setupSwapperRoutes(
-            swapper,
+            Swapper(address(swapper)),
             wrappedToken,
             wrappedTokenAdapter,
             aerodromeAdapter,
-            config.underlyingTokenAddress,
             config.swapperConfig.swapperOffsetFactor
         );
 
@@ -100,8 +100,33 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
             config
         );
 
-        _setupWrappedTokenRoles(wrappedToken, wrappedTokenAdapter, strategy);
-        _setupWrappedSwapperRoles(swapper, strategy);
+        _setupWrappedTokenRoles(wrappedToken, address(wrappedTokenAdapter), address(strategy));
+        _setupSwapperRoles(Swapper(address(swapper)), strategy);
+
         vm.stopPrank();
+    }
+
+    /// @dev deploys and sets the interest strategy with the (almost) flat borrow rate
+    /// @param borrowRate new interest rate
+    function _changeBorrowInterestRate(uint256 borrowRate) internal {
+        vm.startPrank(testDeployer.addr);
+
+        DefaultReserveInterestRateStrategy interestRateStrategy = new DefaultReserveInterestRateStrategy(
+            poolAddressesProvider,
+            0.5 * 1e27,               
+            borrowRate,               
+            0.0000001 * 1e27,           
+            0.0000001 * 1e27,               
+            0.0000001 * 1e27,             
+            0.0000001 * 1e27,             
+            0.0000001 * 1e27,           
+            0.0000001 * 1e27,             
+            0.0000001 * 1e27          
+        );
+
+        IPoolConfigurator(poolAddressesProvider.getPoolConfigurator())
+            .setReserveInterestRateStrategyAddress(address(WETH), address(interestRateStrategy));
+
+         vm.stopPrank();
     }
 }
