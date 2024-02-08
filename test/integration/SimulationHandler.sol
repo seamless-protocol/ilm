@@ -40,9 +40,10 @@ contract SimulationHandler is Test {
 
     /// @dev data saved for the last user deposit
     struct DepositData {
-      uint256 timestamp;
-      uint256 amount;
+        uint256 timestamp;
+        uint256 amount;
     }
+
     mapping(address user => DepositData data) public lastDeposit;
 
     constructor(
@@ -66,16 +67,16 @@ contract SimulationHandler is Test {
     }
 
     function nextAction(uint256 seed) public {
-      uint256 userId = bound(seed, 1, numUsers);
-      address user = vm.addr(userId);
+        uint256 userId = bound(seed, 1, numUsers);
+        address user = vm.addr(userId);
 
-      uint256 userShares = strategy.balanceOf(user);  
+        uint256 userShares = strategy.balanceOf(user);
 
-      if (userShares > 0) {
-        redeem(seed, userId);
-      } else {
-        deposit(seed, userId);
-      }
+        if (userShares > 0) {
+            redeem(seed, userId);
+        } else {
+            deposit(seed, userId);
+        }
     }
 
     /// @dev deposits assets to the strategy
@@ -111,7 +112,7 @@ contract SimulationHandler is Test {
     function redeem(uint256 seed, uint256 userId) public {
         address user = vm.addr(userId);
 
-        uint256 userShares = strategy.balanceOf(user);  
+        uint256 userShares = strategy.balanceOf(user);
 
         if (userShares > 0) {
             StrategyData memory dataBefore = _getStrategyData(user);
@@ -126,26 +127,30 @@ contract SimulationHandler is Test {
             _checkRedeemData(dataBefore, dataAfter);
 
             _addRedeemDataPoint(
-                user, userId, userShares, assetsReceived, previewRedeem, dataBefore, dataAfter
+                user,
+                userId,
+                userShares,
+                assetsReceived,
+                previewRedeem,
+                dataBefore,
+                dataAfter
             );
         }
     }
 
     /// @dev rebalances strategy if collateral ratio is out of bounds
     function rebalance() public {
-      if (strategy.rebalanceNeeded()) {
-        StrategyData memory dataBefore = _getStrategyData(address(0));
+        if (strategy.rebalanceNeeded()) {
+            StrategyData memory dataBefore = _getStrategyData(address(0));
 
-        strategy.rebalance();
-        
-        StrategyData memory dataAfter = _getStrategyData(address(0));
+            strategy.rebalance();
 
-        _checkRebalanceData(dataBefore, dataAfter);
+            StrategyData memory dataAfter = _getStrategyData(address(0));
 
-        _addRebalanceDataPoint(
-            dataBefore, dataAfter
-        );
-      }
+            _checkRebalanceData(dataBefore, dataAfter);
+
+            _addRebalanceDataPoint(dataBefore, dataAfter);
+        }
     }
 
     /// @dev captures the current stratgy data, including some user data
@@ -175,7 +180,10 @@ contract SimulationHandler is Test {
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
     ) internal {
-        if (!dataBefore.rebalanceNeeded && dataBefore.collateralRatio == dataAfter.collateralRatio) {
+        if (
+            !dataBefore.rebalanceNeeded
+                && dataBefore.collateralRatio == dataAfter.collateralRatio
+        ) {
             uint256 equityPerShareBefore = 0;
             if (dataBefore.totalSupply > 0) {
                 equityPerShareBefore = USDWadRayMath.wadDiv(
@@ -332,7 +340,9 @@ contract SimulationHandler is Test {
         vm.serializeUint(obj, "amount", amount);
         vm.serializeUint(obj, "received", received);
         vm.serializeUint(obj, "preview", previewRedeem);
-        vm.serializeUint(obj, "lastDepositTimestamp", lastDeposit[user].timestamp);
+        vm.serializeUint(
+            obj, "lastDepositTimestamp", lastDeposit[user].timestamp
+        );
         vm.serializeUint(obj, "lastDepositAmount", lastDeposit[user].amount);
         vm.serializeString(
             obj, "dataBefore", _serializeStrategyData(dataBefore)

@@ -21,7 +21,8 @@ import { SwapperMock } from "../mock/SwapperMock.t.sol";
 contract SimulationTest is IntegrationBase {
     SimulationHandler public handler;
 
-    string public constant JSON_PATH = "./test/integration/output/simulation.json";
+    string public constant JSON_PATH =
+        "./test/integration/output/simulation.json";
 
     uint256 public constant underlyingTokenApy = 3_50;
     uint256 public constant NUM_USERS = 50;
@@ -36,8 +37,12 @@ contract SimulationTest is IntegrationBase {
 
     CollateralRatio public collateralRatioTargets = CollateralRatio({
         target: USDWadRayMath.usdDiv(TARGET_LEV, TARGET_LEV - 1000),
-        minForRebalance: USDWadRayMath.usdDiv(TARGET_LEV + 10, TARGET_LEV - 1000 + 10),
-        maxForRebalance: USDWadRayMath.usdDiv(TARGET_LEV - 10, TARGET_LEV - 1000 - 10),
+        minForRebalance: USDWadRayMath.usdDiv(
+            TARGET_LEV + 10, TARGET_LEV - 1000 + 10
+            ),
+        maxForRebalance: USDWadRayMath.usdDiv(
+            TARGET_LEV - 10, TARGET_LEV - 1000 - 10
+            ),
         maxForDepositRebalance: USDWadRayMath.usdDiv(TARGET_LEV, TARGET_LEV - 1000),
         minForWithdrawRebalance: USDWadRayMath.usdDiv(TARGET_LEV, TARGET_LEV - 1000)
     });
@@ -96,9 +101,9 @@ contract SimulationTest is IntegrationBase {
             handler.nextAction(seed);
 
             // pass days and rebalance if needed
-            for(uint256 w = 0; w < daysBetweenActions; w++) {
-              _passTimeAndUpdatePrices(seed);
-              handler.rebalance();
+            for (uint256 w = 0; w < daysBetweenActions; w++) {
+                _passTimeAndUpdatePrices(seed);
+                handler.rebalance();
             }
         }
 
@@ -120,7 +125,8 @@ contract SimulationTest is IntegrationBase {
         skip(duration);
 
         uint256 ethPrice = mockOracle.getAssetPrice(address(WETH));
-        uint256 underlyingTokenPrice = mockOracle.getAssetPrice(address(underlyingToken));
+        uint256 underlyingTokenPrice =
+            mockOracle.getAssetPrice(address(underlyingToken));
         uint256 percentChange = bound(seed, 1, 2_00); // from 0.01% to 2%
         uint256 ethPriceChange =
             PercentageMath.percentMul(ethPrice, percentChange);
@@ -135,7 +141,8 @@ contract SimulationTest is IntegrationBase {
         }
 
         uint256 underlyingTokenyeild = (
-            PercentageMath.percentMul(underlyingTokenPrice, underlyingTokenApy) * duration
+            PercentageMath.percentMul(underlyingTokenPrice, underlyingTokenApy)
+                * duration
         ) / 365 days;
         underlyingTokenPrice += underlyingTokenyeild;
 
@@ -153,29 +160,27 @@ contract SimulationTest is IntegrationBase {
 
     /// @dev deploys new MockSwapper contract and new LoopStrategy which is using mock swapper
     function _deployLoopStrategyWithMockSwapper() internal {
-      vm.startPrank(testDeployer.addr);
-      SwapperMock swapperMock = 
-          new SwapperMock(
+        vm.startPrank(testDeployer.addr);
+        SwapperMock swapperMock = new SwapperMock(
               address(wrappedToken), 
               address(WETH), 
               poolAddressesProvider.getPriceOracle()
           );
-      swapperMock.setOffsets(DEX_FEE, DEX_FEE);
-      swapperMock.setRealOffsets(DEX_FEE, DEX_FEE);
-      swapperMock.setWrapped(IERC20(wrappedToken), true);
-      vm.allowCheatcodes(address(swapperMock));
+        swapperMock.setOffsets(DEX_FEE, DEX_FEE);
+        swapperMock.setRealOffsets(DEX_FEE, DEX_FEE);
+        swapperMock.setWrapped(IERC20(wrappedToken), true);
+        vm.allowCheatcodes(address(swapperMock));
 
-      swapper = ISwapper(swapperMock);
+        swapper = ISwapper(swapperMock);
 
-      strategy = _deployLoopStrategy(
-          wrappedToken,
-          testDeployer.addr,
-          swapper,
-          config
-      );
+        strategy = _deployLoopStrategy(
+            wrappedToken, testDeployer.addr, swapper, config
+        );
 
-      _setupWrappedTokenRoles(wrappedToken, address(swapper), address(strategy));
+        _setupWrappedTokenRoles(
+            wrappedToken, address(swapper), address(strategy)
+        );
 
-      vm.stopPrank();
+        vm.stopPrank();
     }
 }

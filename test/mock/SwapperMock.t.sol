@@ -109,12 +109,20 @@ contract SwapperMock is Test, ISwapper {
             // handle deposit to wrapped token
             WrappedCbETH wrappedToken = WrappedCbETH(address(_to));
             IERC20 underlying = wrappedToken.underlying();
-            deal(address(underlying), address(this), underlying.balanceOf(address(this)) + toAmount);
+            deal(
+                address(underlying),
+                address(this),
+                underlying.balanceOf(address(this)) + toAmount
+            );
             underlying.approve(address(wrappedToken), toAmount);
             wrappedToken.deposit(toAmount);
             _to.transfer(_beneficiary, toAmount);
         } else {
-            deal(address(_to), _beneficiary, _to.balanceOf(_beneficiary) + toAmount);
+            deal(
+                address(_to),
+                _beneficiary,
+                _to.balanceOf(_beneficiary) + toAmount
+            );
         }
     }
 
@@ -175,10 +183,7 @@ contract SwapperMock is Test, ISwapper {
         realCollateralToBorrowOffset = _collateralToBorrowOffset;
     }
 
-    function setWrapped(
-        IERC20 wrappedToken,
-        bool _isWrapped
-    ) external {
+    function setWrapped(IERC20 wrappedToken, bool _isWrapped) external {
         isWrapped[wrappedToken] = _isWrapped;
     }
 }

@@ -7,7 +7,8 @@ import { Test } from "forge-std/Test.sol";
 import { IACLManager } from "@aave/contracts/interfaces/IACLManager.sol";
 import { IPoolConfigurator } from
     "@aave/contracts/interfaces/IPoolConfigurator.sol";
-import { DefaultReserveInterestRateStrategy } from "@aave/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol";
+import { DefaultReserveInterestRateStrategy } from
+    "@aave/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { DeployHelper } from "../../deploy/DeployHelper.s.sol";
 import { LoopStrategyConfig } from "../../deploy/config/LoopStrategyConfig.sol";
@@ -32,11 +33,10 @@ import { VmSafe } from "forge-std/Vm.sol";
 /// @notice Setup contract for the integration tests
 /// @notice deploys all related contracts on the fork, and setup lending pool parameters
 contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
-
     string internal BASE_RPC_URL = vm.envString("BASE_MAINNET_RPC_URL");
 
     VmSafe.Wallet public testDeployer = vm.createWallet("deployer");
-    
+
     LoopStrategyConfig public config;
     IERC20 public underlyingToken;
 
@@ -60,12 +60,10 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
         config = cbETHconfig;
 
         underlyingToken = IERC20(config.underlyingTokenAddress);
-        
+
         vm.startPrank(testDeployer.addr);
         wrappedToken = _deployWrappedToken(
-            testDeployer.addr,
-            config.wrappedTokenERC20Config,
-            underlyingToken
+            testDeployer.addr, config.wrappedTokenERC20Config, underlyingToken
         );
         _setupWrappedToken(
             wrappedToken,
@@ -73,18 +71,15 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
             config.underlyingTokenOracle
         );
 
-        IPoolConfigurator(poolAddressesProvider.getPoolConfigurator()).setBorrowCap(address(WETH), 1000000);
+        IPoolConfigurator(poolAddressesProvider.getPoolConfigurator())
+            .setBorrowCap(address(WETH), 1000000);
 
         swapper = _deploySwapper(
-            testDeployer.addr,
-            config.swapperConfig.swapperOffsetDeviation
+            testDeployer.addr, config.swapperConfig.swapperOffsetDeviation
         );
-        (wrappedTokenAdapter, aerodromeAdapter) = 
-            _deploySwapAdapters(
-                Swapper(address(swapper)),
-                wrappedToken,
-                testDeployer.addr
-            );
+        (wrappedTokenAdapter, aerodromeAdapter) = _deploySwapAdapters(
+            Swapper(address(swapper)), wrappedToken, testDeployer.addr
+        );
         _setupSwapperRoutes(
             Swapper(address(swapper)),
             wrappedToken,
@@ -94,13 +89,12 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
         );
 
         strategy = _deployLoopStrategy(
-            wrappedToken,
-            testDeployer.addr,
-            swapper,
-            config
+            wrappedToken, testDeployer.addr, swapper, config
         );
 
-        _setupWrappedTokenRoles(wrappedToken, address(wrappedTokenAdapter), address(strategy));
+        _setupWrappedTokenRoles(
+            wrappedToken, address(wrappedTokenAdapter), address(strategy)
+        );
         _setupSwapperRoles(Swapper(address(swapper)), strategy);
 
         vm.stopPrank();
@@ -111,7 +105,8 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
     function _changeBorrowInterestRate(uint256 borrowRate) internal {
         vm.startPrank(testDeployer.addr);
 
-        DefaultReserveInterestRateStrategy interestRateStrategy = new DefaultReserveInterestRateStrategy(
+        DefaultReserveInterestRateStrategy interestRateStrategy =
+        new DefaultReserveInterestRateStrategy(
             poolAddressesProvider,
             0.5 * 1e27,               
             borrowRate,               
@@ -125,8 +120,10 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
         );
 
         IPoolConfigurator(poolAddressesProvider.getPoolConfigurator())
-            .setReserveInterestRateStrategyAddress(address(WETH), address(interestRateStrategy));
+            .setReserveInterestRateStrategyAddress(
+            address(WETH), address(interestRateStrategy)
+        );
 
-         vm.stopPrank();
+        vm.stopPrank();
     }
 }
