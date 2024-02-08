@@ -243,11 +243,6 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
             maxSlippageUSD = 1;
         }
 
-        // for the very low amounts allow 1 wei of slippage
-        if (maxSlippageUSD == 0) {
-            maxSlippageUSD = 1;
-        }
-
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();
         }
