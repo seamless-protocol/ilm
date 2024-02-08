@@ -225,10 +225,11 @@ contract LoopStrategy is
     {
         Storage.Layout storage $ = Storage.layout();
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-        return RebalanceLogic.rebalanceNeeded(
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
-            $.collateralRatioTargets
-        );
+        return totalSupply() != 0
+            && RebalanceLogic.rebalanceNeeded(
+                RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
+                $.collateralRatioTargets
+            );
     }
 
     /// @inheritdoc IERC4626
