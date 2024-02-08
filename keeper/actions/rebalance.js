@@ -1,45 +1,45 @@
 const { ethers } = require("ethers");
-const { DefenderRelaySigner, DefenderRelayProvider } = require('defender-relay-client/lib/ethers');
-const { LoopStrategyJSON } = require('../../out/LoopStrategy.sol/LoopStrategy.json');
+const { Defender } = require('@openzeppelin/defender-sdk');
 
-const strategyABI = LoopStrategyJSON.abi;
-const strategyAddress = '';
+const strategyABI = ["function rebalanceNeeded() external view returns (bool)", "function rebalance() external returns (uint256)", "function totalSupply() external view returns (uint256)"];
+// on tenderly fork
+const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
 
 // execute rebalance operation if its necessary using a relay signer
 async function performRebalance(signer, address) {
   const strategy = new ethers.Contract(address, strategyABI, signer);
-
+  
   if (await strategy.rebalanceNeeded()) {
     try {
-      const tx = await contract.rebalance();
+      const tx = await strategy.rebalance();
       console.log(`Called rebalance in ${tx.hash}`);
       return { tx: tx.hash };
     } catch (err) {
-        console.error('An unexpected error occurred: ', err);
+        console.error('An error occurred on rebalance call: ', err);
     }
   } else {
     console.log('Rebalance not needed.');
   }
-  
 }
 
 // Entrypoint for the action
-exports.handler = async function(event) {
-  // Initialize relayer provider and signer
-  const provider = new DefenderRelayProvider(event);
-  const signer = new DefenderRelaySigner(event, provider, { speed: 'fast' });
-
-  await performRebalance(signer, strategyAddress);
+exports.handler = async function(credentials) {
+  const client = new Defender(credentials);
+ 
+  await performRebalance(client.relaySigner, strategyAddress);
 }
 
-// Unit testing
+// Unit testing with ethers
 exports.main = performRebalance;
 
 // To run locally (this code will not be executed in actions)
 if (require.main === module) {
   require('dotenv').config();
-  const { API_KEY: apiKey, API_SECRET: apiSecret } = process.env;
-  exports.handler({ apiKey, apiSecret })
+  const { DEPLOYER_PK: pk, BASE_FORK_RPC_URL: tenderlyRPC } = process.env;
+  const provider = new ethers.providers.JsonRpcProvider(tenderlyRPC);
+  const signer = new ethers.Wallet(pk, provider);
+
+  exports.main(signer, strategyAddress)
     .then(() => process.exit(0))
     .catch(error => { console.error(error); process.exit(1); });
 }
