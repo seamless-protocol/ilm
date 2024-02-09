@@ -1,7 +1,7 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
 
-const strategyABI = ["function rebalanceNeeded() external view returns (bool)", "function rebalance() external returns (uint256)", "function totalSupply() external view returns (uint256)"];
+const strategyABI = ["function rebalanceNeeded() external view returns (bool)", "function rebalance() external returns (uint256)"];
 // on tenderly fork
 const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
 
@@ -9,16 +9,16 @@ const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
 async function performRebalance(signer, address) {
   const strategy = new ethers.Contract(address, strategyABI, signer);
   
-  if (await strategy.rebalanceNeeded()) {
-    try {
-      const tx = await strategy.rebalance();
-      console.log(`Called rebalance in ${tx.hash}`);
-      return { tx: tx.hash };
-    } catch (err) {
-        console.error('An error occurred on rebalance call: ', err);
+  try {
+    if (await strategy.rebalanceNeeded()) {
+        const tx = await strategy.rebalance();
+        console.log(`Called rebalance in ${tx.hash}`);
+        return { tx: tx.hash };
+    } else {
+      console.log('Rebalance not needed.');
     }
-  } else {
-    console.log('Rebalance not needed.');
+  } catch (err) {
+    console.error('An error occurred on rebalance call: ', err);
   }
 }
 
