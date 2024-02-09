@@ -5,10 +5,8 @@ const strategyABI = ["function rebalanceNeeded() external view returns (bool)", 
 // on tenderly fork
 const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
 
-// execute rebalance operation if its necessary using a relay signer
-async function performRebalance(signer, address) {
-  const strategy = new ethers.Contract(address, strategyABI, signer);
-  
+// execute rebalance operation if its necessary
+async function performRebalance(strategy) {
   try {
     if (await strategy.rebalanceNeeded()) {
         const tx = await strategy.rebalance();
@@ -25,21 +23,11 @@ async function performRebalance(signer, address) {
 // Entrypoint for the action
 exports.handler = async function(credentials) {
   const client = new Defender(credentials);
+
+  const strategy = new ethers.Contract(strategyAddress, strategyABI, client.relaySigner,);
  
-  await performRebalance(client.relaySigner, strategyAddress);
+  await performRebalance(strategy);
 }
 
-// Unit testing with ethers
-exports.main = performRebalance;
-
-// To run locally (this code will not be executed in actions)
-if (require.main === module) {
-  require('dotenv').config();
-  const { DEPLOYER_PK: pk, BASE_FORK_RPC_URL: tenderlyRPC } = process.env;
-  const provider = new ethers.providers.JsonRpcProvider(tenderlyRPC);
-  const signer = new ethers.Wallet(pk, provider);
-
-  exports.main(signer, strategyAddress)
-    .then(() => process.exit(0))
-    .catch(error => { console.error(error); process.exit(1); });
-}
+// unit testing
+exports.performRebalance = performRebalance;
