@@ -228,7 +228,7 @@ contract LoopStrategy is
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        return currentCR != type(uint256).max
+        return state.collateralUSD != 0
             && RebalanceLogic.rebalanceNeeded(currentCR, $.collateralRatioTargets);
     }
 
