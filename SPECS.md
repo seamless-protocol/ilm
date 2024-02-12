@@ -5,11 +5,13 @@ The ILMs are a set of contracts which increase capital efficiency chiefly by red
 ## Looping Strategy
 
 ### Overview
+
 The `LoopingStrategy` is the first of a set of strategy contracts which will comprise the `Integrated Liquidity Markets` (ILMs). It recursively supplies deposited assets as collateral and takes out loans against that collateral to multiplicatively increase the exposure to the asset provided as collateral - hence the name `Looping`.
 
 ![Looping Strategy](https://953119082-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FUh7w5UXhBr7jGvg6R4FO%2Fuploads%2FFETfVcCSMps0WsWEALkC%2FILM%20diagram.png?alt=media&token=855a0dc2-ac65-47bd-b966-19622a324353 "Looping strategy")
 
 In a nutshell, the "loop" goes as follows:
+
 - User collateral is pooled and deposited into the lending pool as a single position
 - Debt assets are borrowed from the pool against the supplied collateral
 - Debt assets are exchanged on an external DEX for the collateral asset
@@ -24,13 +26,13 @@ Below some key concepts, and their implementations, integral to the functioning 
 
 ### Rebalancing
 
-The strategy adjusts risk by maintaining a desired (target) collateral ratio, defined as the ratio of collateral asset and debt asset in USD value. As the price of collateral asset increases, so does the value of the collateral. To maintain the target collateral ratio, the strategy borrows more from the lending pool, exchanges it for the collateral asset and supplies it back to the lending pool. This increases exposure to the collateral asset, subsequently increasing the equity of share tokens. 
+The strategy adjusts risk by maintaining a desired (target) collateral ratio, defined as the ratio of collateral asset and debt asset in USD value. As the price of collateral asset increases, so does the value of the collateral. To maintain the target collateral ratio, the strategy borrows more from the lending pool, exchanges it for the collateral asset and supplies it back to the lending pool. This increases exposure to the collateral asset, subsequently increasing the equity of share tokens.
 
 Rebalance margins have been implemented allow for small deviations from the target collateral ratio in order to minimize the frequency of rebalances, mitigating equity loss caused by DEX fees upon swapping. Additionally, a second, smaller margin has been implemented around the target to accommodate small deposit/withdrawal actions (relative to the total TVL), preventing unnecessary rebalances and further preventing the burdening of users with DEX fees.
 
 ### Deposit
 
-Users can deposit any amount of collateral assets into the `LoopStrategy`. In return, users receive share tokens (ERC20) representing their position in the strategy. These share tokens are transferable, along with any rights to the assets they represent - both their respective debt, and collateral, get transferred as well. 
+Users can deposit any amount of collateral assets into the `LoopStrategy`. In return, users receive share tokens (ERC20) representing their position in the strategy. These share tokens are transferable, along with any rights to the assets they represent - both their respective debt, and collateral, get transferred as well.
 
 ### Redeem
 
@@ -126,6 +128,6 @@ The USDWadRayMath library contains helper functions for the multiplication and d
 
 The Swapper contract is used by the strategy as a router for DEXs. It defines a unique route to swap from the starting asset to the destination asset, allowing the use of multiple DEXs on the route. An `offset factor` is defined for each route to estimate the total amount lost on fees and potential slippage, represented as a percentage.
 
-## WrappedCbETH
+## WrappedERC20PermissionedDeposit
 
-The Wrapped CbETH token is a wrapped version of CbETH, allowing the token to be distinguished from the standard CbETH token in the lending pool. This distinction enables the setting of different risk parameters. Only the strategy (and swapper) is permitted to wrap and supply this token to the lending pool.
+This contract represents a wrapped version of a token, allowing the token to be distinguished from the standard token in the lending pool. This distinction enables the setting of different risk parameters. Only the strategy (and swapper) is permitted to wrap and supply this token to the lending pool.

@@ -44,7 +44,7 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
 import { Swapper } from "../../src/swap/Swapper.sol";
-import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
+import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 
 /// @notice Setup for the tests for the LoopStrategy contract
 contract LoopStrategyTest is BaseForkTest {
@@ -88,7 +88,7 @@ contract LoopStrategyTest is BaseForkTest {
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
-    WrappedCbETH public wrappedCbETH;
+    WrappedERC20PermissionedDeposit public wrappedToken;
 
     SwapAdapterMock wethCbETHAdapter;
 
@@ -123,8 +123,8 @@ contract LoopStrategyTest is BaseForkTest {
         _changePrice(CbETH, COLLATERAL_PRICE);
         _changePrice(WETH, COLLATERAL_PRICE * 80 / 100);
 
-        wrappedCbETH =
-            new WrappedCbETH("wCbETH", "wCbETH", CbETH, address(this));
+        wrappedToken =
+            new WrappedERC20PermissionedDeposit("wCbETH", "wCbETH", CbETH, address(this));
 
         swapper =
         new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));
@@ -166,7 +166,7 @@ contract LoopStrategyTest is BaseForkTest {
         strategy.grantRole(strategy.MANAGER_ROLE(), address(this));
         strategy.grantRole(strategy.UPGRADER_ROLE(), address(this));
 
-        wrappedCbETH.setDepositPermission(address(strategy), true);
+        wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), address(strategy));
 
         // fake minting some tokens to start with
         deal(address(CbETH), address(this), 100 ether);

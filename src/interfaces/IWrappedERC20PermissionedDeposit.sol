@@ -49,8 +49,8 @@ interface IWrappedERC20PermissionedDeposit is IERC20 {
     /// @notice function used to recover underlying tokens sent directly to this contract by mistake
     function recover() external;
 
-    /// @notice gives or withdraws permission to deposit
-    /// @param account account address to give/withdraw permission
-    /// @param toSet flag set to true to give permission, or false to withdraw permission
-    function setDepositPermission(address account, bool toSet) external;
+    // /// @notice gives or withdraws permission to deposit
+    // /// @param account account address to give/withdraw permission
+    // /// @param toSet flag set to true to give permission, or false to withdraw permission
+    // function setDepositPermission(address account, bool toSet) external;
 }
