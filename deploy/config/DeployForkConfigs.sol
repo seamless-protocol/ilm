@@ -11,8 +11,10 @@ import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 contract DeployForkConfigs {
 
   LoopStrategyConfig public cbETHconfig = LoopStrategyConfig({
-    underlyingTokenAddress: 0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22,
-    underlyingTokenOracle: 0xd7818272B9e248357d13057AAb0B417aF31E817d,
+    // cbETH address
+    underlyingTokenAddress: 0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22, 
+    // cbETH-USD Chainlink feed     
+    underlyingTokenOracle: 0xd7818272B9e248357d13057AAb0B417aF31E817d,        
 
     strategyERC20Config: ERC20Config({
       name: "CbETH/WETH Seamless ILM",
@@ -25,6 +27,7 @@ contract DeployForkConfigs {
     }),
 
     wrappedTokenReserveConfig: ReserveConfig({
+      // cbETH interest rate strategy address, not important for this deploy
       interestRateStrategyAddress: 0xcEd653F5C689eC80881b1A8b9Ab2b64DF2B963Bd,
       aTokenName: "Seamless wrapped CbETH",
       aTokenSymbol: "swCbETH",
@@ -58,7 +61,9 @@ contract DeployForkConfigs {
   });
 
   LoopStrategyConfig public wstETHconfig = LoopStrategyConfig({
+    // stETH address
     underlyingTokenAddress: 0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452,
+    // stETH-USD Adapter oracle (used in the Seamless pool)
     underlyingTokenOracle: 0xD815218fA8c9bd605c2b048f26cd374A752cAA76,
 
     strategyERC20Config: ERC20Config({
@@ -72,6 +77,7 @@ contract DeployForkConfigs {
     }),
 
     wrappedTokenReserveConfig: ReserveConfig({
+      // cbETH interest rate strategy address, not important for this deploy
       interestRateStrategyAddress: 0xcEd653F5C689eC80881b1A8b9Ab2b64DF2B963Bd,
       aTokenName: "Seamless wrapped wstETH",
       aTokenSymbol: "swwstETH",
