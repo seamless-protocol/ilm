@@ -33,7 +33,7 @@ struct CollateralRatioConfig {
   uint16 maxIterations;
 }
 
-/// @dev configuration of the offset factor and max offset deviation for the Swapepr contract
+/// @dev configuration of the offset factor and max offset deviation for the Swapper contract
 struct SwapperConfig {
   uint256 swapperOffsetFactor;
   uint256 swapperOffsetDeviation;

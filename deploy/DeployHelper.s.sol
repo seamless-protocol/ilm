@@ -205,7 +205,7 @@ contract DeployHelper is BaseMainnetConstants {
   /// @param wrappedToken address of the WrappedToken contract
   /// @param wrappedTokenAdapter address of the WrappedTokenAdapter contract
   /// @param aerodromeAdapter address of the AerodromeAdapter contract
-  /// @param swapperOffsetFactor offsetFactor for this swapping routes
+  /// @param swapperOffsetFactor offsetFactor for these swapping routes
   function _setupSwapperRoutes(
     Swapper swapper,
     WrappedCbETH wrappedToken,
