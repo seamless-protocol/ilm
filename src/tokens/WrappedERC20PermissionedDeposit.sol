@@ -13,8 +13,8 @@ import { IWrappedERC20PermissionedDeposit } from
 
 /// @title WrappedERC20PermissionedDeposit
 /// @notice contract used to wrap underlying ERC20 token and mints the same amount of a wrapped token.
-/// @notice this contract will be used to mainly to wrap cbETH and use it as a collateral in the lending pool
-/// @notice but only strategies contracts will be able to get wrapped token it and borrow against it.
+/// @notice wrapped token will be used to mainly as a collateral in the lending pool
+/// @notice but only strategies contracts will be able to get wrapped token and borrow against it.
 contract WrappedERC20PermissionedDeposit is
     IWrappedERC20PermissionedDeposit,
     ERC20,

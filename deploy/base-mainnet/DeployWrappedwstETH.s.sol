@@ -11,7 +11,7 @@ import { ERC20Config } from "../config/LoopStrategyConfig.sol";
 contract WrappedWstETHConfig {
   ERC20Config public wrappedwstETHERC20Config = ERC20Config({
     name: "Seamless ILM Reserved wstETH",
-    symbol: "rswstETH"
+    symbol: "rwstETH"
   });
 }
 
@@ -35,8 +35,7 @@ contract DeployWrappedwstETH is Script, DeployHelper, WrappedWstETHConfig {
     wrappedToken.grantRole(wrappedToken.DEFAULT_ADMIN_ROLE(), SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS);
     wrappedToken.grantRole(wrappedToken.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG);
 
-    // TODO: renounce the admin role after giving to the strategy and wrappedTokenAdapter depositor roles
-    // wrappedToken.renounceRole(wrappedToken.DEFAULT_ADMIN_ROLE(), deployerAddress);
+    wrappedToken.renounceRole(wrappedToken.DEFAULT_ADMIN_ROLE(), deployerAddress);
 
     vm.stopBroadcast();
   }
