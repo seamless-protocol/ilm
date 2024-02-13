@@ -8,7 +8,9 @@ pragma solidity ^0.8.21;
  * @notice Provides functions to perform calculations with Wad and Ray units
  * @dev Provides mul and div function for wads (decimal numbers with 18 digits of precision) and rays (decimal numbers
  * with 27 digits of precision), and USDs (decimal numbers with 8 digits of precisions)
- * @dev Operations are rounded. If a value is >=.5, will be rounded up, otherwise rounded down.
+ * @dev Operations are rounded. Suffix of `up` or `down` indicates rounding direction. 
+ * `up` suffix: if a value is >=.5, will be rounded up, otherwise rounded down.
+ * `down` suffix: always rounded down.
  * @dev USD-related functionality added by Seamless
  */
 library USDWadRayMath {
@@ -25,6 +27,7 @@ library USDWadRayMath {
     uint256 internal constant USD_WAD_RATIO = 1e10;
     uint256 internal constant WAD_RAY_RATIO = 1e9;
 
+    // TODO: OVERFLOW CHECKS FOR ROUNDING DOWN
     /**
      * @dev Multiplies two wad, rounding half up to the nearest wad
      * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
@@ -40,6 +43,24 @@ library USDWadRayMath {
             ) { revert(0, 0) }
 
             c := div(add(mul(a, b), HALF_WAD), WAD)
+        }
+    }
+
+    /**
+     * @dev Multiplies two wad, rounding down
+     * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+     * @param a Wad
+     * @param b Wad
+     * @return c = a*b, in wad
+     */
+    function wadMulDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        // to avoid overflow, a <= (type(uint256).max - HALF_WAD) / b
+        assembly {
+            if iszero(
+                or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_WAD), b))))
+            ) { revert(0, 0) }
+
+            c := div(mul(a, b), WAD)
         }
     }
 
@@ -60,7 +81,12 @@ library USDWadRayMath {
         }
     }
 
-    function usdDivRoundDown(uint256 a, uint256 b)
+    /// @dev Divides two USD, rounding down
+    /// @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+    /// @param a USD
+    /// @param b USD
+    /// @return c = a/b, in USD
+    function usdDivDown(uint256 a, uint256 b)
         internal
         pure
         returns (uint256 c)
@@ -92,6 +118,22 @@ library USDWadRayMath {
         }
     }
 
+    /// @dev Multiplies two USD, rounding down
+    /// @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+    /// @param a USD
+    /// @param b USD
+    /// @return c = a*b, in USD
+    function usdMulDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        // to avoid overflow, a <= (type(uint256).max - HALF_USD) / b
+        assembly {
+            if iszero(
+                or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_USD), b))))
+            ) { revert(0, 0) }
+
+            c := div(mul(a, b), USD)
+        }
+    }
+
     /**
      * @dev Divides two wad, rounding half up to the nearest wad
      * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
@@ -108,6 +150,25 @@ library USDWadRayMath {
             ) { revert(0, 0) }
 
             c := div(add(mul(a, WAD), div(b, 2)), b)
+        }
+    }
+
+    /**
+     * @dev Divides two wad, rounding down
+     * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+     * @param a Wad
+     * @param b Wad
+     * @return c = a/b, in wad
+     */
+    function wadDivDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        // to avoid overflow, a <= (type(uint256).max - halfB) / WAD
+        assembly {
+            if or(
+                iszero(b),
+                iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), WAD))))
+            ) { revert(0, 0) }
+
+            c := div(mul(a, WAD), b)
         }
     }
 
@@ -130,6 +191,24 @@ library USDWadRayMath {
     }
 
     /**
+     * @notice Multiplies two ray, rounding down
+     * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+     * @param a Ray
+     * @param b Ray
+     * @return c = a raymul b
+     */
+    function rayMulDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        // to avoid overflow, a <= (type(uint256).max - HALF_RAY) / b
+        assembly {
+            if iszero(
+                or(iszero(b), iszero(gt(a, div(sub(not(0), HALF_RAY), b))))
+            ) { revert(0, 0) }
+
+            c := div(mul(a, b), RAY)
+        }
+    }
+
+    /**
      * @notice Divides two ray, rounding half up to the nearest ray
      * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
      * @param a Ray
@@ -145,6 +224,25 @@ library USDWadRayMath {
             ) { revert(0, 0) }
 
             c := div(add(mul(a, RAY), div(b, 2)), b)
+        }
+    }
+
+    /**
+     * @notice Divides two ray, rounding down
+     * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
+     * @param a Ray
+     * @param b Ray
+     * @return c = a raydiv b
+     */
+    function rayDivDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+        // to avoid overflow, a <= (type(uint256).max - halfB) / RAY
+        assembly {
+            if or(
+                iszero(b),
+                iszero(iszero(gt(a, div(sub(not(0), div(b, 2)), RAY))))
+            ) { revert(0, 0) }
+
+            c := div(mul(a, RAY), b)
         }
     }
 
