@@ -594,11 +594,16 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 initialDebtUSD = strategy.debt();
 
         // calculate amount of debt, collateral and equity corresponding to shares to be redeemed
-        uint256 initialShareDebtUSD = initialDebtUSD.usdMul(
-            USDWadRayMath.wadToUSD(aliceShares.wadDiv(initialTotalSupply))
+        uint256 initialShareDebtUSD = USDWadRayMath.wadToUSD(
+            USDWadRayMath.usdToWad(initialDebtUSD).wadMulDown(
+                aliceShares.wadDivDown(initialTotalSupply)
+            )
         );
-        uint256 initialShareCollateralUSD = initialCollateralUSD.usdMul(
-            USDWadRayMath.wadToUSD(aliceShares.wadDiv(initialTotalSupply))
+
+        uint256 initialShareCollateralUSD = USDWadRayMath.wadToUSD(
+            USDWadRayMath.usdToWad(initialCollateralUSD).wadMulDown(
+                aliceShares.wadDivDown(initialTotalSupply)
+            )
         );
         uint256 initialShareEquityUSD =
             initialShareCollateralUSD - initialShareDebtUSD;
