@@ -195,9 +195,8 @@ library RebalanceLogic {
         uint256 collateralRatio =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-            collateralRatio != type(uint256).max
+            state.collateralUSD != 0
                 && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
         ) {
             rebalanceTo($, state, $.collateralRatioTargets.target);
