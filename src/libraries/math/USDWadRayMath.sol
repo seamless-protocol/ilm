@@ -8,7 +8,7 @@ pragma solidity ^0.8.21;
  * @notice Provides functions to perform calculations with Wad and Ray units
  * @dev Provides mul and div function for wads (decimal numbers with 18 digits of precision) and rays (decimal numbers
  * with 27 digits of precision), and USDs (decimal numbers with 8 digits of precisions)
- * @dev Operations are rounded. Suffix of `up` or `down` indicates rounding direction. 
+ * @dev Operations are rounded. Suffix of `up` or `down` indicates rounding direction.
  * `up` suffix: if a value is >=.5, will be rounded up, otherwise rounded down.
  * `down` suffix: always rounded down.
  * @dev USD-related functionality added by Seamless
@@ -53,7 +53,11 @@ library USDWadRayMath {
      * @param b Wad
      * @return c = a*b, in wad
      */
-    function wadMulDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function wadMulDown(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
         // to avoid overflow, a <= (type(uint256).max - HALF_WAD) / b
         assembly {
             if iszero(
@@ -123,7 +127,11 @@ library USDWadRayMath {
     /// @param a USD
     /// @param b USD
     /// @return c = a*b, in USD
-    function usdMulDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function usdMulDown(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
         // to avoid overflow, a <= (type(uint256).max - HALF_USD) / b
         assembly {
             if iszero(
@@ -160,7 +168,11 @@ library USDWadRayMath {
      * @param b Wad
      * @return c = a/b, in wad
      */
-    function wadDivDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function wadDivDown(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
         // to avoid overflow, a <= (type(uint256).max - halfB) / WAD
         assembly {
             if or(
@@ -197,7 +209,11 @@ library USDWadRayMath {
      * @param b Ray
      * @return c = a raymul b
      */
-    function rayMulDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function rayMulDown(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
         // to avoid overflow, a <= (type(uint256).max - HALF_RAY) / b
         assembly {
             if iszero(
@@ -234,7 +250,11 @@ library USDWadRayMath {
      * @param b Ray
      * @return c = a raydiv b
      */
-    function rayDivDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function rayDivDown(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256 c)
+    {
         // to avoid overflow, a <= (type(uint256).max - halfB) / RAY
         assembly {
             if or(

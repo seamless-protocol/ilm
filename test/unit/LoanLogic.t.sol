@@ -24,10 +24,16 @@ import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LendingPool, LoanState } from "../../src/types/DataTypes.sol";
 
+import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
+
+import "forge-std/console.sol";
+
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
 contract LoanLogicTest is BaseForkTest {
+    using USDWadRayMath for uint256;
+
     IPoolAddressesProvider public constant poolAddressProvider =
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
     IPoolDataProvider public poolDataProvider;
@@ -368,6 +374,47 @@ contract LoanLogicTest is BaseForkTest {
         uint256 totalSupplyUSDbCUSD =
             (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
+    }
+
+    function test_shareDebtAndEquityUSD() public {
+        LoanState memory state = LoanState({
+            collateralUSD: 10000 * (10e8),
+            debtUSD: 2000 * (10e8),
+            maxWithdrawAmount: 0
+        });
+
+        uint256 shares = 10;
+        uint256 totalShares = 3005;
+
+        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            LoanLogic.shareDebtAndEquity(state, shares, totalShares);
+
+        uint256 shareDebtUSD2 = state.debtUSD.usdMulDown(
+            USDWadRayMath.wadToUSD(shares.wadDivDown(totalShares))
+        );
+
+        uint256 shareEquityUSD2 = state.collateralUSD.usdMulDown(
+            USDWadRayMath.wadToUSD(shares.wadDivDown(totalShares))
+        ) - shareDebtUSD2;
+
+        uint256 shareDebtUSD3 = USDWadRayMath.wadToUSD(
+            USDWadRayMath.usdToWad(state.debtUSD).wadMulDown(
+                shares.wadDivDown(totalShares)
+            )
+        );
+
+        uint256 shareEquityUSD3 = USDWadRayMath.wadToUSD(
+            USDWadRayMath.usdToWad(state.collateralUSD).wadMulDown(
+                shares.wadDivDown(totalShares)
+            )
+        ) - shareDebtUSD3;
+
+        console.log("shareDebtUSD: %d", shareDebtUSD);
+        console.log("shareDebtUSD2: %d", shareDebtUSD2);
+        console.log("shareDebtUSD3: %d", shareDebtUSD3);
+        console.log("shareEquityUSD: %d", shareEquityUSD);
+        console.log("shareEquityUSD2: %d", shareEquityUSD2);
+        console.log("shareEquityUSD3: %d", shareEquityUSD3);
     }
 
     /// @dev changes the borrow cap parameter for the given asset
