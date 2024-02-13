@@ -230,9 +230,11 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         );
 
         uint256 offsetUSD = $.offsetUSD[from][to];
+        // RDOWN
         uint256 maxDeviationUSD =
             offsetUSD.usdMul($.offsetDeviationUSD).usdDiv(USDWadRayMath.USD);
 
+        // RDOWN
         // ensure these amounts do not differ by more than given slippage
         uint256 maxSlippageUSD = fromAmountUSD.usdMul(
             offsetUSD + maxDeviationUSD

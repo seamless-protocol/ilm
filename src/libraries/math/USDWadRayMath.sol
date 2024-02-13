@@ -35,7 +35,7 @@ library USDWadRayMath {
      * @param b Wad
      * @return c = a*b, in wad
      */
-    function wadMul(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function wadMulUp(uint256 a, uint256 b) internal pure returns (uint256 c) {
         // to avoid overflow, a <= (type(uint256).max - HALF_WAD) / b
         assembly {
             if iszero(
@@ -149,7 +149,7 @@ library USDWadRayMath {
      * @param b Wad
      * @return c = a/b, in wad
      */
-    function wadDiv(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    function wadDivUp(uint256 a, uint256 b) internal pure returns (uint256 c) {
         // to avoid overflow, a <= (type(uint256).max - halfB) / WAD
         assembly {
             if or(

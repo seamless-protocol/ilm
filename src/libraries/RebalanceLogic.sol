@@ -120,6 +120,7 @@ library RebalanceLogic {
                 // strategy without driving the collateral ratio below
                 // the minForWithdrawRebalance limit, thereby not requiring
                 // a rebalance operation
+                // RUP
                 uint256 freeEquityUSD = state.collateralUSD
                     - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
                         state.debtUSD
@@ -128,6 +129,7 @@ library RebalanceLogic {
                 // adjust share debt to account for the free equity - since
                 // some equity may be withdrawn freely, not all the debt has to be
                 // repaid
+                // RDOWN
                 shareDebtUSD = shareDebtUSD
                     - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
                         shareEquityUSD + shareDebtUSD - freeEquityUSD
@@ -262,6 +264,7 @@ library RebalanceLogic {
         uint256 borrowAmountUSD = RebalanceMath.requiredBorrowUSD(
             estimateTargetCR, assetsUSD, 0, offsetFactor
         );
+        //RDOWN / irrelevant?
         uint256 collateralAfterUSD = borrowAmountUSD.usdMul(estimateTargetCR);
         uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 
@@ -316,11 +319,13 @@ library RebalanceLogic {
 
         // case when redeemer is redeeming all remaining shares
         if (state.debtUSD == shareDebtUSD) {
+            // RUP
             uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
                 USDWadRayMath.USD
                     - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
 
+            // RUP
             shareEquityUSD -= collateralNeededUSD.usdMul(
                 $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
@@ -329,6 +334,7 @@ library RebalanceLogic {
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
+            // RUP
             if (
                 state.collateralUSD
                     > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
@@ -339,6 +345,7 @@ library RebalanceLogic {
                 // strategy without driving the collateral ratio below
                 // the minForWithdrawRebalance limit, thereby not requiring
                 // a rebalance operation
+                // RUP
                 uint256 freeEquityUSD = state.collateralUSD
                     - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
                         state.debtUSD
@@ -347,6 +354,7 @@ library RebalanceLogic {
                 // adjust share debt to account for the free equity - since
                 // some equity may be withdrawn freely, not all the debt has to be
                 // repaid
+                // RDOWN
                 shareDebtUSD = shareDebtUSD
                     - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
                         shareEquityUSD + shareDebtUSD - freeEquityUSD
@@ -360,6 +368,7 @@ library RebalanceLogic {
                     - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );
 
+            // RUP
             shareEquityUSD -= neededCollateralUSD.usdMul(
                 $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
             );

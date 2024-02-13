@@ -20,6 +20,7 @@ library RebalanceMath {
         pure
         returns (uint256 ratio)
     {
+        // RDOWN
         ratio = debtUSD != 0 ? collateralUSD.usdDiv(debtUSD) : type(uint256).max;
     }
 
@@ -51,6 +52,7 @@ library RebalanceMath {
         uint256 debtUSD,
         uint256 offsetFactor
     ) internal pure returns (uint256 amount) {
+        // RUP
         return (collateralUSD - targetCR.usdMul(debtUSD)).usdDiv(
             targetCR - (ONE_USD - offsetFactor)
         );
@@ -68,6 +70,7 @@ library RebalanceMath {
         uint256 debtUSD,
         uint256 offsetFactor
     ) internal pure returns (uint256 amount) {
+        // RUP
         return (
             amount = (targetCR.usdMul(debtUSD) - collateralUSD).usdDiv(
                 targetCR.usdMul(ONE_USD - offsetFactor) - ONE_USD
