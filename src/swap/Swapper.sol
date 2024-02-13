@@ -237,7 +237,7 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         uint256 maxSlippageUSD = fromAmountUSD.usdMul(
             offsetUSD + maxDeviationUSD
         ).usdDiv(USDWadRayMath.USD);
-        
+
         // for the very low amounts allow 1 wei of slippage
         if (maxSlippageUSD == 0) {
             maxSlippageUSD = 1;
