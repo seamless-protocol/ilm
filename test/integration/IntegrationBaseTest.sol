@@ -16,6 +16,7 @@ contract IntegrationBaseTest is IntegrationBase {
         uint256 amount = 1 ether;
 
         vm.startPrank(user);
+        
         deal(address(underlyingToken), user, amount);
         underlyingToken.approve(address(strategy), amount);
 
