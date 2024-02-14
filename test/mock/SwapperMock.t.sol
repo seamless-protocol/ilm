@@ -13,7 +13,7 @@ import { IERC20Metadata } from
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { Step } from "../../src/types/DataTypes.sol";
 
-import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
+import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
@@ -102,12 +102,12 @@ contract SwapperMock is Test, ISwapper {
         }
 
         if (isWrapped[_from]) {
-            WrappedCbETH(address(_from)).withdraw(_fromAmount);
+            WrappedERC20PermissionedDeposit(address(_from)).withdraw(_fromAmount);
         }
 
         if (isWrapped[_to]) {
             // handle deposit to wrapped token
-            WrappedCbETH wrappedToken = WrappedCbETH(address(_to));
+            WrappedERC20PermissionedDeposit wrappedToken = WrappedERC20PermissionedDeposit(address(_to));
             IERC20 underlying = wrappedToken.underlying();
             deal(
                 address(underlying),

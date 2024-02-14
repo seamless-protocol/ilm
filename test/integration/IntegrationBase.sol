@@ -15,9 +15,9 @@ import { LoopStrategyConfig } from "../../deploy/config/LoopStrategyConfig.sol";
 import { DeployForkConfigs } from "../../deploy/config/DeployForkConfigs.sol";
 import { ISwapper, Swapper } from "../../src/swap/Swapper.sol";
 import {
-    WrappedCbETH,
+    WrappedERC20PermissionedDeposit,
     IWrappedERC20PermissionedDeposit
-} from "../../src/tokens/WrappedCbETH.sol";
+} from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import {
     LendingPool,
     LoanState,
@@ -40,7 +40,7 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
     LoopStrategyConfig public config;
     IERC20 public underlyingToken;
 
-    WrappedCbETH public wrappedToken;
+    WrappedERC20PermissionedDeposit public wrappedToken;
     ISwapper public swapper;
     WrappedTokenAdapter public wrappedTokenAdapter;
     AerodromeAdapter public aerodromeAdapter;

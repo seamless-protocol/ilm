@@ -13,7 +13,7 @@ import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "../../src/interfaces/IWrappedERC20PermissionedDeposit.sol";
-import { WrappedCbETH } from "../../src/tokens/WrappedCbETH.sol";
+import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import { WrappedTokenAdapter } from
     "../../src/swap/adapter/WrappedTokenAdapter.sol";
 
@@ -43,25 +43,26 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     address public NON_OWNER = makeAddr("NON_OWNER");
 
     WrappedTokenAdapter adapter;
-    WrappedCbETH public wrappedCbETH;
+    WrappedERC20PermissionedDeposit public wrappedToken;
     MockERC20 public mockERC20;
 
     /// @dev initializes adapter, wrappedCbeTH and mockERC20, as
     /// well as setting deposit permission for the adapter on the
-    /// wrappedCbETH contract
+    /// WrappedERC20PermissionedDeposit contract
     function setUp() public {
         adapter = new WrappedTokenAdapter();
 
         adapter.WrappedTokenAdapter__Init(OWNER, alice);
 
         mockERC20 = new MockERC20("Mock", "M");
-        wrappedCbETH =
-            new WrappedCbETH("WrappedMock", "WM", IERC20(mockERC20), OWNER);
+        wrappedToken =
+            new WrappedERC20PermissionedDeposit("WrappedMock", "WM", IERC20(mockERC20), OWNER);
 
         deal(address(mockERC20), address(alice), 100 ether);
-
-        vm.prank(OWNER);
-        wrappedCbETH.setDepositPermission(address(adapter), true);
+        
+        vm.startPrank(OWNER);
+        wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), address(adapter));
+        vm.stopPrank();
     }
 
     /// @dev ensures swapping from underlying token to wrapped token returns
@@ -70,21 +71,21 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         public
     {
         uint256 oldFromBalance = mockERC20.balanceOf(alice);
-        uint256 oldToBalance = wrappedCbETH.balanceOf(alice);
+        uint256 oldToBalance = wrappedToken.balanceOf(alice);
 
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
 
         vm.prank(alice);
         uint256 toAmount = adapter.executeSwap(
-            mockERC20, wrappedCbETH, swapAmount, payable(alice)
+            mockERC20, wrappedToken, swapAmount, payable(alice)
         );
 
         uint256 newFromBalance = mockERC20.balanceOf(alice);
-        uint256 newToBalance = wrappedCbETH.balanceOf(alice);
+        uint256 newToBalance = wrappedToken.balanceOf(alice);
 
         assertEq(oldFromBalance - newFromBalance, swapAmount);
         assertEq(newToBalance - oldToBalance, swapAmount);
@@ -97,39 +98,39 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         public
     {
         uint256 oldFromBalance = mockERC20.balanceOf(alice);
-        uint256 oldToBalance = wrappedCbETH.balanceOf(alice);
+        uint256 oldToBalance = wrappedToken.balanceOf(alice);
 
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         vm.prank(alice);
         mockERC20.approve(address(adapter), swapAmount);
 
         vm.prank(alice);
         uint256 toAmount = adapter.executeSwap(
-            mockERC20, wrappedCbETH, swapAmount, payable(alice)
+            mockERC20, wrappedToken, swapAmount, payable(alice)
         );
 
         uint256 newFromBalance = mockERC20.balanceOf(alice);
-        uint256 newToBalance = wrappedCbETH.balanceOf(alice);
+        uint256 newToBalance = wrappedToken.balanceOf(alice);
 
         assertEq(oldFromBalance - newFromBalance, swapAmount);
 
         assertEq(newToBalance - oldToBalance, swapAmount);
         assertEq(toAmount, swapAmount);
 
-        oldFromBalance = wrappedCbETH.balanceOf(alice);
+        oldFromBalance = wrappedToken.balanceOf(alice);
         oldToBalance = mockERC20.balanceOf(alice);
 
         vm.prank(alice);
-        wrappedCbETH.approve(address(adapter), swapAmount);
+        wrappedToken.approve(address(adapter), swapAmount);
 
         vm.prank(alice);
         toAmount = adapter.executeSwap(
-            wrappedCbETH, mockERC20, swapAmount, payable(alice)
+            wrappedToken, mockERC20, swapAmount, payable(alice)
         );
 
-        newFromBalance = wrappedCbETH.balanceOf(alice);
+        newFromBalance = wrappedToken.balanceOf(alice);
         newToBalance = mockERC20.balanceOf(alice);
 
         assertEq(oldFromBalance - newFromBalance, swapAmount);
@@ -141,7 +142,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     /// swapper
     function test_executeSwap_revertsWhen_callerIsNotSwapper() public {
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
         vm.prank(OWNER);
         adapter.setSwapper(OWNER);
 
@@ -151,65 +152,65 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         vm.expectRevert(ISwapAdapter.NotSwapper.selector);
 
         vm.prank(alice);
-        adapter.executeSwap(mockERC20, wrappedCbETH, swapAmount, payable(alice));
+        adapter.executeSwap(mockERC20, wrappedToken, swapAmount, payable(alice));
     }
 
     /// @dev ensures that setting a wrapper will set it for both orderings (from, to) and (to,from)
     /// in mapping, and emits the associated events
     function test_setWrapper_setsWrapperForBothTokenOrderings_and_emitsWrapperSetEvents(
     ) public {
-        address wrapper = address(adapter.getWrapper(mockERC20, wrappedCbETH));
+        address wrapper = address(adapter.getWrapper(mockERC20, wrappedToken));
 
         assertEq(wrapper, address(0));
 
         vm.expectEmit();
-        emit WrapperSet(mockERC20, wrappedCbETH, wrappedCbETH);
+        emit WrapperSet(mockERC20, wrappedToken, wrappedToken);
         vm.expectEmit();
-        emit WrapperSet(wrappedCbETH, mockERC20, wrappedCbETH);
+        emit WrapperSet(wrappedToken, mockERC20, wrappedToken);
 
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         address wrapperFromTo =
-            address(adapter.getWrapper(mockERC20, wrappedCbETH));
+            address(adapter.getWrapper(mockERC20, wrappedToken));
         address wrapperToFrom =
-            address(adapter.getWrapper(wrappedCbETH, mockERC20));
+            address(adapter.getWrapper(wrappedToken, mockERC20));
 
         assertEq(wrapperFromTo, wrapperToFrom);
-        assertEq(wrapperFromTo, address(wrappedCbETH));
-        assertEq(wrapperToFrom, address(wrappedCbETH));
+        assertEq(wrapperFromTo, address(wrappedToken));
+        assertEq(wrapperToFrom, address(wrappedToken));
     }
 
     /// @dev ensures that setting a wrapper will remove any previously set wrappers
     function test_setWrapper_removesPreviouslySetWrappers() public {
-        address wrapper = address(adapter.getWrapper(mockERC20, wrappedCbETH));
+        address wrapper = address(adapter.getWrapper(mockERC20, wrappedToken));
 
         assertEq(wrapper, address(0));
 
         vm.expectEmit();
-        emit WrapperSet(mockERC20, wrappedCbETH, wrappedCbETH);
+        emit WrapperSet(mockERC20, wrappedToken, wrappedToken);
         vm.expectEmit();
-        emit WrapperSet(wrappedCbETH, mockERC20, wrappedCbETH);
+        emit WrapperSet(wrappedToken, mockERC20, wrappedToken);
 
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         address wrapperFromTo =
-            address(adapter.getWrapper(mockERC20, wrappedCbETH));
+            address(adapter.getWrapper(mockERC20, wrappedToken));
         address wrapperToFrom =
-            address(adapter.getWrapper(wrappedCbETH, mockERC20));
+            address(adapter.getWrapper(wrappedToken, mockERC20));
 
         assertEq(wrapperFromTo, wrapperToFrom);
-        assertEq(wrapperFromTo, address(wrappedCbETH));
-        assertEq(wrapperToFrom, address(wrappedCbETH));
+        assertEq(wrapperFromTo, address(wrappedToken));
+        assertEq(wrapperToFrom, address(wrappedToken));
 
         vm.expectEmit();
-        emit WrapperRemoved(mockERC20, wrappedCbETH);
+        emit WrapperRemoved(mockERC20, wrappedToken);
         vm.expectEmit();
-        emit WrapperRemoved(wrappedCbETH, mockERC20);
+        emit WrapperRemoved(wrappedToken, mockERC20);
 
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
     }
 
     /// @dev ensures that setting a wrapper will revert when called by non-owner
@@ -222,7 +223,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         );
 
         vm.prank(NON_OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
     }
 
     /// @dev ensures that removing a wrapper will remove the wrapper set for both
@@ -231,20 +232,20 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     function test_removeWrapper_removesPreviouslySetWrapperBothTokenOrderings_and_emitsWrapperRemovedEvent(
     ) public {
         vm.prank(OWNER);
-        adapter.setWrapper(mockERC20, wrappedCbETH, wrappedCbETH);
+        adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         vm.expectEmit();
-        emit WrapperRemoved(mockERC20, wrappedCbETH);
+        emit WrapperRemoved(mockERC20, wrappedToken);
         vm.expectEmit();
-        emit WrapperRemoved(wrappedCbETH, mockERC20);
+        emit WrapperRemoved(wrappedToken, mockERC20);
 
         vm.prank(OWNER);
-        adapter.removeWrapper(mockERC20, wrappedCbETH);
+        adapter.removeWrapper(mockERC20, wrappedToken);
 
         address wrapperFromTo =
-            address(adapter.getWrapper(mockERC20, wrappedCbETH));
+            address(adapter.getWrapper(mockERC20, wrappedToken));
         address wrapperToFrom =
-            address(adapter.getWrapper(wrappedCbETH, mockERC20));
+            address(adapter.getWrapper(wrappedToken, mockERC20));
 
         assertEq(wrapperFromTo, address(0));
 
@@ -262,7 +263,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         );
 
         vm.prank(NON_OWNER);
-        adapter.removeWrapper(mockERC20, wrappedCbETH);
+        adapter.removeWrapper(mockERC20, wrappedToken);
     }
 
     /// @dev ensures that setSwapper call reverts when calls is not owner

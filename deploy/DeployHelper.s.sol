@@ -21,9 +21,9 @@ import { ConfiguratorInputTypes } from
     "@aave/contracts/protocol/libraries/types/ConfiguratorInputTypes.sol";
 import { IRouter } from "../src/vendor/aerodrome/IRouter.sol";
 import {
-    WrappedCbETH,
+    WrappedERC20PermissionedDeposit,
     IWrappedERC20PermissionedDeposit
-} from "../src/tokens/WrappedCbETH.sol";
+} from "../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import {
     LendingPool,
     LoanState,
@@ -57,8 +57,8 @@ contract DeployHelper is BaseMainnetConstants {
     address initialAdmin,
     ERC20Config memory wrappedTokenERC20Config,
     IERC20 underlyingToken
-  ) internal returns (WrappedCbETH wrappedToken) {
-    wrappedToken = new WrappedCbETH(
+  ) internal returns (WrappedERC20PermissionedDeposit wrappedToken) {
+    wrappedToken = new WrappedERC20PermissionedDeposit(
       wrappedTokenERC20Config.name, 
       wrappedTokenERC20Config.symbol, 
       underlyingToken,
@@ -74,7 +74,7 @@ contract DeployHelper is BaseMainnetConstants {
   /// @param wrappedTokenReserveConfig all configuration parameters for setting up the token as reserve on the lending pool
   /// @param underlyingTokenOracle address of the price oracle for the wrapped token (it's underlying token)
   function _setupWrappedToken(
-    WrappedCbETH wrappedToken, 
+    WrappedERC20PermissionedDeposit wrappedToken, 
     ReserveConfig memory wrappedTokenReserveConfig,
     address underlyingTokenOracle
   ) internal {
@@ -155,7 +155,7 @@ contract DeployHelper is BaseMainnetConstants {
   /// @return aerodromeAdapter address of the deployed AerodromeAdapter contract
   function _deploySwapAdapters(
     Swapper swapper,
-    WrappedCbETH wrappedToken,
+    WrappedERC20PermissionedDeposit wrappedToken,
     address initialAdmin
   ) internal returns(WrappedTokenAdapter wrappedTokenAdapter, AerodromeAdapter aerodromeAdapter) {
 
@@ -205,10 +205,10 @@ contract DeployHelper is BaseMainnetConstants {
   /// @param wrappedToken address of the WrappedToken contract
   /// @param wrappedTokenAdapter address of the WrappedTokenAdapter contract
   /// @param aerodromeAdapter address of the AerodromeAdapter contract
-  /// @param swapperOffsetFactor offsetFactor for these swapping routes
+  /// @param swapperOffsetFactor offsetFactor for this swapping routes
   function _setupSwapperRoutes(
     Swapper swapper,
-    WrappedCbETH wrappedToken,
+    WrappedERC20PermissionedDeposit wrappedToken,
     WrappedTokenAdapter wrappedTokenAdapter,
     AerodromeAdapter aerodromeAdapter,
     uint256 swapperOffsetFactor
@@ -240,7 +240,7 @@ contract DeployHelper is BaseMainnetConstants {
   /// @param config configuration paramteres for the LoopStrategy contract
   /// @return strategy address of the deployed LoopStrategy contract
   function _deployLoopStrategy(
-    WrappedCbETH wrappedToken,
+    WrappedERC20PermissionedDeposit wrappedToken,
     address initialAdmin,
     ISwapper swapper,
     LoopStrategyConfig memory config
@@ -284,12 +284,12 @@ contract DeployHelper is BaseMainnetConstants {
   /// @param wrappedTokenAdapter address of the WrappedTokenAdapter contract
   /// @param strategy address of the LoopStrategy contract
   function _setupWrappedTokenRoles(
-    WrappedCbETH wrappedToken,
+    WrappedERC20PermissionedDeposit wrappedToken,
     address wrappedTokenAdapter,
     address strategy
   ) internal {
-    wrappedToken.setDepositPermission(strategy, true);
-    wrappedToken.setDepositPermission(wrappedTokenAdapter, true);
+    wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), strategy);
+    wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), wrappedTokenAdapter);
   }
 
   /// @dev set STRATEGY_ROLE to the LoopStrategy contract
