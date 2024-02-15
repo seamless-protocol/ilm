@@ -200,6 +200,34 @@ function divNearestPercent(uint256 x, uint256 y) returns uint256 {
     return mulDivNearestAbstractPlus(x, ONE4(), y);
 }
 
+//
+// WAD mul and div
+//
+function mulNearestWad(uint256 x, uint256 y) returns uint256 {
+    return mulDivNearestAbstractPlus(x, y, ONE18());
+}
+
+function divNearestWad(uint256 x, uint256 y) returns uint256 {
+    return mulDivNearestAbstractPlus(x, ONE18(), y);
+}
+
+//
+// RAY mul and div
+//
+function mulNearestRay(uint256 x, uint256 y) returns uint256 {
+    return mulDivNearestAbstractPlus(x, y, RAY());
+}
+
+function divNearestRay(uint256 x, uint256 y) returns uint256 {
+    return mulDivNearestAbstractPlus(x, RAY(), y);
+}
+
+//
+//
+//
+function divDown(uint256 x, uint256 y) returns uint256 {
+    return mulDivDownAbstractPlus(x, 1, y);
+}
 
 
 //

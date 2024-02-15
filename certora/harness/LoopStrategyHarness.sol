@@ -1,8 +1,8 @@
 
 pragma solidity ^0.8.21;
 
-import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
-import {LoopStrategy} from "../../src/LoopStrategy.sol";
+import { USDWadRayMath } from "../munged/src/libraries/math/USDWadRayMath.sol";
+import {LoopStrategy} from "../munged/src/LoopStrategy.sol";
 
 contract LoopStrategyHarness is LoopStrategy
 {
