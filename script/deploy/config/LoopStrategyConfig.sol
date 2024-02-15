@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import { BaseMainnetConstants } from "./BaseMainnetConstants.sol";
-import { CollateralRatio } from "../../src/types/DataTypes.sol";
+import { CollateralRatio } from "../../../src/types/DataTypes.sol";
 
 /// @dev configuration for the ERC20 token
 struct ERC20Config {

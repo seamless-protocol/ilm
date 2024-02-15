@@ -8,7 +8,7 @@ import { LoopStrategyConfig, ERC20Config, ReserveConfig, CollateralRatioConfig }
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ERC1967Proxy } from
     "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ISwapper, Swapper } from "../src/swap/Swapper.sol";
+import { ISwapper, Swapper } from "../../src/swap/Swapper.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
@@ -19,22 +19,22 @@ import { IPoolConfigurator } from
 import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 import { ConfiguratorInputTypes } from 
     "@aave/contracts/protocol/libraries/types/ConfiguratorInputTypes.sol";
-import { IRouter } from "../src/vendor/aerodrome/IRouter.sol";
+import { IRouter } from "../../src/vendor/aerodrome/IRouter.sol";
 import {
     WrappedERC20PermissionedDeposit,
     IWrappedERC20PermissionedDeposit
-} from "../src/tokens/WrappedERC20PermissionedDeposit.sol";
+} from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import {
     LendingPool,
     LoanState,
     StrategyAssets,
     CollateralRatio,
     Step
-} from "../src/types/DataTypes.sol";
-import { LoopStrategy, ILoopStrategy } from "../src/LoopStrategy.sol";
+} from "../../src/types/DataTypes.sol";
+import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
 import { WrappedTokenAdapter } from
-    "../src/swap/adapter/WrappedTokenAdapter.sol";
-import { AerodromeAdapter } from "../src/swap/adapter/AerodromeAdapter.sol";
+    "../../src/swap/adapter/WrappedTokenAdapter.sol";
+import { AerodromeAdapter } from "../../src/swap/adapter/AerodromeAdapter.sol";
 import "forge-std/console.sol";
 
 /// @title DeployHelper
