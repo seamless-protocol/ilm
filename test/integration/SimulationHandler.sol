@@ -16,14 +16,15 @@ contract SimulationHandler is Test {
     LoopStrategy public strategy;
     uint256 public numUsers;
 
-    uint256 public constant minDeposit = 0.01 ether;
-    uint256 public constant maxDeposit = 0.3 ether;
+    uint256 public minDeposit;
+    uint256 public maxDeposit;
 
     string public constant json = "json";
     string public jsonPath;
     string public jsonOut;
     uint256 public dataId;
 
+    /// @dev data obtained from the LoopStrategy contract
     struct StrategyData {
         uint256 collateral;
         uint256 debt;
@@ -37,14 +38,26 @@ contract SimulationHandler is Test {
         uint256 userBalance;
     }
 
+    /// @dev data saved for the last user deposit
+    struct DepositData {
+        uint256 timestamp;
+        uint256 amount;
+    }
+
+    mapping(address user => DepositData data) public lastDeposit;
+
     constructor(
         LoopStrategy _strategy,
         uint256 _numUsers,
         uint256 _startUnderlyingAmount,
+        uint256 _minDeposit,
+        uint256 _maxDeposit,
         string memory _jsonPath
     ) {
         strategy = _strategy;
         numUsers = _numUsers;
+        minDeposit = _minDeposit;
+        maxDeposit = _maxDeposit;
         jsonPath = _jsonPath;
 
         address underlying = address(strategy.getAssets().underlying);
@@ -53,10 +66,22 @@ contract SimulationHandler is Test {
         }
     }
 
+    function nextAction(uint256 seed) public {
+        uint256 userId = bound(seed, 1, numUsers);
+        address user = vm.addr(userId);
+
+        uint256 userShares = strategy.balanceOf(user);
+
+        if (userShares > 0) {
+            redeem(seed, userId);
+        } else {
+            deposit(seed, userId);
+        }
+    }
+
     /// @dev deposits assets to the strategy
     /// @param seed random seed used to generate user and amount for deposit
-    function deposit(uint256 seed) public {
-        uint256 userId = bound(seed, 1, numUsers);
+    function deposit(uint256 seed, uint256 userId) public {
         address user = vm.addr(userId);
 
         StrategyData memory dataBefore = _getStrategyData(user);
@@ -75,17 +100,20 @@ contract SimulationHandler is Test {
         _checkDepositData(dataBefore, dataAfter);
 
         _addDepositDataPoint(
-            user, userId, amount, previewDeposit, dataBefore, dataAfter
+            user, userId, amount, shares, previewDeposit, dataBefore, dataAfter
         );
+
+        lastDeposit[user].timestamp = block.timestamp;
+        lastDeposit[user].amount = amount;
     }
 
     /// @dev redeems assets from the strategy
     /// @param seed random seed used to generate user
-    function redeem(uint256 seed) public {
-        uint256 userId = bound(seed, 1, numUsers);
-        address user = vm.addr(bound(seed, 1, numUsers));
+    function redeem(uint256 seed, uint256 userId) public {
+        address user = vm.addr(userId);
 
         uint256 userShares = strategy.balanceOf(user);
+
         if (userShares > 0) {
             StrategyData memory dataBefore = _getStrategyData(user);
 
@@ -99,8 +127,29 @@ contract SimulationHandler is Test {
             _checkRedeemData(dataBefore, dataAfter);
 
             _addRedeemDataPoint(
-                user, userId, userShares, previewRedeem, dataBefore, dataAfter
+                user,
+                userId,
+                userShares,
+                assetsReceived,
+                previewRedeem,
+                dataBefore,
+                dataAfter
             );
+        }
+    }
+
+    /// @dev rebalances strategy if collateral ratio is out of bounds
+    function rebalance() public {
+        if (strategy.rebalanceNeeded()) {
+            StrategyData memory dataBefore = _getStrategyData(address(0));
+
+            strategy.rebalance();
+
+            StrategyData memory dataAfter = _getStrategyData(address(0));
+
+            _checkRebalanceData(dataBefore, dataAfter);
+
+            _addRebalanceDataPoint(dataBefore, dataAfter);
         }
     }
 
@@ -131,7 +180,10 @@ contract SimulationHandler is Test {
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
     ) internal {
-        if (!dataBefore.rebalanceNeeded) {
+        if (
+            !dataBefore.rebalanceNeeded
+                && dataBefore.collateralRatio == dataAfter.collateralRatio
+        ) {
             uint256 equityPerShareBefore = 0;
             if (dataBefore.totalSupply > 0) {
                 equityPerShareBefore = USDWadRayMath.wadDiv(
@@ -165,7 +217,6 @@ contract SimulationHandler is Test {
         assertGe(dataAfter.collateral, dataBefore.collateral);
         assertGe(dataAfter.debt, dataBefore.debt);
         assertEq(dataAfter.rebalanceNeeded, false);
-
         _checkEquity(dataBefore, dataAfter);
     }
 
@@ -181,6 +232,15 @@ contract SimulationHandler is Test {
         assertGe(dataBefore.debt, dataAfter.debt);
         assertEq(dataAfter.rebalanceNeeded, false);
         _checkEquity(dataBefore, dataAfter);
+    }
+
+    function _checkRebalanceData(
+        StrategyData memory dataBefore,
+        StrategyData memory dataAfter
+    ) internal {
+        assertEq(dataBefore.totalSupply, dataAfter.totalSupply);
+        assertEq(dataBefore.rebalanceNeeded, true);
+        assertEq(dataAfter.rebalanceNeeded, false);
     }
 
     /// @dev saves the current json to the file
@@ -212,6 +272,7 @@ contract SimulationHandler is Test {
     /// @param user address of the user
     /// @param userId user id
     /// @param amount amount of underlying tokens
+    /// @param received number of received shares
     /// @param previewDeposit expected shares returned by previewDeposit function
     /// @param dataBefore strategy data before transaction
     /// @param dataAfter strategy data after transaction
@@ -219,6 +280,7 @@ contract SimulationHandler is Test {
         address user,
         uint256 userId,
         uint256 amount,
+        uint256 received,
         uint256 previewDeposit,
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
@@ -235,6 +297,7 @@ contract SimulationHandler is Test {
         vm.serializeAddress(obj, "user", user);
         vm.serializeString(obj, "action", "DEPOSIT");
         vm.serializeUint(obj, "amount", amount);
+        vm.serializeUint(obj, "received", received);
         vm.serializeUint(obj, "preview", previewDeposit);
         vm.serializeString(
             obj, "dataBefore", _serializeStrategyData(dataBefore)
@@ -250,6 +313,7 @@ contract SimulationHandler is Test {
     /// @param user address of the user
     /// @param userId user id
     /// @param amount amount of shares redeemed
+    /// @param received number of received assets
     /// @param previewRedeem expected shares returned by previewRedeem function
     /// @param dataBefore strategy data before transaction
     /// @param dataAfter strategy data after transaction
@@ -257,11 +321,12 @@ contract SimulationHandler is Test {
         address user,
         uint256 userId,
         uint256 amount,
+        uint256 received,
         uint256 previewRedeem,
         StrategyData memory dataBefore,
         StrategyData memory dataAfter
     ) internal {
-        string memory obj = "depositObj";
+        string memory obj = "redeemObj";
         vm.serializeUint(obj, "timestamp", block.timestamp);
         vm.serializeUint(
             obj, "ColAssetPrice", _getPrice(strategy.getAssets().underlying)
@@ -273,7 +338,38 @@ contract SimulationHandler is Test {
         vm.serializeAddress(obj, "user", user);
         vm.serializeString(obj, "action", "REDEEM");
         vm.serializeUint(obj, "amount", amount);
+        vm.serializeUint(obj, "received", received);
         vm.serializeUint(obj, "preview", previewRedeem);
+        vm.serializeUint(
+            obj, "lastDepositTimestamp", lastDeposit[user].timestamp
+        );
+        vm.serializeUint(obj, "lastDepositAmount", lastDeposit[user].amount);
+        vm.serializeString(
+            obj, "dataBefore", _serializeStrategyData(dataBefore)
+        );
+        vm.serializeString(obj, "dataAfter", _serializeStrategyData(dataAfter));
+
+        dataId++;
+        string memory out = vm.serializeUint(obj, "dataId", dataId);
+        jsonOut = vm.serializeString(json, Strings.toString(dataId), out);
+    }
+
+    /// @dev serializes rebalance transaction data and adds it to the global json
+    /// @param dataBefore strategy data before transaction
+    /// @param dataAfter strategy data after transaction
+    function _addRebalanceDataPoint(
+        StrategyData memory dataBefore,
+        StrategyData memory dataAfter
+    ) internal {
+        string memory obj = "rebalanceObj";
+        vm.serializeUint(obj, "timestamp", block.timestamp);
+        vm.serializeUint(
+            obj, "ColAssetPrice", _getPrice(strategy.getAssets().underlying)
+        );
+        vm.serializeUint(
+            obj, "DebtAssetPrice", _getPrice(strategy.getAssets().debt)
+        );
+        vm.serializeString(obj, "action", "REBALANCE");
         vm.serializeString(
             obj, "dataBefore", _serializeStrategyData(dataBefore)
         );
