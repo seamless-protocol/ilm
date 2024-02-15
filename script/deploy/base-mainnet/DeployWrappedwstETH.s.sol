@@ -5,7 +5,7 @@ pragma solidity 0.8.21;
 import { Script } from "forge-std/Script.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { DeployHelper } from "../DeployHelper.s.sol";
-import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
+import { WrappedERC20PermissionedDeposit } from "../../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import { ERC20Config } from "../config/LoopStrategyConfig.sol";
 
 contract WrappedWstETHConfig {

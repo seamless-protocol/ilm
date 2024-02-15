@@ -3,8 +3,8 @@
 pragma solidity 0.8.21;
 
 import { LoopStrategyConfig, ERC20Config, ReserveConfig, CollateralRatioConfig, SwapperConfig } from "./LoopStrategyConfig.sol";
-import { CollateralRatio } from "../../src/types/DataTypes.sol";
-import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
+import { CollateralRatio } from "../../../src/types/DataTypes.sol";
+import { USDWadRayMath } from "../../../src/libraries/math/USDWadRayMath.sol";
 
 /// @title DeployForkConfigs
 /// @notice contains configurations for the cbETH/ETH and wstETH/ETH LoopStrategies for the fork testing deployment
