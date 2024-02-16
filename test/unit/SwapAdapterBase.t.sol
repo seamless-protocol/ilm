@@ -18,22 +18,23 @@ contract SwapAdapterBase is BaseForkTest {
     event SwapperSet(address swapper);
 
     address newSwapper = makeAddr("newSwapper");
+    address owner = makeAddr("owner");
 
     SwapAdapterBaseHarness adapter;
 
     function setUp() public {
-        adapter = new SwapAdapterBaseHarness();
+        adapter = new SwapAdapterBaseHarness(owner);
     }
 
     function test_expoedSetSwapper_newSwapperAddressIsSet_and_SwapperSetEventIsEmitted(
     ) public {
-        assertEq(adapter.exposed_getSwapper(), address(0));
+        assertEq(adapter.swapper(), address(0));
 
         vm.expectEmit();
         emit SwapperSet(newSwapper);
 
         adapter.exposed_setSwapper(newSwapper);
 
-        assertEq(adapter.exposed_getSwapper(), newSwapper);
+        assertEq(adapter.swapper(), newSwapper);
     }
 }

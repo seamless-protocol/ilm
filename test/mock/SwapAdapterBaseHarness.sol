@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.21;
 
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { SwapAdapterBase } from "../../src/swap/adapter/SwapAdapterBase.sol";
@@ -9,14 +10,11 @@ import { SwapAdapterBase } from "../../src/swap/adapter/SwapAdapterBase.sol";
 /// @title SwapAdapterBaseHarness
 /// @dev exposes SwapAdapterBase internal functions for testing
 contract SwapAdapterBaseHarness is SwapAdapterBase {
+    constructor(address owner) Ownable(owner) { }
+
     /// @dev exposes the _setSwapper internal function
     function exposed_setSwapper(address swapper) external {
         _setSwapper(swapper);
-    }
-
-    /// @dev exposes the _getSwapper internal function
-    function exposed_getSwapper() external view returns (address swapper) {
-        return _getSwapper();
     }
 
     /// @dev unimplemented in harness contract
@@ -31,7 +29,4 @@ contract SwapAdapterBaseHarness is SwapAdapterBase {
 
     /// @dev unimplemented in harness contract
     function setSwapper(address swapper) external { }
-
-    /// @dev unimplemented in harness contract
-    function getSwapper() external view returns (address swapper) { }
 }
