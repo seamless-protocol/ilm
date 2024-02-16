@@ -4,7 +4,8 @@ pragma solidity ^0.8.21;
 
 import { Test } from "forge-std/Test.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
+import { IAccessControl } from
+    "@openzeppelin/contracts/access/IAccessControl.sol";
 import {
     WrappedERC20PermissionedDeposit,
     IWrappedERC20PermissionedDeposit
@@ -29,7 +30,12 @@ contract WrappedERC20PermissionedDepositTest is Test {
 
     /// @dev testing if owner and underlying token are set up correctly on the construction
     function test_setUp() public {
-        assertEq(wrappedToken.hasRole(wrappedToken.DEFAULT_ADMIN_ROLE(), address(this)), true);
+        assertEq(
+            wrappedToken.hasRole(
+                wrappedToken.DEFAULT_ADMIN_ROLE(), address(this)
+            ),
+            true
+        );
         assertEq(address(wrappedToken.underlying()), address(mockERC20));
     }
 
@@ -39,8 +45,8 @@ contract WrappedERC20PermissionedDepositTest is Test {
         uint256 amount = 10 ether;
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                alice, 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                alice,
                 wrappedToken.DEPOSITOR_ROLE()
             )
         );
@@ -50,13 +56,19 @@ contract WrappedERC20PermissionedDepositTest is Test {
 
     /// @dev test confirming permissions for deposits are set and unset correctly
     function test_setDepositPermission() public {
-        assertEq(wrappedToken.hasRole(wrappedToken.DEPOSITOR_ROLE(), alice), false);
+        assertEq(
+            wrappedToken.hasRole(wrappedToken.DEPOSITOR_ROLE(), alice), false
+        );
 
         wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), alice);
-        assertEq(wrappedToken.hasRole(wrappedToken.DEPOSITOR_ROLE(), alice), true);
+        assertEq(
+            wrappedToken.hasRole(wrappedToken.DEPOSITOR_ROLE(), alice), true
+        );
 
         wrappedToken.revokeRole(wrappedToken.DEPOSITOR_ROLE(), alice);
-        assertEq(wrappedToken.hasRole(wrappedToken.DEPOSITOR_ROLE(), alice), false);
+        assertEq(
+            wrappedToken.hasRole(wrappedToken.DEPOSITOR_ROLE(), alice), false
+        );
     }
 
     /// @dev test confirming that permissioned user can deposit and receive correct amount of wrapped token
@@ -131,8 +143,8 @@ contract WrappedERC20PermissionedDepositTest is Test {
         mockERC20.transfer(address(wrappedToken), amount);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, 
-                alice, 
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                alice,
                 wrappedToken.DEFAULT_ADMIN_ROLE()
             )
         );

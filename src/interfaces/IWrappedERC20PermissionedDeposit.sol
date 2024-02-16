@@ -39,5 +39,4 @@ interface IWrappedERC20PermissionedDeposit is IERC20 {
 
     /// @notice function used to recover underlying tokens sent directly to this contract by mistake
     function recover() external;
-
 }
