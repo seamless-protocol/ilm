@@ -2,22 +2,19 @@
 
 pragma solidity ^0.8.21;
 
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
-import { SwapAdapterBaseStorage as Storage } from
-    "../../storage/SwapAdapterBaseStorage.sol";
 
 /// @title SwapAdapterBase
 /// @notice Base adapter contract for all swap adapters
 /// @dev should be inherited and overridden by all SwapAdapter implementations
-abstract contract SwapAdapterBase is Ownable2StepUpgradeable, ISwapAdapter {
+abstract contract SwapAdapterBase is Ownable2Step, ISwapAdapter {
+    address public swapper;
+
     modifier onlySwapper() {
-        if (Storage.layout().swapper != msg.sender) {
+        if (swapper != msg.sender) {
             revert NotSwapper();
         }
         _;
@@ -38,17 +35,11 @@ abstract contract SwapAdapterBase is Ownable2StepUpgradeable, ISwapAdapter {
         // override with adapter specific swap logic
     }
 
-    /// @notice returns the address of Swapper contract
-    /// @return swapper address of Swapper contract
-    function _getSwapper() internal view virtual returns (address swapper) {
-        return Storage.layout().swapper;
-    }
-
     /// @notice sets the address of the Swapper contract
-    /// @param swapper address of Swapper contract
-    function _setSwapper(address swapper) internal virtual {
-        Storage.layout().swapper = swapper;
+    /// @param _swapper address of Swapper contract
+    function _setSwapper(address _swapper) internal virtual {
+        swapper = _swapper;
 
-        emit SwapperSet(swapper);
+        emit SwapperSet(_swapper);
     }
 }

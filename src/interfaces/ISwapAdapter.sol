@@ -33,10 +33,4 @@ interface ISwapAdapter {
     /// @dev this is a function that _must_ be implemented by a swap adapter
     /// @param swapper address of Swapper contract
     function setSwapper(address swapper) external;
-
-    /// @notice returns the address of Swapper contract
-    /// @dev this is a function that _must_ be implemented by a swap adapter - permissions
-    /// for calling swaps are granted to this address
-    /// @return swapper address of Swapper contract
-    function getSwapper() external view returns (address swapper);
 }
