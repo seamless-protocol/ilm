@@ -4,7 +4,8 @@ pragma solidity ^0.8.21;
 
 import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20Metadata } from
+    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -42,14 +43,13 @@ contract WrappedERC20PermissionedDeposit is
     }
 
     /// @inheritdoc IWrappedERC20PermissionedDeposit
-    function deposit(
-        uint256 amount
-    ) external override onlyRole(DEPOSITOR_ROLE) {
+    function deposit(uint256 amount)
+        external
+        override
+        onlyRole(DEPOSITOR_ROLE)
+    {
         SafeERC20.safeTransferFrom(
-            underlying,
-            msg.sender,
-            address(this),
-            amount
+            underlying, msg.sender, address(this), amount
         );
         _mint(msg.sender, amount);
         emit Deposit(msg.sender, amount);
@@ -64,8 +64,8 @@ contract WrappedERC20PermissionedDeposit is
 
     /// @inheritdoc IWrappedERC20PermissionedDeposit
     function recover() external override onlyRole(DEFAULT_ADMIN_ROLE) {
-        uint256 amountSurplus = underlying.balanceOf(address(this)) -
-            totalSupply();
+        uint256 amountSurplus =
+            underlying.balanceOf(address(this)) - totalSupply();
         SafeERC20.safeTransfer(underlying, msg.sender, amountSurplus);
         emit RecoverUnderlyingSurplus(msg.sender, amountSurplus);
     }
