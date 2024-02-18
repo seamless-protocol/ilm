@@ -97,7 +97,7 @@ library RebalanceLogic {
         // and is left with the remaining equity
         if (state.debtUSD == shareDebtUSD) {
             // pay back the debt corresponding to the shares
-            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
+            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD); // set to 0
 
             state = LoanLogic.getLoanState($.lendingPool);
             shareEquityUSD = state.collateralUSD - state.debtUSD;
@@ -105,33 +105,22 @@ library RebalanceLogic {
         //check if withdrawal would lead to a collateral below minimum acceptable level
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
         // by equity cost of rebalance
-        else if (
-            RebalanceMath.collateralRatioUSD(
-                state.collateralUSD - shareEquityUSD, state.debtUSD
-            ) < $.collateralRatioTargets.minForWithdrawRebalance
-        ) {
+        else if (RebalanceMath.collateralRatioUSD(state.collateralUSD - shareEquityUSD, state.debtUSD) < $.collateralRatioTargets.minForWithdrawRebalance) {
             if (
-                state.collateralUSD
-                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    )
+                RebalanceMath.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ) > $.collateralRatioTargets.minForWithdrawRebalance
             ) {
-                // amount of equity in USD value which may be withdrawn from
-                // strategy without driving the collateral ratio below
-                // the minForWithdrawRebalance limit, thereby not requiring
-                // a rebalance operation
-                uint256 freeEquityUSD = state.collateralUSD
-                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    );
-
-                // adjust share debt to account for the free equity - since
-                // some equity may be withdrawn freely, not all the debt has to be
-                // repaid
-                shareDebtUSD = shareDebtUSD
-                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                        shareEquityUSD + shareDebtUSD - freeEquityUSD
-                    );
+                shareDebtUSD = (
+                    (
+                        $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                            state.debtUSD
+                        ) - (state.collateralUSD - shareEquityUSD)
+                    ).usdDiv(
+                        $.collateralRatioTargets.minForWithdrawRebalance
+                            - USDWadRayMath.USD
+                    )
+                );
             }
 
             uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
@@ -140,7 +129,7 @@ library RebalanceLogic {
             rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
 
             state = LoanLogic.getLoanState($.lendingPool);
-
+            
             // shares lose equity equal to the amount of equity lost for
             // the rebalance to pay the adjusted debt
             if (initialEquityUSD > (state.collateralUSD - state.debtUSD)) {
