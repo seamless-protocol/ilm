@@ -188,10 +188,11 @@ library RebalanceLogic {
         uint256 collateralRatio =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-            collateralRatio != type(uint256).max
-                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+            state.collateralUSD != 0
+                && isCollateralRatioOutOfBounds(
+                    collateralRatio, $.collateralRatioTargets
+                )
         ) {
             rebalanceTo($, state, $.collateralRatioTargets.target);
 
@@ -229,7 +230,12 @@ library RebalanceLogic {
         if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
-            if (rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
+            if (
+                state.collateralUSD != 0
+                    && isCollateralRatioOutOfBounds(
+                        currentCR, $.collateralRatioTargets
+                    )
+            ) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
@@ -282,8 +288,10 @@ library RebalanceLogic {
 
         // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-            collateralRatio != type(uint256).max
-                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+            state.collateralUSD != 0
+                && isCollateralRatioOutOfBounds(
+                    collateralRatio, $.collateralRatioTargets
+                )
         ) {
             // calculate amount of collateral needed to bring the collateral ratio
             // to target
@@ -619,7 +627,7 @@ library RebalanceLogic {
     /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
     /// @param collateralRatio given collateral ratio
     /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
-    function rebalanceNeeded(
+    function isCollateralRatioOutOfBounds(
         uint256 collateralRatio,
         CollateralRatio memory collateraRatioTargets
     ) internal pure returns (bool) {
