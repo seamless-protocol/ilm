@@ -197,7 +197,9 @@ library RebalanceLogic {
 
         if (
             state.collateralUSD != 0
-                && isCollateralRatioOutOfBounds(collateralRatio, $.collateralRatioTargets)
+                && isCollateralRatioOutOfBounds(
+                    collateralRatio, $.collateralRatioTargets
+                )
         ) {
             rebalanceTo($, state, $.collateralRatioTargets.target);
 
@@ -235,7 +237,11 @@ library RebalanceLogic {
         if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
-            if (isCollateralRatioOutOfBounds(currentCR, $.collateralRatioTargets)) {
+            if (
+                isCollateralRatioOutOfBounds(
+                    currentCR, $.collateralRatioTargets
+                )
+            ) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
@@ -289,7 +295,9 @@ library RebalanceLogic {
         // if collateralRatio is outside range, user should not incur rebalance costs
         if (
             state.collateralUSD != 0
-                && isCollateralRatioOutOfBounds(collateralRatio, $.collateralRatioTargets)
+                && isCollateralRatioOutOfBounds(
+                    collateralRatio, $.collateralRatioTargets
+                )
         ) {
             // calculate amount of collateral needed to bring the collateral ratio
             // to target
