@@ -238,9 +238,10 @@ library RebalanceLogic {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
             if (
-                isCollateralRatioOutOfBounds(
-                    currentCR, $.collateralRatioTargets
-                )
+                state.collateralUSD != 0
+                    && isCollateralRatioOutOfBounds(
+                        currentCR, $.collateralRatioTargets
+                    )
             ) {
                 currentCR = $.collateralRatioTargets.target;
             }
