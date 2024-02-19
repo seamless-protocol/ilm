@@ -97,7 +97,7 @@ library RebalanceLogic {
         // and is left with the remaining equity
         if (state.debtUSD == shareDebtUSD) {
             // pay back the debt corresponding to the shares
-            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD); // set to 0
+            rebalanceDownToDebt($, state, 0);
 
             state = LoanLogic.getLoanState($.lendingPool);
             shareEquityUSD = state.collateralUSD - state.debtUSD;
