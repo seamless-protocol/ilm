@@ -13,6 +13,8 @@ import { IERC20Metadata } from
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { Step } from "../../src/types/DataTypes.sol";
 
+import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
+
 /// @title SwapperMock
 /// @dev Mocks the behavior of the Swapper contract
 contract SwapperMock is Test, ISwapper {
@@ -25,6 +27,8 @@ contract SwapperMock is Test, ISwapper {
 
     uint256 public constant BASIS = 1e8;
     IPriceOracleGetter public oracle;
+
+    mapping(IERC20 token => bool isWrapped) public isWrapped;
 
     constructor(
         address _collateralAsset,
@@ -97,7 +101,29 @@ contract SwapperMock is Test, ISwapper {
             toAmount += (toAmount * (offset - BASIS)) / BASIS;
         }
 
-        deal(address(_to), _beneficiary, _to.balanceOf(_beneficiary) + toAmount);
+        if (isWrapped[_from]) {
+            WrappedERC20PermissionedDeposit(address(_from)).withdraw(_fromAmount);
+        }
+
+        if (isWrapped[_to]) {
+            // handle deposit to wrapped token
+            WrappedERC20PermissionedDeposit wrappedToken = WrappedERC20PermissionedDeposit(address(_to));
+            IERC20 underlying = wrappedToken.underlying();
+            deal(
+                address(underlying),
+                address(this),
+                underlying.balanceOf(address(this)) + toAmount
+            );
+            underlying.approve(address(wrappedToken), toAmount);
+            wrappedToken.deposit(toAmount);
+            _to.transfer(_beneficiary, toAmount);
+        } else {
+            deal(
+                address(_to),
+                _beneficiary,
+                _to.balanceOf(_beneficiary) + toAmount
+            );
+        }
     }
 
     /// @inheritdoc ISwapper
@@ -155,5 +181,9 @@ contract SwapperMock is Test, ISwapper {
     ) external {
         realBorrowToCollateralOffset = _borrowToCollateralOffset;
         realCollateralToBorrowOffset = _collateralToBorrowOffset;
+    }
+
+    function setWrapped(IERC20 wrappedToken, bool _isWrapped) external {
+        isWrapped[wrappedToken] = _isWrapped;
     }
 }
