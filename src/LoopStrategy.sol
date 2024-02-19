@@ -229,7 +229,7 @@ contract LoopStrategy is
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         return state.collateralUSD != 0
-            && RebalanceLogic.rebalanceNeeded(currentCR, $.collateralRatioTargets);
+            && RebalanceLogic.isCollateralRatioOutOfBounds(currentCR, $.collateralRatioTargets);
     }
 
     /// @inheritdoc IERC4626
