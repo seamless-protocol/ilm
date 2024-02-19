@@ -13,7 +13,8 @@ import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "../../src/interfaces/IWrappedERC20PermissionedDeposit.sol";
-import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
+import { WrappedERC20PermissionedDeposit } from
+    "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import { WrappedTokenAdapter } from
     "../../src/swap/adapter/WrappedTokenAdapter.sol";
 
@@ -56,10 +57,10 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
         mockERC20 = new MockERC20("Mock", "M");
         wrappedToken =
-            new WrappedERC20PermissionedDeposit("WrappedMock", "WM", IERC20(mockERC20), OWNER);
+        new WrappedERC20PermissionedDeposit("WrappedMock", "WM", IERC20(mockERC20), OWNER);
 
         deal(address(mockERC20), address(alice), 100 ether);
-        
+
         vm.startPrank(OWNER);
         wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), address(adapter));
         vm.stopPrank();

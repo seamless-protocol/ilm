@@ -25,7 +25,8 @@ import {
     CollateralRatio
 } from "../../src/types/DataTypes.sol";
 import { LoopStrategy, ILoopStrategy } from "../../src/LoopStrategy.sol";
-import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
+import { WrappedERC20PermissionedDeposit } from
+    "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
