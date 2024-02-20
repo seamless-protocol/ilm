@@ -27,12 +27,13 @@ library ConversionMath {
     /// @param usdAmount amount of USD
     /// @param priceInUSD price of asset in USD
     /// @param assetDecimals number of decimals of the asset
+    /// @param rounding direction of rounding
     /// @return assetAmount amount of asset after conversion
     function convertUSDToAsset(
         uint256 usdAmount,
         uint256 priceInUSD,
         uint256 assetDecimals,
-        Math.Rounding rouning
+        Math.Rounding rounding
     ) internal pure returns (uint256 assetAmount) {
         assetAmount =
             Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD, rouning);

@@ -370,7 +370,7 @@ contract LoanLogicTest is BaseForkTest {
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
     }
 
-    /// @dev testing exact return amounts of shareDebtAndEquityUSD
+    /// @dev testing exact return amounts of shareDebtAndEquityUSD per certora example
     /// @dev debt should be rounded up
     function test_shareDebtAndEquityUSD() public {
         LoanState memory state = LoanState({
