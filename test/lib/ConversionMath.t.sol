@@ -4,6 +4,7 @@ pragma solidity ^0.8.21;
 
 import { Test } from "forge-std/Test.sol";
 
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
 
@@ -52,21 +53,9 @@ contract ConversionMathTest is Test {
             usdAmount, priceInUSD, assetDecimals
         );
 
-        uint8 USD_DECIMALS = 8;
-
-        if (USD_DECIMALS > assetDecimals) {
-            assertEq(
-                assetAmount,
-                usdAmount.usdDiv(priceInUSD)
-                    / 10 ** (USD_DECIMALS - assetDecimals)
-            );
-        } else {
-            assertEq(
-                assetAmount,
-                (usdAmount * 10 ** (assetDecimals - USD_DECIMALS)).usdDiv(
-                    priceInUSD
-                )
-            );
-        }
+        assertEq(
+            assetAmount,
+            Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD)
+        );
     }
 }
