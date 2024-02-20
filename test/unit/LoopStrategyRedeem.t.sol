@@ -644,7 +644,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
             initialShareEquityUSD, COLLATERAL_PRICE, 18, Math.Rounding.Floor
         );
 
-        assertEq(receivedAssets, expectedAssets, "ASD");
+        assertEq(receivedAssets, expectedAssets);
     }
 
     /// @dev ensures that the predicted assets returned by the preview redeem call
