@@ -59,12 +59,12 @@ contract SimulationTest is IntegrationBase {
         _deployLoopStrategyWithMockSwapper();
 
         handler = new SimulationHandler(
-          strategy, 
-          NUM_USERS, 
-          START_AMOUNT_PER_USER, 
-          MIN_DEPOSIT, 
-          MAX_DEPOSIT, 
-          JSON_PATH
+            strategy,
+            NUM_USERS,
+            START_AMOUNT_PER_USER,
+            MIN_DEPOSIT,
+            MAX_DEPOSIT,
+            JSON_PATH
         );
 
         uint256 currWethPrice = IPriceOracleGetter(
@@ -162,10 +162,10 @@ contract SimulationTest is IntegrationBase {
     function _deployLoopStrategyWithMockSwapper() internal {
         vm.startPrank(testDeployer.addr);
         SwapperMock swapperMock = new SwapperMock(
-              address(wrappedToken), 
-              address(WETH), 
-              poolAddressesProvider.getPriceOracle()
-          );
+            address(wrappedToken),
+            address(WETH),
+            poolAddressesProvider.getPriceOracle()
+        );
         swapperMock.setOffsets(DEX_FEE, DEX_FEE);
         swapperMock.setRealOffsets(DEX_FEE, DEX_FEE);
         swapperMock.setWrapped(IERC20(wrappedToken), true);

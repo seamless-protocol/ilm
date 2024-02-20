@@ -94,8 +94,11 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         CbETH_price = $.oracle.getAssetPrice(address(CbETH));
 
         // deploy mock swapper instance
-        $.swapper =
-        new SwapperMock(address($.assets.collateral), address($.assets.debt), address($.oracle));
+        $.swapper = new SwapperMock(
+            address($.assets.collateral),
+            address($.assets.debt),
+            address($.oracle)
+        );
 
         assert(
             address(SwapperMock(address($.swapper)).borrowAsset())
@@ -125,7 +128,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         ERC1967Proxy swapperProxy = new ERC1967Proxy(
             address(swapperImplementation),
             abi.encodeWithSelector(
-                Swapper.Swapper_init.selector, 
+                Swapper.Swapper_init.selector,
                 address(this),
                 $.oracle,
                 OFFSET_DEVIATION_USD
