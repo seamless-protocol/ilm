@@ -107,16 +107,11 @@ library LoanLogic {
         uint256 shares,
         uint256 totalShares
     ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-        shareDebtUSD = USDWadRayMath.wadToUSD(
-            USDWadRayMath.usdToWad(state.debtUSD).wadMul(shares).wadDiv(
-                totalShares
-            )
-        );
+        shareDebtUSD =
+            Math.mulDiv(state.debtUSD, shares, totalShares, Math.Rounding.Ceil);
 
-        shareEquityUSD = USDWadRayMath.wadToUSD(
-            USDWadRayMath.usdToWad(state.collateralUSD).wadMul(shares).wadDiv(
-                totalShares
-            )
+        shareEquityUSD = Math.mulDiv(
+            state.collateralUSD, shares, totalShares, Math.Rounding.Floor
         ) - shareDebtUSD;
     }
 

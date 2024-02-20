@@ -141,7 +141,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 expectedReceivedAssets = ConversionMath.convertUSDToAsset(
             (initialShareEquityUSD - expectedRebalanceCostUSD),
             COLLATERAL_PRICE,
-            18
+            18,
+            Math.Rounding.Floor
         );
 
         // strategy collateral decrease should be equivalent to share collateral after
@@ -211,16 +212,16 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 receivedAssets = strategy.redeem(redeemAmount, alice, alice);
 
         // assert that the expected amount of shares has been burnt
-        assert(strategy.totalSupply() == initialTotalSupply - redeemAmount);
-        assert(initialAliceShares - redeemAmount == strategy.balanceOf(alice));
-        assert(strategy.totalSupply() == 0);
+        assertEq(strategy.totalSupply(), initialTotalSupply - redeemAmount);
+        assertEq(initialAliceShares - redeemAmount, strategy.balanceOf(alice));
+        assertEq(strategy.totalSupply(), 0);
 
-        // ensure that the remaining collateral in USD is less than a cent
-        assert(strategy.collateral() < USDWadRayMath.USD / 100);
+        // ensure there is no remainin collateral
+        assertEq(strategy.collateral(), 0);
         // ensure the full debt of strategy is repaid
-        assert(strategy.debt() == 0);
-        // ensure that the remaining equity in USD is less than a cent
-        assert(strategy.equityUSD() < USDWadRayMath.USD / 100);
+        assertEq(strategy.debt(), 0);
+        // ensure that the remaining equity in USD is calculated correctly to 0
+        assertEq(strategy.equityUSD(), 0);
 
         // expected cost incurred for rebalancing is the cost associated with DEX fees
         // which is the amount of cost incurred to pay back entire debt of strategy
@@ -235,7 +236,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 expectedReceivedAssets = ConversionMath.convertUSDToAsset(
             (initialShareEquityUSD - expectedRebalanceCostUSD),
             COLLATERAL_PRICE,
-            18
+            18,
+            Math.Rounding.Floor
         );
 
         // ensure that the assets received by redeemer are as expected
@@ -324,7 +326,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // ensure that an amount of underlying tokens equal in value to shareEquityUSD
         // was transferred
         uint256 expectedTransferedTokens = ConversionMath.convertUSDToAsset(
-            shareEquityUSD, COLLATERAL_PRICE, 18
+            shareEquityUSD, COLLATERAL_PRICE, 18, Math.Rounding.Floor
         );
         assertEq(receivedCollateral, expectedTransferedTokens);
         assertEq(
@@ -410,7 +412,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         assertLe(
             receivedCollateral,
             ConversionMath.convertUSDToAsset(
-                initialShareEquityUSD, DROPPED_COLLATERAL_PRICE, 18
+                initialShareEquityUSD,
+                DROPPED_COLLATERAL_PRICE,
+                18,
+                Math.Rounding.Floor
             )
         );
 
@@ -432,7 +437,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // ensure that redeemAmount / initialTotalSupply of the total equity of the strategy
         // was transferred to Alice in the form of collateral asset, with a 0.0001% margin
         uint256 expectedTransferedTokens = ConversionMath.convertUSDToAsset(
-            initialShareEquityUSD, DROPPED_COLLATERAL_PRICE, 18
+            initialShareEquityUSD,
+            DROPPED_COLLATERAL_PRICE,
+            18,
+            Math.Rounding.Floor
         );
 
         assertEq(receivedCollateral, expectedTransferedTokens);
@@ -504,7 +512,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // assets received by redeemer should be equivalent in value to the initialShareEquityUSD
         // since excess equity was received by the strategy
         uint256 expectedReceivedAssets = ConversionMath.convertUSDToAsset(
-            (initialShareEquityUSD), COLLATERAL_PRICE, 18
+            (initialShareEquityUSD), COLLATERAL_PRICE, 18, Math.Rounding.Floor
         );
 
         assertEq(expectedReceivedAssets, receivedAssets);
@@ -633,7 +641,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // since strategy has a much higher collateral ratio, it should follow that redemption
         // incurs no equity cost
         uint256 expectedAssets = ConversionMath.convertUSDToAsset(
-            initialShareEquityUSD, COLLATERAL_PRICE, 18
+            initialShareEquityUSD, COLLATERAL_PRICE, 18, Math.Rounding.Floor
         );
 
         assertEq(receivedAssets, expectedAssets);
