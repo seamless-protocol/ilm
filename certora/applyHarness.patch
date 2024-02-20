@@ -1,7 +1,7 @@
 diff -ruN ../src/LoopStrategy.sol LoopStrategy.sol
---- ../src/LoopStrategy.sol	2024-02-01 16:35:01
+--- ../src/LoopStrategy.sol	2024-02-20 17:16:23
 +++ LoopStrategy.sol	1970-01-01 02:00:00
-@@ -1,627 +0,0 @@
+@@ -1,633 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
@@ -229,10 +229,13 @@ diff -ruN ../src/LoopStrategy.sol LoopStrategy.sol
 -    {
 -        Storage.Layout storage $ = Storage.layout();
 -        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
--        return RebalanceLogic.rebalanceNeeded(
--            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
--            $.collateralRatioTargets
--        );
+-        uint256 currentCR =
+-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
+-
+-        return state.collateralUSD != 0
+-            && RebalanceLogic.isCollateralRatioOutOfBounds(
+-                currentCR, $.collateralRatioTargets
+-            );
 -    }
 -
 -    /// @inheritdoc IERC4626
@@ -625,7 +628,10 @@ diff -ruN ../src/LoopStrategy.sol LoopStrategy.sol
 -            IERC20Metadata(address($.assets.underlying)).decimals();
 -
 -        return ConversionMath.convertUSDToAsset(
--            usdValue, underlyingPriceUSD, underlyingDecimals
+-            usdValue,
+-            underlyingPriceUSD,
+-            underlyingDecimals,
+-            Math.Rounding.Floor
 -        );
 -    }
 -}
@@ -1195,9 +1201,9 @@ diff -ruN ../src/interfaces/ISwapper.sol interfaces/ISwapper.sol
 -        returns (uint256 offsetDeviationUSD);
 -}
 diff -ruN ../src/interfaces/IWrappedERC20PermissionedDeposit.sol interfaces/IWrappedERC20PermissionedDeposit.sol
---- ../src/interfaces/IWrappedERC20PermissionedDeposit.sol	2024-02-01 16:35:01
+--- ../src/interfaces/IWrappedERC20PermissionedDeposit.sol	2024-02-20 11:34:57
 +++ interfaces/IWrappedERC20PermissionedDeposit.sol	1970-01-01 02:00:00
-@@ -1,56 +0,0 @@
+@@ -1,42 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
@@ -1209,10 +1215,6 @@ diff -ruN ../src/interfaces/IWrappedERC20PermissionedDeposit.sol interfaces/IWra
 -/// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token.
 -/// @dev Deposits are permissioned but withdrawals are open to any address.
 -interface IWrappedERC20PermissionedDeposit is IERC20 {
--    /// @notice Sender doesn't have a permission to deposit
--    /// @param sender sender address
--    error NotDepositor(address sender);
--
 -    /// @notice Deposit/wrapping underlying token
 -    /// @param account account doing the deposit
 -    /// @param amount amount of tokens deposited
@@ -1222,11 +1224,6 @@ diff -ruN ../src/interfaces/IWrappedERC20PermissionedDeposit.sol interfaces/IWra
 -    /// @param account account doing the withdraw
 -    /// @param amount amount of withdrawn tokens
 -    event Withdraw(address account, uint256 amount);
--
--    /// @notice Sets deposit permission
--    /// @param account account to set permission for
--    /// @param toSet flag to give/withdraw pemission
--    event SetDepositPermission(address account, bool toSet);
 -
 -    /// @notice Recovers surplus of underlying token
 -    /// @param account account which is doing recovering action
@@ -1248,11 +1245,6 @@ diff -ruN ../src/interfaces/IWrappedERC20PermissionedDeposit.sol interfaces/IWra
 -
 -    /// @notice function used to recover underlying tokens sent directly to this contract by mistake
 -    function recover() external;
--
--    /// @notice gives or withdraws permission to deposit
--    /// @param account account address to give/withdraw permission
--    /// @param toSet flag set to true to give permission, or false to withdraw permission
--    function setDepositPermission(address account, bool toSet) external;
 -}
 diff -ruN ../src/interfaces/IWrappedTokenAdapter.sol interfaces/IWrappedTokenAdapter.sol
 --- ../src/interfaces/IWrappedTokenAdapter.sol	2024-02-01 16:35:01
@@ -1301,9 +1293,9 @@ diff -ruN ../src/interfaces/IWrappedTokenAdapter.sol interfaces/IWrappedTokenAda
 -        returns (IWrappedERC20PermissionedDeposit wrapper);
 -}
 diff -ruN ../src/libraries/LoanLogic.sol libraries/LoanLogic.sol
---- ../src/libraries/LoanLogic.sol	2024-02-01 16:35:01
+--- ../src/libraries/LoanLogic.sol	2024-02-20 17:16:23
 +++ libraries/LoanLogic.sol	1970-01-01 02:00:00
-@@ -1,240 +0,0 @@
+@@ -1,238 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
@@ -1413,13 +1405,11 @@ diff -ruN ../src/libraries/LoanLogic.sol libraries/LoanLogic.sol
 -        uint256 shares,
 -        uint256 totalShares
 -    ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
--        // calculate amount of debt and equity corresponding to shares in USD value
--        shareDebtUSD = state.debtUSD.usdMul(
--            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
--        );
--        // to calculate equity, first collateral is calculated, and debt is subtracted from it
--        shareEquityUSD = state.collateralUSD.usdMul(
--            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
+-        shareDebtUSD =
+-            Math.mulDiv(state.debtUSD, shares, totalShares, Math.Rounding.Ceil);
+-
+-        shareEquityUSD = Math.mulDiv(
+-            state.collateralUSD, shares, totalShares, Math.Rounding.Floor
 -        ) - shareDebtUSD;
 -    }
 -
@@ -1545,9 +1535,9 @@ diff -ruN ../src/libraries/LoanLogic.sol libraries/LoanLogic.sol
 -    }
 -}
 diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
---- ../src/libraries/RebalanceLogic.sol	2024-02-15 10:11:42
+--- ../src/libraries/RebalanceLogic.sol	2024-02-20 17:16:23
 +++ libraries/RebalanceLogic.sol	1970-01-01 02:00:00
-@@ -1,638 +0,0 @@
+@@ -1,645 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
@@ -1556,6 +1546,7 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 -import { IERC20Metadata } from
 -    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 -
 -import { LoanLogic } from "./LoanLogic.sol";
 -import { ConversionMath } from "./math/ConversionMath.sol";
@@ -1647,7 +1638,7 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -        // and is left with the remaining equity
 -        if (state.debtUSD == shareDebtUSD) {
 -            // pay back the debt corresponding to the shares
--            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
+-            rebalanceDownToDebt($, state, 0);
 -
 -            state = LoanLogic.getLoanState($.lendingPool);
 -            shareEquityUSD = state.collateralUSD - state.debtUSD;
@@ -1661,27 +1652,20 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -            ) < $.collateralRatioTargets.minForWithdrawRebalance
 -        ) {
 -            if (
--                state.collateralUSD
--                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
--                        state.debtUSD
--                    )
+-                RebalanceMath.collateralRatioUSD(
+-                    state.collateralUSD, state.debtUSD
+-                ) > $.collateralRatioTargets.minForWithdrawRebalance
 -            ) {
--                // amount of equity in USD value which may be withdrawn from
--                // strategy without driving the collateral ratio below
--                // the minForWithdrawRebalance limit, thereby not requiring
--                // a rebalance operation
--                uint256 freeEquityUSD = state.collateralUSD
--                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
--                        state.debtUSD
--                    );
--
--                // adjust share debt to account for the free equity - since
--                // some equity may be withdrawn freely, not all the debt has to be
--                // repaid
--                shareDebtUSD = shareDebtUSD
--                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
--                        shareEquityUSD + shareDebtUSD - freeEquityUSD
--                    );
+-                shareDebtUSD = (
+-                    (
+-                        $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+-                            state.debtUSD
+-                        ) - (state.collateralUSD - shareEquityUSD)
+-                    ).usdDiv(
+-                        $.collateralRatioTargets.minForWithdrawRebalance
+-                            - USDWadRayMath.USD
+-                    )
+-                );
 -            }
 -
 -            uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
@@ -1703,7 +1687,8 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -        shareEquityAsset = ConversionMath.convertUSDToAsset(
 -            shareEquityUSD,
 -            $.oracle.getAssetPrice(address($.assets.collateral)),
--            IERC20Metadata(address($.assets.collateral)).decimals()
+-            IERC20Metadata(address($.assets.collateral)).decimals(),
+-            Math.Rounding.Floor
 -        );
 -
 -        // withdraw and transfer equity asset amount
@@ -1745,10 +1730,11 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -        uint256 collateralRatio =
 -            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 -
--        // if collateralRatio is outside range, user should not incur rebalance costs
 -        if (
--            collateralRatio != type(uint256).max
--                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+-            state.collateralUSD != 0
+-                && isCollateralRatioOutOfBounds(
+-                    collateralRatio, $.collateralRatioTargets
+-                )
 -        ) {
 -            rebalanceTo($, state, $.collateralRatioTargets.target);
 -
@@ -1786,7 +1772,12 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -        if (currentCR == type(uint256).max) {
 -            estimateTargetCR = $.collateralRatioTargets.target;
 -        } else {
--            if (rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
+-            if (
+-                state.collateralUSD != 0
+-                    && isCollateralRatioOutOfBounds(
+-                        currentCR, $.collateralRatioTargets
+-                    )
+-            ) {
 -                currentCR = $.collateralRatioTargets.target;
 -            }
 -
@@ -1816,7 +1807,10 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -        uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 -
 -        return ConversionMath.convertUSDToAsset(
--            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
+-            estimatedEquityUSD,
+-            underlyingPriceUSD,
+-            underlyingDecimals,
+-            Math.Rounding.Floor
 -        );
 -    }
 -
@@ -1839,8 +1833,10 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -
 -        // if collateralRatio is outside range, user should not incur rebalance costs
 -        if (
--            collateralRatio != type(uint256).max
--                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+-            state.collateralUSD != 0
+-                && isCollateralRatioOutOfBounds(
+-                    collateralRatio, $.collateralRatioTargets
+-                )
 -        ) {
 -            // calculate amount of collateral needed to bring the collateral ratio
 -            // to target
@@ -1918,7 +1914,8 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -        shareEquityAsset = ConversionMath.convertUSDToAsset(
 -            shareEquityUSD,
 -            $.oracle.getAssetPrice(address($.assets.underlying)),
--            IERC20Metadata(address($.assets.underlying)).decimals()
+-            IERC20Metadata(address($.assets.underlying)).decimals(),
+-            Math.Rounding.Floor
 -        );
 -
 -        return shareEquityAsset;
@@ -1978,7 +1975,7 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -
 -            // convert borrowAmount from USD to a borrowAsset amount
 -            uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
--                borrowAmountUSD, debtPriceUSD, debtDecimals
+-                borrowAmountUSD, debtPriceUSD, debtDecimals, Math.Rounding.Floor
 -            );
 -
 -            if (borrowAmountAsset == 0) {
@@ -2176,7 +2173,7 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -    /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
 -    /// @param collateralRatio given collateral ratio
 -    /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
--    function rebalanceNeeded(
+-    function isCollateralRatioOutOfBounds(
 -        uint256 collateralRatio,
 -        CollateralRatio memory collateraRatioTargets
 -    ) internal pure returns (bool) {
@@ -2187,59 +2184,59 @@ diff -ruN ../src/libraries/RebalanceLogic.sol libraries/RebalanceLogic.sol
 -    }
 -}
 diff -ruN ../src/libraries/math/ConversionMath.sol libraries/math/ConversionMath.sol
---- ../src/libraries/math/ConversionMath.sol	2024-02-01 16:35:01
+--- ../src/libraries/math/ConversionMath.sol	2024-02-20 17:16:23
 +++ libraries/math/ConversionMath.sol	1970-01-01 02:00:00
-@@ -1,42 +0,0 @@
+@@ -1,41 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
 -
--import { USDWadRayMath } from "./USDWadRayMath.sol";
+-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 -
 -library ConversionMath {
--    using USDWadRayMath for uint256;
--
 -    /// @dev decimals of USD prices as per oracle
 -    uint8 internal constant USD_DECIMALS = 8;
 -
 -    /// @notice converts a asset amount to its usd value
 -    /// @param assetAmount amount of asset
 -    /// @param priceInUSD price of asset in USD
+-    /// @param assetDecimals number of decimals of the asset
 -    /// @return usdAmount amount of USD after conversion
 -    function convertAssetToUSD(
 -        uint256 assetAmount,
 -        uint256 priceInUSD,
 -        uint256 assetDecimals
 -    ) internal pure returns (uint256 usdAmount) {
--        usdAmount = assetAmount * priceInUSD / (10 ** assetDecimals);
+-        usdAmount = Math.mulDiv(
+-            assetAmount, priceInUSD, 10 ** assetDecimals, Math.Rounding.Floor
+-        );
 -    }
 -
 -    /// @notice converts a USD amount to its token value
 -    /// @param usdAmount amount of USD
 -    /// @param priceInUSD price of asset in USD
+-    /// @param assetDecimals number of decimals of the asset
+-    /// @param rounding direction of rounding
 -    /// @return assetAmount amount of asset after conversion
 -    function convertUSDToAsset(
 -        uint256 usdAmount,
 -        uint256 priceInUSD,
--        uint256 assetDecimals
+-        uint256 assetDecimals,
+-        Math.Rounding rounding
 -    ) internal pure returns (uint256 assetAmount) {
--        if (USD_DECIMALS > assetDecimals) {
--            assetAmount = usdAmount.usdDiv(priceInUSD)
--                / (10 ** (USD_DECIMALS - assetDecimals));
--        } else {
--            assetAmount = (usdAmount * (10 ** (assetDecimals - USD_DECIMALS)))
--                .usdDiv(priceInUSD);
--        }
+-        assetAmount =
+-            Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD, rounding);
 -    }
 -}
 diff -ruN ../src/libraries/math/RebalanceMath.sol libraries/math/RebalanceMath.sol
---- ../src/libraries/math/RebalanceMath.sol	2024-02-01 16:35:01
+--- ../src/libraries/math/RebalanceMath.sol	2024-02-20 17:16:23
 +++ libraries/math/RebalanceMath.sol	1970-01-01 02:00:00
-@@ -1,108 +0,0 @@
+@@ -1,112 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
 -
+-import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 -import { ConversionMath } from "./ConversionMath.sol";
 -import { USDWadRayMath } from "./USDWadRayMath.sol";
 -import { LoanState } from "../../types/DataTypes.sol";
@@ -2340,7 +2337,10 @@ diff -ruN ../src/libraries/math/RebalanceMath.sol libraries/math/RebalanceMath.s
 -            : neededCollateralUSD;
 -
 -        return ConversionMath.convertUSDToAsset(
--            collateralAmountUSD, collateralPriceUSD, collateralDecimals
+-            collateralAmountUSD,
+-            collateralPriceUSD,
+-            collateralDecimals,
+-            Math.Rounding.Ceil
 -        );
 -    }
 -}
@@ -2554,8 +2554,8 @@ diff -ruN ../src/libraries/math/USDWadRayMath.sol libraries/math/USDWadRayMath.s
 -}
 diff -ruN ../src/src/LoopStrategy.sol src/LoopStrategy.sol
 --- ../src/src/LoopStrategy.sol	1970-01-01 02:00:00
-+++ src/LoopStrategy.sol	2024-02-13 01:00:56
-@@ -0,0 +1,627 @@
++++ src/LoopStrategy.sol	2024-02-20 17:17:36
+@@ -0,0 +1,633 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
@@ -2783,10 +2783,13 @@ diff -ruN ../src/src/LoopStrategy.sol src/LoopStrategy.sol
 +    {
 +        Storage.Layout storage $ = Storage.layout();
 +        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-+        return RebalanceLogic.rebalanceNeeded(
-+            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD),
-+            $.collateralRatioTargets
-+        );
++        uint256 currentCR =
++            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
++
++        return state.collateralUSD != 0
++            && RebalanceLogic.isCollateralRatioOutOfBounds(
++                currentCR, $.collateralRatioTargets
++            );
 +    }
 +
 +    /// @inheritdoc IERC4626
@@ -3179,13 +3182,16 @@ diff -ruN ../src/src/LoopStrategy.sol src/LoopStrategy.sol
 +            IERC20Metadata(address($.assets.underlying)).decimals();
 +
 +        return ConversionMath.convertUSDToAsset(
-+            usdValue, underlyingPriceUSD, underlyingDecimals
++            usdValue,
++            underlyingPriceUSD,
++            underlyingDecimals,
++            Math.Rounding.Floor
 +        );
 +    }
 +}
 diff -ruN ../src/src/interfaces/IAerodromeAdapter.sol src/interfaces/IAerodromeAdapter.sol
 --- ../src/src/interfaces/IAerodromeAdapter.sol	1970-01-01 02:00:00
-+++ src/interfaces/IAerodromeAdapter.sol	2024-02-13 01:00:56
++++ src/interfaces/IAerodromeAdapter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,99 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -3288,7 +3294,7 @@ diff -ruN ../src/src/interfaces/IAerodromeAdapter.sol src/interfaces/IAerodromeA
 +}
 diff -ruN ../src/src/interfaces/ILoopStrategy.sol src/interfaces/ILoopStrategy.sol
 --- ../src/src/interfaces/ILoopStrategy.sol	1970-01-01 02:00:00
-+++ src/interfaces/ILoopStrategy.sol	2024-02-13 01:00:56
++++ src/interfaces/ILoopStrategy.sol	2024-02-20 17:17:36
 @@ -0,0 +1,213 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -3505,7 +3511,7 @@ diff -ruN ../src/src/interfaces/ILoopStrategy.sol src/interfaces/ILoopStrategy.s
 +}
 diff -ruN ../src/src/interfaces/IPausable.sol src/interfaces/IPausable.sol
 --- ../src/src/interfaces/IPausable.sol	1970-01-01 02:00:00
-+++ src/interfaces/IPausable.sol	2024-02-13 01:00:56
++++ src/interfaces/IPausable.sol	2024-02-20 17:17:36
 @@ -0,0 +1,20 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -3529,7 +3535,7 @@ diff -ruN ../src/src/interfaces/IPausable.sol src/interfaces/IPausable.sol
 +}
 diff -ruN ../src/src/interfaces/IPriceOracleGetter.sol src/interfaces/IPriceOracleGetter.sol
 --- ../src/src/interfaces/IPriceOracleGetter.sol	1970-01-01 02:00:00
-+++ src/interfaces/IPriceOracleGetter.sol	2024-02-13 01:00:56
++++ src/interfaces/IPriceOracleGetter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,32 @@
 +// SPDX-License-Identifier: AGPL-3.0
 +
@@ -3565,7 +3571,7 @@ diff -ruN ../src/src/interfaces/IPriceOracleGetter.sol src/interfaces/IPriceOrac
 +}
 diff -ruN ../src/src/interfaces/ISwapAdapter.sol src/interfaces/ISwapAdapter.sol
 --- ../src/src/interfaces/ISwapAdapter.sol	1970-01-01 02:00:00
-+++ src/interfaces/ISwapAdapter.sol	2024-02-13 01:00:56
++++ src/interfaces/ISwapAdapter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,42 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -3611,7 +3617,7 @@ diff -ruN ../src/src/interfaces/ISwapAdapter.sol src/interfaces/ISwapAdapter.sol
 +}
 diff -ruN ../src/src/interfaces/ISwapper.sol src/interfaces/ISwapper.sol
 --- ../src/src/interfaces/ISwapper.sol	1970-01-01 02:00:00
-+++ src/interfaces/ISwapper.sol	2024-02-13 01:00:56
++++ src/interfaces/ISwapper.sol	2024-02-20 17:17:36
 @@ -0,0 +1,135 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -3750,8 +3756,8 @@ diff -ruN ../src/src/interfaces/ISwapper.sol src/interfaces/ISwapper.sol
 +}
 diff -ruN ../src/src/interfaces/IWrappedERC20PermissionedDeposit.sol src/interfaces/IWrappedERC20PermissionedDeposit.sol
 --- ../src/src/interfaces/IWrappedERC20PermissionedDeposit.sol	1970-01-01 02:00:00
-+++ src/interfaces/IWrappedERC20PermissionedDeposit.sol	2024-02-13 01:00:56
-@@ -0,0 +1,56 @@
++++ src/interfaces/IWrappedERC20PermissionedDeposit.sol	2024-02-20 17:17:36
+@@ -0,0 +1,42 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
@@ -3763,10 +3769,6 @@ diff -ruN ../src/src/interfaces/IWrappedERC20PermissionedDeposit.sol src/interfa
 +/// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token.
 +/// @dev Deposits are permissioned but withdrawals are open to any address.
 +interface IWrappedERC20PermissionedDeposit is IERC20 {
-+    /// @notice Sender doesn't have a permission to deposit
-+    /// @param sender sender address
-+    error NotDepositor(address sender);
-+
 +    /// @notice Deposit/wrapping underlying token
 +    /// @param account account doing the deposit
 +    /// @param amount amount of tokens deposited
@@ -3776,11 +3778,6 @@ diff -ruN ../src/src/interfaces/IWrappedERC20PermissionedDeposit.sol src/interfa
 +    /// @param account account doing the withdraw
 +    /// @param amount amount of withdrawn tokens
 +    event Withdraw(address account, uint256 amount);
-+
-+    /// @notice Sets deposit permission
-+    /// @param account account to set permission for
-+    /// @param toSet flag to give/withdraw pemission
-+    event SetDepositPermission(address account, bool toSet);
 +
 +    /// @notice Recovers surplus of underlying token
 +    /// @param account account which is doing recovering action
@@ -3802,15 +3799,10 @@ diff -ruN ../src/src/interfaces/IWrappedERC20PermissionedDeposit.sol src/interfa
 +
 +    /// @notice function used to recover underlying tokens sent directly to this contract by mistake
 +    function recover() external;
-+
-+    /// @notice gives or withdraws permission to deposit
-+    /// @param account account address to give/withdraw permission
-+    /// @param toSet flag set to true to give permission, or false to withdraw permission
-+    function setDepositPermission(address account, bool toSet) external;
 +}
 diff -ruN ../src/src/interfaces/IWrappedTokenAdapter.sol src/interfaces/IWrappedTokenAdapter.sol
 --- ../src/src/interfaces/IWrappedTokenAdapter.sol	1970-01-01 02:00:00
-+++ src/interfaces/IWrappedTokenAdapter.sol	2024-02-13 01:00:56
++++ src/interfaces/IWrappedTokenAdapter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,42 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -3856,8 +3848,8 @@ diff -ruN ../src/src/interfaces/IWrappedTokenAdapter.sol src/interfaces/IWrapped
 +}
 diff -ruN ../src/src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
 --- ../src/src/libraries/LoanLogic.sol	1970-01-01 02:00:00
-+++ src/libraries/LoanLogic.sol	2024-02-13 11:39:07
-@@ -0,0 +1,248 @@
++++ src/libraries/LoanLogic.sol	2024-02-20 17:28:03
+@@ -0,0 +1,246 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
@@ -3967,13 +3959,11 @@ diff -ruN ../src/src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
 +        uint256 shares,
 +        uint256 totalShares
 +    ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-+        // calculate amount of debt and equity corresponding to shares in USD value
-+        shareDebtUSD = state.debtUSD.usdMul(
-+            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-+        );
-+        // to calculate equity, first collateral is calculated, and debt is subtracted from it
-+        shareEquityUSD = state.collateralUSD.usdMul(
-+            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
++        shareDebtUSD =
++            Math.mulDiv(state.debtUSD, shares, totalShares, Math.Rounding.Ceil);
++
++        shareEquityUSD = Math.mulDiv(
++            state.collateralUSD, shares, totalShares, Math.Rounding.Floor
 +        ) - shareDebtUSD;
 +    }
 +
@@ -4049,9 +4039,9 @@ diff -ruN ../src/src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
 +        uint256 avilableUntilBorrowCap = (mulDivDown(borrowCap, assetUnit, 1) > totalBorrow)
 +            ? mulDivDown(borrowCap, assetUnit, 1) - totalBorrow
 +            : 0;
-+        // uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow) // Munged by Certora
-+        //     ? borrowCap * assetUnit - totalBorrow // Munged by Certora
-+        //     : 0;
++        //uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow) // Munged by Certora
++        //    ? borrowCap * assetUnit - totalBorrow // Munged by Certora
++        //    : 0;
 +
 +        uint256 availableLiquidityBase =
 +            asset.balanceOf(reserveData.aTokenAddress);
@@ -4108,8 +4098,8 @@ diff -ruN ../src/src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
 +}
 diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.sol
 --- ../src/src/libraries/RebalanceLogic.sol	1970-01-01 02:00:00
-+++ src/libraries/RebalanceLogic.sol	2024-02-13 01:01:49
-@@ -0,0 +1,645 @@
++++ src/libraries/RebalanceLogic.sol	2024-02-20 17:31:24
+@@ -0,0 +1,653 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
@@ -4118,6 +4108,7 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 +import { IERC20Metadata } from
 +    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
++import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 +
 +import { LoanLogic } from "./LoanLogic.sol";
 +import { ConversionMath } from "./math/ConversionMath.sol";
@@ -4209,7 +4200,7 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +        // and is left with the remaining equity
 +        if (state.debtUSD == shareDebtUSD) {
 +            // pay back the debt corresponding to the shares
-+            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
++            rebalanceDownToDebt($, state, 0);
 +
 +            state = LoanLogic.getLoanState($.lendingPool);
 +            shareEquityUSD = state.collateralUSD - state.debtUSD;
@@ -4223,27 +4214,20 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +            ) < $.collateralRatioTargets.minForWithdrawRebalance
 +        ) {
 +            if (
-+                state.collateralUSD
-+                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-+                        state.debtUSD
-+                    )
++                RebalanceMath.collateralRatioUSD(
++                    state.collateralUSD, state.debtUSD
++                ) > $.collateralRatioTargets.minForWithdrawRebalance
 +            ) {
-+                // amount of equity in USD value which may be withdrawn from
-+                // strategy without driving the collateral ratio below
-+                // the minForWithdrawRebalance limit, thereby not requiring
-+                // a rebalance operation
-+                uint256 freeEquityUSD = state.collateralUSD
-+                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-+                        state.debtUSD
-+                    );
-+
-+                // adjust share debt to account for the free equity - since
-+                // some equity may be withdrawn freely, not all the debt has to be
-+                // repaid
-+                shareDebtUSD = shareDebtUSD
-+                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-+                        shareEquityUSD + shareDebtUSD - freeEquityUSD
-+                    );
++                shareDebtUSD = (
++                    (
++                        $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
++                            state.debtUSD
++                        ) - (state.collateralUSD - shareEquityUSD)
++                    ).usdDiv(
++                        $.collateralRatioTargets.minForWithdrawRebalance
++                            - USDWadRayMath.USD
++                    )
++                );
 +            }
 +
 +            uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
@@ -4265,7 +4249,8 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +        shareEquityAsset = ConversionMath.convertUSDToAsset(
 +            shareEquityUSD,
 +            $.oracle.getAssetPrice(address($.assets.collateral)),
-+            IERC20Metadata(address($.assets.collateral)).decimals()
++            IERC20Metadata(address($.assets.collateral)).decimals(),
++            Math.Rounding.Floor
 +        );
 +
 +        // withdraw and transfer equity asset amount
@@ -4307,10 +4292,11 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +        uint256 collateralRatio =
 +            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 +
-+        // if collateralRatio is outside range, user should not incur rebalance costs
 +        if (
-+            collateralRatio != type(uint256).max
-+                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
++            state.collateralUSD != 0
++                && isCollateralRatioOutOfBounds(
++                    collateralRatio, $.collateralRatioTargets
++                )
 +        ) {
 +            rebalanceTo($, state, $.collateralRatioTargets.target);
 +
@@ -4348,7 +4334,12 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +        if (currentCR == type(uint256).max) {
 +            estimateTargetCR = $.collateralRatioTargets.target;
 +        } else {
-+            if (rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
++            if (
++                state.collateralUSD != 0
++                    && isCollateralRatioOutOfBounds(
++                        currentCR, $.collateralRatioTargets
++                    )
++            ) {
 +                currentCR = $.collateralRatioTargets.target;
 +            }
 +
@@ -4378,7 +4369,10 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +        uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 +
 +        return ConversionMath.convertUSDToAsset(
-+            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
++            estimatedEquityUSD,
++            underlyingPriceUSD,
++            underlyingDecimals,
++            Math.Rounding.Floor
 +        );
 +    }
 +
@@ -4401,8 +4395,10 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +
 +        // if collateralRatio is outside range, user should not incur rebalance costs
 +        if (
-+            collateralRatio != type(uint256).max
-+                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
++            state.collateralUSD != 0
++                && isCollateralRatioOutOfBounds(
++                    collateralRatio, $.collateralRatioTargets
++                )
 +        ) {
 +            // calculate amount of collateral needed to bring the collateral ratio
 +            // to target
@@ -4480,7 +4476,8 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +        shareEquityAsset = ConversionMath.convertUSDToAsset(
 +            shareEquityUSD,
 +            $.oracle.getAssetPrice(address($.assets.underlying)),
-+            IERC20Metadata(address($.assets.underlying)).decimals()
++            IERC20Metadata(address($.assets.underlying)).decimals(),
++            Math.Rounding.Floor
 +        );
 +
 +        return shareEquityAsset;
@@ -4541,7 +4538,7 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +
 +            // convert borrowAmount from USD to a borrowAsset amount
 +            uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
-+                borrowAmountUSD, debtPriceUSD, debtDecimals
++                borrowAmountUSD, debtPriceUSD, debtDecimals, Math.Rounding.Floor
 +            );
 +
 +            if (borrowAmountAsset == 0) {
@@ -4741,7 +4738,7 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +    /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
 +    /// @param collateralRatio given collateral ratio
 +    /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
-+    function rebalanceNeeded(
++    function isCollateralRatioOutOfBounds(
 +        uint256 collateralRatio,
 +        CollateralRatio memory collateraRatioTargets
 +    ) internal pure returns (bool) {
@@ -4754,72 +4751,62 @@ diff -ruN ../src/src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.s
 +    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
 +            res = a * b / c;
 +    }
++
 +}
 diff -ruN ../src/src/libraries/math/ConversionMath.sol src/libraries/math/ConversionMath.sol
 --- ../src/src/libraries/math/ConversionMath.sol	1970-01-01 02:00:00
-+++ src/libraries/math/ConversionMath.sol	2024-02-13 11:34:30
-@@ -0,0 +1,53 @@
++++ src/libraries/math/ConversionMath.sol	2024-02-20 17:17:36
+@@ -0,0 +1,41 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
 +
-+import { USDWadRayMath } from "./USDWadRayMath.sol";
++import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 +
 +library ConversionMath {
-+    using USDWadRayMath for uint256;
-+
 +    /// @dev decimals of USD prices as per oracle
 +    uint8 internal constant USD_DECIMALS = 8;
 +
 +    /// @notice converts a asset amount to its usd value
 +    /// @param assetAmount amount of asset
 +    /// @param priceInUSD price of asset in USD
++    /// @param assetDecimals number of decimals of the asset
 +    /// @return usdAmount amount of USD after conversion
 +    function convertAssetToUSD(
 +        uint256 assetAmount,
 +        uint256 priceInUSD,
 +        uint256 assetDecimals
 +    ) internal pure returns (uint256 usdAmount) {
-+        usdAmount = mulDivDown(assetAmount, priceInUSD, (10 ** assetDecimals));
-+        // usdAmount = assetAmount * priceInUSD / (10 ** assetDecimals); // Munged by Certora
++        usdAmount = Math.mulDiv(
++            assetAmount, priceInUSD, 10 ** assetDecimals, Math.Rounding.Floor
++        );
 +    }
 +
 +    /// @notice converts a USD amount to its token value
 +    /// @param usdAmount amount of USD
 +    /// @param priceInUSD price of asset in USD
++    /// @param assetDecimals number of decimals of the asset
++    /// @param rounding direction of rounding
 +    /// @return assetAmount amount of asset after conversion
 +    function convertUSDToAsset(
 +        uint256 usdAmount,
 +        uint256 priceInUSD,
-+        uint256 assetDecimals
++        uint256 assetDecimals,
++        Math.Rounding rounding
 +    ) internal pure returns (uint256 assetAmount) {
-+        if (USD_DECIMALS > assetDecimals) {
-+            assetAmount = mulDivDown(usdAmount.usdDiv(priceInUSD), 1,
-+                (10 ** (USD_DECIMALS - assetDecimals)));
-+        } else {
-+            assetAmount = (mulDivDown(usdAmount, 10 ** (assetDecimals - USD_DECIMALS), 1))
-+                .usdDiv(priceInUSD);
-+        }
-+        // if (USD_DECIMALS > assetDecimals) {
-+        //     assetAmount = usdAmount.usdDiv(priceInUSD)
-+        //         / (10 ** (USD_DECIMALS - assetDecimals)); // Munged by Certora
-+        // } else {
-+        //     assetAmount = (usdAmount * (10 ** (assetDecimals - USD_DECIMALS))) // Munged by Certora
-+        //         .usdDiv(priceInUSD);
-+        //}
-+    }
-+    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
-+            res = a * b / c;
++        assetAmount =
++            Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD, rounding);
 +    }
 +}
 diff -ruN ../src/src/libraries/math/RebalanceMath.sol src/libraries/math/RebalanceMath.sol
 --- ../src/src/libraries/math/RebalanceMath.sol	1970-01-01 02:00:00
-+++ src/libraries/math/RebalanceMath.sol	2024-02-13 11:23:22
-@@ -0,0 +1,117 @@
++++ src/libraries/math/RebalanceMath.sol	2024-02-20 17:58:23
+@@ -0,0 +1,121 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
 +
++import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 +import { ConversionMath } from "./ConversionMath.sol";
 +import { USDWadRayMath } from "./USDWadRayMath.sol";
 +import { LoanState } from "../../types/DataTypes.sol";
@@ -4850,16 +4837,16 @@ diff -ruN ../src/src/libraries/math/RebalanceMath.sol src/libraries/math/Rebalan
 +        returns (uint256 amount)
 +    {
 +        // prevent overflows
-+        if (a <= mulDivDown(type(uint256).max, 1, (ONE_USD - offsetUSD))) {
++        if (a <= mulDivDown(type(uint256).max, 1,  (ONE_USD - offsetUSD))) {
 +            amount = mulDivDown(a, (ONE_USD - offsetUSD), ONE_USD);
 +        } else {
-+            amount = mulDivDown(mulDivDown(a, 1, ONE_USD), (ONE_USD - offsetUSD), 1);
++            amount =  mulDivDown(mulDivDown(a, 1, ONE_USD), (ONE_USD - offsetUSD), 1);
 +        }
-+        // if (a <= type(uint256).max / (ONE_USD - offsetUSD)) { // Munged by Certora
-+        //     amount = (a * (ONE_USD - offsetUSD)) / ONE_USD; // Munged by Certora
-+        // } else {
-+        //     amount = (a / ONE_USD) * (ONE_USD - offsetUSD); // Munged by Certora
-+        // }
++        //if (a <= type(uint256).max / (ONE_USD - offsetUSD)) { // Munged by Certora
++        //    amount = (a * (ONE_USD - offsetUSD)) / ONE_USD; // Munged by Certora
++        //} else {
++        //    amount = (a / ONE_USD) * (ONE_USD - offsetUSD); // Munged by Certora
++        //}
 +    }
 +
 +    /// @notice calculates the total required borrow amount in order to reach a target collateral ratio value
@@ -4925,17 +4912,20 @@ diff -ruN ../src/src/libraries/math/RebalanceMath.sol src/libraries/math/Rebalan
 +            : neededCollateralUSD;
 +
 +        return ConversionMath.convertUSDToAsset(
-+            collateralAmountUSD, collateralPriceUSD, collateralDecimals
++            collateralAmountUSD,
++            collateralPriceUSD,
++            collateralDecimals,
++            Math.Rounding.Ceil
 +        );
 +    }
-+
++    
 +    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
 +            res = a * b / c;
 +    }
 +}
 diff -ruN ../src/src/libraries/math/USDWadRayMath.sol src/libraries/math/USDWadRayMath.sol
 --- ../src/src/libraries/math/USDWadRayMath.sol	1970-01-01 02:00:00
-+++ src/libraries/math/USDWadRayMath.sol	2024-02-13 01:00:56
++++ src/libraries/math/USDWadRayMath.sol	2024-02-20 17:17:36
 @@ -0,0 +1,204 @@
 +// SPDX-License-Identifier: MIT
 +
@@ -5143,7 +5133,7 @@ diff -ruN ../src/src/libraries/math/USDWadRayMath.sol src/libraries/math/USDWadR
 +}
 diff -ruN ../src/src/storage/AerodromeAdapterStorage.sol src/storage/AerodromeAdapterStorage.sol
 --- ../src/src/storage/AerodromeAdapterStorage.sol	1970-01-01 02:00:00
-+++ src/storage/AerodromeAdapterStorage.sol	2024-02-13 01:00:56
++++ src/storage/AerodromeAdapterStorage.sol	2024-02-20 17:17:36
 @@ -0,0 +1,31 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5178,7 +5168,7 @@ diff -ruN ../src/src/storage/AerodromeAdapterStorage.sol src/storage/AerodromeAd
 +}
 diff -ruN ../src/src/storage/LoopStrategyStorage.sol src/storage/LoopStrategyStorage.sol
 --- ../src/src/storage/LoopStrategyStorage.sol	1970-01-01 02:00:00
-+++ src/storage/LoopStrategyStorage.sol	2024-02-13 01:00:56
++++ src/storage/LoopStrategyStorage.sol	2024-02-20 17:17:36
 @@ -0,0 +1,53 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5235,7 +5225,7 @@ diff -ruN ../src/src/storage/LoopStrategyStorage.sol src/storage/LoopStrategySto
 +}
 diff -ruN ../src/src/storage/SwapAdapterBaseStorage.sol src/storage/SwapAdapterBaseStorage.sol
 --- ../src/src/storage/SwapAdapterBaseStorage.sol	1970-01-01 02:00:00
-+++ src/storage/SwapAdapterBaseStorage.sol	2024-02-13 01:00:56
++++ src/storage/SwapAdapterBaseStorage.sol	2024-02-20 17:17:36
 @@ -0,0 +1,22 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5261,7 +5251,7 @@ diff -ruN ../src/src/storage/SwapAdapterBaseStorage.sol src/storage/SwapAdapterB
 +}
 diff -ruN ../src/src/storage/SwapperStorage.sol src/storage/SwapperStorage.sol
 --- ../src/src/storage/SwapperStorage.sol	1970-01-01 02:00:00
-+++ src/storage/SwapperStorage.sol	2024-02-13 01:00:56
++++ src/storage/SwapperStorage.sol	2024-02-20 17:17:36
 @@ -0,0 +1,32 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5297,7 +5287,7 @@ diff -ruN ../src/src/storage/SwapperStorage.sol src/storage/SwapperStorage.sol
 +}
 diff -ruN ../src/src/storage/WrappedTokenAdapterStorage.sol src/storage/WrappedTokenAdapterStorage.sol
 --- ../src/src/storage/WrappedTokenAdapterStorage.sol	1970-01-01 02:00:00
-+++ src/storage/WrappedTokenAdapterStorage.sol	2024-02-13 01:00:56
++++ src/storage/WrappedTokenAdapterStorage.sol	2024-02-20 17:17:36
 @@ -0,0 +1,32 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5333,7 +5323,7 @@ diff -ruN ../src/src/storage/WrappedTokenAdapterStorage.sol src/storage/WrappedT
 +}
 diff -ruN ../src/src/swap/Swapper.sol src/swap/Swapper.sol
 --- ../src/src/swap/Swapper.sol	1970-01-01 02:00:00
-+++ src/swap/Swapper.sol	2024-02-13 01:00:56
++++ src/swap/Swapper.sol	2024-02-20 17:17:36
 @@ -0,0 +1,250 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5574,7 +5564,7 @@ diff -ruN ../src/src/swap/Swapper.sol src/swap/Swapper.sol
 +        uint256 maxSlippageUSD = fromAmountUSD.usdMul(
 +            offsetUSD + maxDeviationUSD
 +        ).usdDiv(USDWadRayMath.USD);
-+        
++
 +        // for the very low amounts allow 1 wei of slippage
 +        if (maxSlippageUSD == 0) {
 +            maxSlippageUSD = 1;
@@ -5585,10 +5575,9 @@ diff -ruN ../src/src/swap/Swapper.sol src/swap/Swapper.sol
 +        }
 +    }
 +}
-\ No newline at end of file
 diff -ruN ../src/src/swap/adapter/AerodromeAdapter.sol src/swap/adapter/AerodromeAdapter.sol
 --- ../src/src/swap/adapter/AerodromeAdapter.sol	1970-01-01 02:00:00
-+++ src/swap/adapter/AerodromeAdapter.sol	2024-02-13 01:00:56
++++ src/swap/adapter/AerodromeAdapter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,169 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5761,7 +5750,7 @@ diff -ruN ../src/src/swap/adapter/AerodromeAdapter.sol src/swap/adapter/Aerodrom
 +}
 diff -ruN ../src/src/swap/adapter/SwapAdapterBase.sol src/swap/adapter/SwapAdapterBase.sol
 --- ../src/src/swap/adapter/SwapAdapterBase.sol	1970-01-01 02:00:00
-+++ src/swap/adapter/SwapAdapterBase.sol	2024-02-13 01:00:56
++++ src/swap/adapter/SwapAdapterBase.sol	2024-02-20 17:17:36
 @@ -0,0 +1,54 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5819,7 +5808,7 @@ diff -ruN ../src/src/swap/adapter/SwapAdapterBase.sol src/swap/adapter/SwapAdapt
 +}
 diff -ruN ../src/src/swap/adapter/WrappedTokenAdapter.sol src/swap/adapter/WrappedTokenAdapter.sol
 --- ../src/src/swap/adapter/WrappedTokenAdapter.sol	1970-01-01 02:00:00
-+++ src/swap/adapter/WrappedTokenAdapter.sol	2024-02-13 01:00:56
++++ src/swap/adapter/WrappedTokenAdapter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,122 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -5943,58 +5932,60 @@ diff -ruN ../src/src/swap/adapter/WrappedTokenAdapter.sol src/swap/adapter/Wrapp
 +        emit WrapperRemoved(to, from);
 +    }
 +}
-diff -ruN ../src/src/tokens/WrappedCbETH.sol src/tokens/WrappedCbETH.sol
---- ../src/src/tokens/WrappedCbETH.sol	1970-01-01 02:00:00
-+++ src/tokens/WrappedCbETH.sol	2024-02-13 01:00:56
-@@ -0,0 +1,80 @@
+diff -ruN ../src/src/tokens/WrappedERC20PermissionedDeposit.sol src/tokens/WrappedERC20PermissionedDeposit.sol
+--- ../src/src/tokens/WrappedERC20PermissionedDeposit.sol	1970-01-01 02:00:00
++++ src/tokens/WrappedERC20PermissionedDeposit.sol	2024-02-20 17:17:36
+@@ -0,0 +1,72 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
 +pragma solidity ^0.8.21;
 +
-+import {
-+    Ownable,
-+    Ownable2Step
-+} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 +import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
++import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
++import { IERC20Metadata } from
++    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 +import { SafeERC20 } from
 +    "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 +
 +import { IWrappedERC20PermissionedDeposit } from
 +    "../interfaces/IWrappedERC20PermissionedDeposit.sol";
 +
-+/// @title WrappedCbETH
++/// @title WrappedERC20PermissionedDeposit
 +/// @notice contract used to wrap underlying ERC20 token and mints the same amount of a wrapped token.
-+/// @notice this contract will be used to mainly to wrap cbETH and use it as a collateral in the lending pool
-+/// @notice but only strategies contracts will be able to get wrapped token it and borrow against it.
-+contract WrappedCbETH is
++/// @notice wrapped token will be used to mainly as a collateral in the lending pool
++/// @notice but only strategies contracts will be able to get wrapped token and borrow against it.
++contract WrappedERC20PermissionedDeposit is
 +    IWrappedERC20PermissionedDeposit,
 +    ERC20,
-+    Ownable2Step
++    AccessControl
 +{
++    /// @dev role which can deposit to this contract to wrap underlying token
++    bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
++
 +    /// @notice address of the underlying token which is wrapped
 +    IERC20 public immutable underlying;
-+
-+    /// @notice map shows if address has pemission to wrap tokens
-+    mapping(address => bool) public depositor;
-+
-+    modifier onlyDepositors() {
-+        if (!depositor[msg.sender]) {
-+            revert NotDepositor(msg.sender);
-+        }
-+        _;
-+    }
 +
 +    constructor(
 +        string memory _name,
 +        string memory _symbol,
 +        IERC20 _underlyingToken,
-+        address _initialOwner
-+    ) ERC20(_name, _symbol) Ownable(_initialOwner) {
++        address _initialAdmin
++    ) ERC20(_name, _symbol) {
 +        underlying = _underlyingToken;
++        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
++    }
++
++    /// @inheritdoc ERC20
++    function decimals() public view override returns (uint8) {
++        return IERC20Metadata(address(underlying)).decimals();
 +    }
 +
 +    /// @inheritdoc IWrappedERC20PermissionedDeposit
-+    function deposit(uint256 amount) external override onlyDepositors {
++    function deposit(uint256 amount)
++        external
++        override
++        onlyRole(DEPOSITOR_ROLE)
++    {
 +        SafeERC20.safeTransferFrom(
 +            underlying, msg.sender, address(this), amount
 +        );
@@ -6010,17 +6001,7 @@ diff -ruN ../src/src/tokens/WrappedCbETH.sol src/tokens/WrappedCbETH.sol
 +    }
 +
 +    /// @inheritdoc IWrappedERC20PermissionedDeposit
-+    function setDepositPermission(address account, bool toSet)
-+        external
-+        override
-+        onlyOwner
-+    {
-+        depositor[account] = toSet;
-+        emit SetDepositPermission(account, toSet);
-+    }
-+
-+    /// @inheritdoc IWrappedERC20PermissionedDeposit
-+    function recover() external override onlyOwner {
++    function recover() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 +        uint256 amountSurplus =
 +            underlying.balanceOf(address(this)) - totalSupply();
 +        SafeERC20.safeTransfer(underlying, msg.sender, amountSurplus);
@@ -6029,7 +6010,7 @@ diff -ruN ../src/src/tokens/WrappedCbETH.sol src/tokens/WrappedCbETH.sol
 +}
 diff -ruN ../src/src/types/DataTypes.sol src/types/DataTypes.sol
 --- ../src/src/types/DataTypes.sol	1970-01-01 02:00:00
-+++ src/types/DataTypes.sol	2024-02-13 01:00:56
++++ src/types/DataTypes.sol	2024-02-20 17:17:36
 @@ -0,0 +1,74 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -6107,7 +6088,7 @@ diff -ruN ../src/src/types/DataTypes.sol src/types/DataTypes.sol
 +}
 diff -ruN ../src/src/vendor/aerodrome/IPool.sol src/vendor/aerodrome/IPool.sol
 --- ../src/src/vendor/aerodrome/IPool.sol	1970-01-01 02:00:00
-+++ src/vendor/aerodrome/IPool.sol	2024-02-13 01:00:56
++++ src/vendor/aerodrome/IPool.sol	2024-02-20 17:17:36
 @@ -0,0 +1,218 @@
 +// SPDX-License-Identifier: MIT
 +
@@ -6329,7 +6310,7 @@ diff -ruN ../src/src/vendor/aerodrome/IPool.sol src/vendor/aerodrome/IPool.sol
 +}
 diff -ruN ../src/src/vendor/aerodrome/IPoolFactory.sol src/vendor/aerodrome/IPoolFactory.sol
 --- ../src/src/vendor/aerodrome/IPoolFactory.sol	1970-01-01 02:00:00
-+++ src/vendor/aerodrome/IPoolFactory.sol	2024-02-13 01:00:56
++++ src/vendor/aerodrome/IPoolFactory.sol	2024-02-20 17:17:36
 @@ -0,0 +1,39 @@
 +// SPDX-License-Identifier: MIT
 +
@@ -6372,7 +6353,7 @@ diff -ruN ../src/src/vendor/aerodrome/IPoolFactory.sol src/vendor/aerodrome/IPoo
 +}
 diff -ruN ../src/src/vendor/aerodrome/IRouter.sol src/vendor/aerodrome/IRouter.sol
 --- ../src/src/vendor/aerodrome/IRouter.sol	1970-01-01 02:00:00
-+++ src/vendor/aerodrome/IRouter.sol	2024-02-13 01:00:56
++++ src/vendor/aerodrome/IRouter.sol	2024-02-20 17:17:36
 @@ -0,0 +1,112 @@
 +// SPDX-License-Identifier: MIT
 +
@@ -6677,7 +6658,7 @@ diff -ruN ../src/storage/WrappedTokenAdapterStorage.sol storage/WrappedTokenAdap
 -    }
 -}
 diff -ruN ../src/swap/Swapper.sol swap/Swapper.sol
---- ../src/swap/Swapper.sol	2024-02-01 16:35:01
+--- ../src/swap/Swapper.sol	2024-02-19 13:12:29
 +++ swap/Swapper.sol	1970-01-01 02:00:00
 @@ -1,250 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
@@ -6919,7 +6900,7 @@ diff -ruN ../src/swap/Swapper.sol swap/Swapper.sol
 -        uint256 maxSlippageUSD = fromAmountUSD.usdMul(
 -            offsetUSD + maxDeviationUSD
 -        ).usdDiv(USDWadRayMath.USD);
--        
+-
 -        // for the very low amounts allow 1 wei of slippage
 -        if (maxSlippageUSD == 0) {
 -            maxSlippageUSD = 1;
@@ -6930,7 +6911,6 @@ diff -ruN ../src/swap/Swapper.sol swap/Swapper.sol
 -        }
 -    }
 -}
-\ No newline at end of file
 diff -ruN ../src/swap/adapter/AerodromeAdapter.sol swap/adapter/AerodromeAdapter.sol
 --- ../src/swap/adapter/AerodromeAdapter.sol	2024-02-01 16:35:01
 +++ swap/adapter/AerodromeAdapter.sol	1970-01-01 02:00:00
@@ -7288,58 +7268,60 @@ diff -ruN ../src/swap/adapter/WrappedTokenAdapter.sol swap/adapter/WrappedTokenA
 -        emit WrapperRemoved(to, from);
 -    }
 -}
-diff -ruN ../src/tokens/WrappedCbETH.sol tokens/WrappedCbETH.sol
---- ../src/tokens/WrappedCbETH.sol	2024-02-01 16:35:01
-+++ tokens/WrappedCbETH.sol	1970-01-01 02:00:00
-@@ -1,80 +0,0 @@
+diff -ruN ../src/tokens/WrappedERC20PermissionedDeposit.sol tokens/WrappedERC20PermissionedDeposit.sol
+--- ../src/tokens/WrappedERC20PermissionedDeposit.sol	2024-02-20 11:34:57
++++ tokens/WrappedERC20PermissionedDeposit.sol	1970-01-01 02:00:00
+@@ -1,72 +0,0 @@
 -// SPDX-License-Identifier: BUSL-1.1
 -
 -pragma solidity ^0.8.21;
 -
--import {
--    Ownable,
--    Ownable2Step
--} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 -import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+-import { IERC20Metadata } from
+-    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 -import { SafeERC20 } from
 -    "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 -
 -import { IWrappedERC20PermissionedDeposit } from
 -    "../interfaces/IWrappedERC20PermissionedDeposit.sol";
 -
--/// @title WrappedCbETH
+-/// @title WrappedERC20PermissionedDeposit
 -/// @notice contract used to wrap underlying ERC20 token and mints the same amount of a wrapped token.
--/// @notice this contract will be used to mainly to wrap cbETH and use it as a collateral in the lending pool
--/// @notice but only strategies contracts will be able to get wrapped token it and borrow against it.
--contract WrappedCbETH is
+-/// @notice wrapped token will be used to mainly as a collateral in the lending pool
+-/// @notice but only strategies contracts will be able to get wrapped token and borrow against it.
+-contract WrappedERC20PermissionedDeposit is
 -    IWrappedERC20PermissionedDeposit,
 -    ERC20,
--    Ownable2Step
+-    AccessControl
 -{
+-    /// @dev role which can deposit to this contract to wrap underlying token
+-    bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
+-
 -    /// @notice address of the underlying token which is wrapped
 -    IERC20 public immutable underlying;
--
--    /// @notice map shows if address has pemission to wrap tokens
--    mapping(address => bool) public depositor;
--
--    modifier onlyDepositors() {
--        if (!depositor[msg.sender]) {
--            revert NotDepositor(msg.sender);
--        }
--        _;
--    }
 -
 -    constructor(
 -        string memory _name,
 -        string memory _symbol,
 -        IERC20 _underlyingToken,
--        address _initialOwner
--    ) ERC20(_name, _symbol) Ownable(_initialOwner) {
+-        address _initialAdmin
+-    ) ERC20(_name, _symbol) {
 -        underlying = _underlyingToken;
+-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+-    }
+-
+-    /// @inheritdoc ERC20
+-    function decimals() public view override returns (uint8) {
+-        return IERC20Metadata(address(underlying)).decimals();
 -    }
 -
 -    /// @inheritdoc IWrappedERC20PermissionedDeposit
--    function deposit(uint256 amount) external override onlyDepositors {
+-    function deposit(uint256 amount)
+-        external
+-        override
+-        onlyRole(DEPOSITOR_ROLE)
+-    {
 -        SafeERC20.safeTransferFrom(
 -            underlying, msg.sender, address(this), amount
 -        );
@@ -7355,17 +7337,7 @@ diff -ruN ../src/tokens/WrappedCbETH.sol tokens/WrappedCbETH.sol
 -    }
 -
 -    /// @inheritdoc IWrappedERC20PermissionedDeposit
--    function setDepositPermission(address account, bool toSet)
--        external
--        override
--        onlyOwner
--    {
--        depositor[account] = toSet;
--        emit SetDepositPermission(account, toSet);
--    }
--
--    /// @inheritdoc IWrappedERC20PermissionedDeposit
--    function recover() external override onlyOwner {
+-    function recover() external override onlyRole(DEFAULT_ADMIN_ROLE) {
 -        uint256 amountSurplus =
 -            underlying.balanceOf(address(this)) - totalSupply();
 -        SafeERC20.safeTransfer(underlying, msg.sender, amountSurplus);
