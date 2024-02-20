@@ -44,7 +44,8 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { LoopStrategyStorage as Storage } from
     "../../src/storage/LoopStrategyStorage.sol";
 import { Swapper } from "../../src/swap/Swapper.sol";
-import { WrappedERC20PermissionedDeposit } from "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
+import { WrappedERC20PermissionedDeposit } from
+    "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 
 /// @notice Setup for the tests for the LoopStrategy contract
 contract LoopStrategyTest is BaseForkTest {
@@ -124,7 +125,7 @@ contract LoopStrategyTest is BaseForkTest {
         _changePrice(WETH, COLLATERAL_PRICE * 80 / 100);
 
         wrappedToken =
-            new WrappedERC20PermissionedDeposit("wCbETH", "wCbETH", CbETH, address(this));
+        new WrappedERC20PermissionedDeposit("wCbETH", "wCbETH", CbETH, address(this));
 
         swapper =
         new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));

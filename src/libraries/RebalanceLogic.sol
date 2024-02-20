@@ -97,7 +97,7 @@ library RebalanceLogic {
         // and is left with the remaining equity
         if (state.debtUSD == shareDebtUSD) {
             // pay back the debt corresponding to the shares
-            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
+            rebalanceDownToDebt($, state, 0);
 
             state = LoanLogic.getLoanState($.lendingPool);
             shareEquityUSD = state.collateralUSD - state.debtUSD;
@@ -111,27 +111,20 @@ library RebalanceLogic {
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
             if (
-                state.collateralUSD
-                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    )
+                RebalanceMath.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ) > $.collateralRatioTargets.minForWithdrawRebalance
             ) {
-                // amount of equity in USD value which may be withdrawn from
-                // strategy without driving the collateral ratio below
-                // the minForWithdrawRebalance limit, thereby not requiring
-                // a rebalance operation
-                uint256 freeEquityUSD = state.collateralUSD
-                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    );
-
-                // adjust share debt to account for the free equity - since
-                // some equity may be withdrawn freely, not all the debt has to be
-                // repaid
-                shareDebtUSD = shareDebtUSD
-                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                        shareEquityUSD + shareDebtUSD - freeEquityUSD
-                    );
+                shareDebtUSD = (
+                    (
+                        $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                            state.debtUSD
+                        ) - (state.collateralUSD - shareEquityUSD)
+                    ).usdDiv(
+                        $.collateralRatioTargets.minForWithdrawRebalance
+                            - USDWadRayMath.USD
+                    )
+                );
             }
 
             uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
@@ -195,10 +188,11 @@ library RebalanceLogic {
         uint256 collateralRatio =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-            collateralRatio != type(uint256).max
-                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+            state.collateralUSD != 0
+                && isCollateralRatioOutOfBounds(
+                    collateralRatio, $.collateralRatioTargets
+                )
         ) {
             rebalanceTo($, state, $.collateralRatioTargets.target);
 
@@ -236,7 +230,12 @@ library RebalanceLogic {
         if (currentCR == type(uint256).max) {
             estimateTargetCR = $.collateralRatioTargets.target;
         } else {
-            if (rebalanceNeeded(currentCR, $.collateralRatioTargets)) {
+            if (
+                state.collateralUSD != 0
+                    && isCollateralRatioOutOfBounds(
+                        currentCR, $.collateralRatioTargets
+                    )
+            ) {
                 currentCR = $.collateralRatioTargets.target;
             }
 
@@ -289,8 +288,10 @@ library RebalanceLogic {
 
         // if collateralRatio is outside range, user should not incur rebalance costs
         if (
-            collateralRatio != type(uint256).max
-                && rebalanceNeeded(collateralRatio, $.collateralRatioTargets)
+            state.collateralUSD != 0
+                && isCollateralRatioOutOfBounds(
+                    collateralRatio, $.collateralRatioTargets
+                )
         ) {
             // calculate amount of collateral needed to bring the collateral ratio
             // to target
@@ -626,7 +627,7 @@ library RebalanceLogic {
     /// @dev returns if collateral ratio is out of the acceptable range and reabalance should happen
     /// @param collateralRatio given collateral ratio
     /// @param collateraRatioTargets struct which contain targets (min and max for rebalance)
-    function rebalanceNeeded(
+    function isCollateralRatioOutOfBounds(
         uint256 collateralRatio,
         CollateralRatio memory collateraRatioTargets
     ) internal pure returns (bool) {
