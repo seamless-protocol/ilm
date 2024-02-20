@@ -15,6 +15,7 @@ methods {
 //    function _.getUserAccountData(address user) external   => getUserAccountData_ones(user) expect (uint256,uint256,uint256,uint256,uint256,uint256);
 
     function equity() external returns (uint256) envfree;
+    function equityUSD() external returns (uint256) envfree;
     function debt() external returns (uint256) envfree;
     function collateral() external returns (uint256) envfree;
     function currentCollateralRatio() external returns (uint256) envfree;
@@ -288,6 +289,51 @@ rule method_reachability_rebalanceNeeded {
     env e; calldataarg args;
     rebalanceNeeded(e, args);
     satisfy true;
+}
+
+
+rule equity_per_share_non_decreasing {
+    env e1; env e2;
+
+    uint256 equityUSD_before;
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+
+rule equity_per_share_non_decreasing_2 {
+    env e1; env e2;
+
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    uint256 totalSupply_after = totalSupply();
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
 
 rule assets_redeemed_leq_deposited_less_shared {
