@@ -2,14 +2,11 @@
 
 pragma solidity ^0.8.21;
 
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { SwapAdapterBase } from "./SwapAdapterBase.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
-import { WrappedTokenAdapterStorage as Storage } from
-    "../../storage/WrappedTokenAdapterStorage.sol";
-import { SwapAdapterBaseStorage as BaseStorage } from
-    "../../storage/SwapAdapterBaseStorage.sol";
 import { IWrappedERC20PermissionedDeposit } from
     "../../interfaces/IWrappedERC20PermissionedDeposit.sol";
 import { IWrappedTokenAdapter } from "../../interfaces/IWrappedTokenAdapter.sol";
@@ -30,13 +27,13 @@ contract WrappedTokenAdapter is SwapAdapterBase, IWrappedTokenAdapter {
     /// @param to token which will be received after wrapping/unwrapping
     event WrapperRemoved(IERC20 from, IERC20 to);
 
-    /// @inheritdoc IWrappedTokenAdapter
-    function WrappedTokenAdapter__Init(address owner, address swapper)
-        external
-        initializer
-    {
-        __Ownable_init(owner);
-        BaseStorage.layout().swapper = swapper;
+    mapping(
+        IERC20 from
+            => mapping(IERC20 to => IWrappedERC20PermissionedDeposit wrapper)
+    ) public wrappers;
+
+    constructor(address owner, address swapper) Ownable(owner) {
+        _setSwapper(swapper);
     }
 
     /// @inheritdoc ISwapAdapter
@@ -46,11 +43,9 @@ contract WrappedTokenAdapter is SwapAdapterBase, IWrappedTokenAdapter {
         uint256 fromAmount,
         address payable beneficiary
     ) external onlySwapper returns (uint256 toAmount) {
-        Storage.Layout storage $ = Storage.layout();
-
         from.transferFrom(msg.sender, address(this), fromAmount);
 
-        IWrappedERC20PermissionedDeposit wrapper = $.wrappers[from][to];
+        IWrappedERC20PermissionedDeposit wrapper = wrappers[from][to];
 
         from.approve(address(wrapper), fromAmount);
 
@@ -77,14 +72,12 @@ contract WrappedTokenAdapter is SwapAdapterBase, IWrappedTokenAdapter {
         IERC20 to,
         IWrappedERC20PermissionedDeposit wrapper
     ) external onlyOwner {
-        Storage.Layout storage $ = Storage.layout();
-
-        if (address($.wrappers[from][to]) != address(0)) {
+        if (address(wrappers[from][to]) != address(0)) {
             _removeWrapper(from, to);
         }
 
-        $.wrappers[from][to] = wrapper;
-        $.wrappers[to][from] = wrapper;
+        wrappers[from][to] = wrapper;
+        wrappers[to][from] = wrapper;
 
         emit WrapperSet(from, to, wrapper);
         emit WrapperSet(to, from, wrapper);
@@ -95,26 +88,12 @@ contract WrappedTokenAdapter is SwapAdapterBase, IWrappedTokenAdapter {
         _removeWrapper(from, to);
     }
 
-    /// @inheritdoc IWrappedTokenAdapter
-    function getWrapper(IERC20 from, IERC20 to)
-        external
-        view
-        returns (IWrappedERC20PermissionedDeposit wrapper)
-    {
-        return Storage.layout().wrappers[from][to];
-    }
-
-    /// @inheritdoc ISwapAdapter
-    function getSwapper() external view returns (address swapper) {
-        return _getSwapper();
-    }
-
     /// @notice removes a previously set wrapper for a given from/to token pair
     /// @param from token to wrap/unwrap
     /// @param to token received after wrapping/unwrapping
     function _removeWrapper(IERC20 from, IERC20 to) internal {
-        delete Storage.layout().wrappers[from][to];
-        delete Storage.layout().wrappers[to][from];
+        delete wrappers[from][to];
+        delete wrappers[to][from];
 
         emit WrapperRemoved(from, to);
         emit WrapperRemoved(to, from);

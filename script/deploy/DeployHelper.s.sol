@@ -178,10 +178,8 @@ contract DeployHelper is BaseMainnetConstants {
         IERC20 underlyingToken = wrappedToken.underlying();
 
         // WrappedToken Adapter
-        wrappedTokenAdapter = new WrappedTokenAdapter();
-        wrappedTokenAdapter.WrappedTokenAdapter__Init(
-            initialAdmin, address(swapper)
-        );
+        wrappedTokenAdapter =
+            new WrappedTokenAdapter(initialAdmin, address(swapper));
         wrappedTokenAdapter.setWrapper(
             underlyingToken,
             IERC20(address(wrappedToken)),
@@ -189,10 +187,8 @@ contract DeployHelper is BaseMainnetConstants {
         );
 
         // UnderlyingToken <-> WETH Aerodrome Adapter
-        aerodromeAdapter = new AerodromeAdapter();
-        aerodromeAdapter.AerodromeAdapter__Init(
-            initialAdmin, AERODROME_ROUTER, AERODROME_FACTORY, address(swapper)
-        );
+        aerodromeAdapter =
+        new AerodromeAdapter(initialAdmin, AERODROME_ROUTER, AERODROME_FACTORY, address(swapper));
 
         IRouter.Route[] memory routesUnderlyingtoWETH = new IRouter.Route[](1);
         routesUnderlyingtoWETH[0] = IRouter.Route({

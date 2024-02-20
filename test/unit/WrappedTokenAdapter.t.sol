@@ -51,9 +51,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     /// well as setting deposit permission for the adapter on the
     /// WrappedERC20PermissionedDeposit contract
     function setUp() public {
-        adapter = new WrappedTokenAdapter();
-
-        adapter.WrappedTokenAdapter__Init(OWNER, alice);
+        adapter = new WrappedTokenAdapter(OWNER, alice);
 
         mockERC20 = new MockERC20("Mock", "M");
         wrappedToken =
@@ -160,7 +158,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
     /// in mapping, and emits the associated events
     function test_setWrapper_setsWrapperForBothTokenOrderings_and_emitsWrapperSetEvents(
     ) public {
-        address wrapper = address(adapter.getWrapper(mockERC20, wrappedToken));
+        address wrapper = address(adapter.wrappers(mockERC20, wrappedToken));
 
         assertEq(wrapper, address(0));
 
@@ -173,9 +171,9 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         address wrapperFromTo =
-            address(adapter.getWrapper(mockERC20, wrappedToken));
+            address(adapter.wrappers(mockERC20, wrappedToken));
         address wrapperToFrom =
-            address(adapter.getWrapper(wrappedToken, mockERC20));
+            address(adapter.wrappers(wrappedToken, mockERC20));
 
         assertEq(wrapperFromTo, wrapperToFrom);
         assertEq(wrapperFromTo, address(wrappedToken));
@@ -184,7 +182,7 @@ contract WrappedTokenAdapterTest is BaseForkTest {
 
     /// @dev ensures that setting a wrapper will remove any previously set wrappers
     function test_setWrapper_removesPreviouslySetWrappers() public {
-        address wrapper = address(adapter.getWrapper(mockERC20, wrappedToken));
+        address wrapper = address(adapter.wrappers(mockERC20, wrappedToken));
 
         assertEq(wrapper, address(0));
 
@@ -197,9 +195,9 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         adapter.setWrapper(mockERC20, wrappedToken, wrappedToken);
 
         address wrapperFromTo =
-            address(adapter.getWrapper(mockERC20, wrappedToken));
+            address(adapter.wrappers(mockERC20, wrappedToken));
         address wrapperToFrom =
-            address(adapter.getWrapper(wrappedToken, mockERC20));
+            address(adapter.wrappers(wrappedToken, mockERC20));
 
         assertEq(wrapperFromTo, wrapperToFrom);
         assertEq(wrapperFromTo, address(wrappedToken));
@@ -244,9 +242,9 @@ contract WrappedTokenAdapterTest is BaseForkTest {
         adapter.removeWrapper(mockERC20, wrappedToken);
 
         address wrapperFromTo =
-            address(adapter.getWrapper(mockERC20, wrappedToken));
+            address(adapter.wrappers(mockERC20, wrappedToken));
         address wrapperToFrom =
-            address(adapter.getWrapper(wrappedToken, mockERC20));
+            address(adapter.wrappers(wrappedToken, mockERC20));
 
         assertEq(wrapperFromTo, address(0));
 
