@@ -336,31 +336,22 @@ library RebalanceLogic {
             ) < $.collateralRatioTargets.minForWithdrawRebalance
         ) {
             if (
-                state.collateralUSD
-                    > $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    )
+                RebalanceMath.collateralRatioUSD(
+                    state.collateralUSD, state.debtUSD
+                ) > $.collateralRatioTargets.minForWithdrawRebalance
             ) {
-                // amount of equity in USD value which may be withdrawn from
-                // strategy without driving the collateral ratio below
-                // the minForWithdrawRebalance limit, thereby not requiring
-                // a rebalance operation
-                uint256 freeEquityUSD = state.collateralUSD
-                    - $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
-                        state.debtUSD
-                    );
-
-                // adjust share debt to account for the free equity - since
-                // some equity may be withdrawn freely, not all the debt has to be
-                // repaid
-                shareDebtUSD = shareDebtUSD
-                    - freeEquityUSD.usdMul(shareDebtUSD).usdDiv(
-                        shareEquityUSD + shareDebtUSD - freeEquityUSD
-                    );
+                shareDebtUSD = (
+                    (
+                        $.collateralRatioTargets.minForWithdrawRebalance.usdMul(
+                            state.debtUSD
+                        ) - (state.collateralUSD - shareEquityUSD)
+                    ).usdDiv(
+                        $.collateralRatioTargets.minForWithdrawRebalance
+                            - USDWadRayMath.USD
+                    )
+                );
             }
 
-            // amount of collateral needed for repaying debt of shares after
-            // freeEquityUSD is accounted for
             uint256 neededCollateralUSD = shareDebtUSD.usdDiv(
                 USDWadRayMath.USD
                     - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
