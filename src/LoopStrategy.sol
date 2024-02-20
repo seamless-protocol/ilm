@@ -229,7 +229,9 @@ contract LoopStrategy is
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         return state.collateralUSD != 0
-            && RebalanceLogic.rebalanceNeeded(currentCR, $.collateralRatioTargets);
+            && RebalanceLogic.isCollateralRatioOutOfBounds(
+                currentCR, $.collateralRatioTargets
+            );
     }
 
     /// @inheritdoc IERC4626
@@ -622,7 +624,10 @@ contract LoopStrategy is
             IERC20Metadata(address($.assets.underlying)).decimals();
 
         return ConversionMath.convertUSDToAsset(
-            usdValue, underlyingPriceUSD, underlyingDecimals
+            usdValue,
+            underlyingPriceUSD,
+            underlyingDecimals,
+            Math.Rounding.Floor
         );
     }
 }

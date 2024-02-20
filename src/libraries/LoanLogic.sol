@@ -107,13 +107,11 @@ library LoanLogic {
         uint256 shares,
         uint256 totalShares
     ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-        // calculate amount of debt and equity corresponding to shares in USD value
-        shareDebtUSD = state.debtUSD.usdMul(
-            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
-        );
-        // to calculate equity, first collateral is calculated, and debt is subtracted from it
-        shareEquityUSD = state.collateralUSD.usdMul(
-            USDWadRayMath.wadToUSD(shares.wadDiv(totalShares))
+        shareDebtUSD =
+            Math.mulDiv(state.debtUSD, shares, totalShares, Math.Rounding.Ceil);
+
+        shareEquityUSD = Math.mulDiv(
+            state.collateralUSD, shares, totalShares, Math.Rounding.Floor
         ) - shareDebtUSD;
     }
 

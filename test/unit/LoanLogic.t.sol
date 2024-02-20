@@ -370,6 +370,25 @@ contract LoanLogicTest is BaseForkTest {
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
     }
 
+    /// @dev testing exact return amounts of shareDebtAndEquityUSD per certora example
+    /// @dev debt should be rounded up
+    function test_shareDebtAndEquityUSD() public {
+        LoanState memory state = LoanState({
+            collateralUSD: 10000 * (10e8),
+            debtUSD: 2000 * (10e8),
+            maxWithdrawAmount: 0
+        });
+
+        uint256 shares = 10;
+        uint256 totalShares = 3005;
+
+        (uint256 shareDebtUSD, uint256 shareEquityUSD) =
+            LoanLogic.shareDebtAndEquity(state, shares, totalShares);
+
+        assertEq(shareDebtUSD, 6655574044);
+        assertEq(shareEquityUSD, 26622296172);
+    }
+
     /// @dev changes the borrow cap parameter for the given asset
     /// @param asset asset to change borrow cap
     /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
