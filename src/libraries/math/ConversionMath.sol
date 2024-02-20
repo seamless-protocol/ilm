@@ -36,6 +36,6 @@ library ConversionMath {
         Math.Rounding rounding
     ) internal pure returns (uint256 assetAmount) {
         assetAmount =
-            Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD, rouning);
+            Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD, rounding);
     }
 }
