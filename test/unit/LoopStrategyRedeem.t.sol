@@ -216,12 +216,12 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         assertEq(initialAliceShares - redeemAmount, strategy.balanceOf(alice));
         assertEq(strategy.totalSupply(), 0);
 
-        // ensure that the remaining collateral in USD is less than a cent
-        assertLe(strategy.collateral(), USDWadRayMath.USD / 100);
+        // ensure there is no remainin collateral
+        assertEq(strategy.collateral(), 0);
         // ensure the full debt of strategy is repaid
         assertEq(strategy.debt(), 0);
-        // ensure that the remaining equity in USD is less than a cent
-        assertLe(strategy.equityUSD(), USDWadRayMath.USD / 100);
+        // ensure that the remaining equity in USD is calculated correctly to 0
+        assertEq(strategy.equityUSD(), 0);
 
         // expected cost incurred for rebalancing is the cost associated with DEX fees
         // which is the amount of cost incurred to pay back entire debt of strategy
