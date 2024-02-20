@@ -18,7 +18,7 @@ library ConversionMath {
         uint256 priceInUSD,
         uint256 assetDecimals
     ) internal pure returns (uint256 usdAmount) {
-        usdAmount = Math.mulDiv(assetAmount, priceInUSD, 10 ** assetDecimals);
+        usdAmount = Math.mulDiv(assetAmount, priceInUSD, 10 ** assetDecimals, Math.Rounding.Floor);
     }
 
     /// @notice converts a USD amount to its token value
@@ -29,8 +29,9 @@ library ConversionMath {
     function convertUSDToAsset(
         uint256 usdAmount,
         uint256 priceInUSD,
-        uint256 assetDecimals
+        uint256 assetDecimals,
+        Math.Rounding rouning
     ) internal pure returns (uint256 assetAmount) {
-        assetAmount = Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD);
+        assetAmount = Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD, rouning);
     }
 }

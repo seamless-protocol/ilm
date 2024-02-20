@@ -624,7 +624,7 @@ contract LoopStrategy is
             IERC20Metadata(address($.assets.underlying)).decimals();
 
         return ConversionMath.convertUSDToAsset(
-            usdValue, underlyingPriceUSD, underlyingDecimals
+            usdValue, underlyingPriceUSD, underlyingDecimals, Math.Rounding.Floor
         );
     }
 }

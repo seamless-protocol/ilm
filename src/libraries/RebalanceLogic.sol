@@ -6,6 +6,7 @@ import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20Metadata } from
     "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { LoanLogic } from "./LoanLogic.sol";
 import { ConversionMath } from "./math/ConversionMath.sol";
@@ -94,10 +95,8 @@ library RebalanceLogic {
 
         // if all shares are being withdrawn, then their debt is the strategy debt
         // so in that case the redeemer incurs the full cost of paying back the debt
-        // and is left with the remaining equity.
-        // state.debtUSD can be less than shareDebtUSD because shareDebtAndEquity is
-        // adding 1 unit to the user debt
-        if (state.debtUSD <= shareDebtUSD) {
+        // and is left with the remaining equity
+        if (state.debtUSD == shareDebtUSD) {
             // pay back the debt corresponding to the shares
             rebalanceDownToDebt($, state, 0);
 
@@ -148,7 +147,8 @@ library RebalanceLogic {
         shareEquityAsset = ConversionMath.convertUSDToAsset(
             shareEquityUSD,
             $.oracle.getAssetPrice(address($.assets.collateral)),
-            IERC20Metadata(address($.assets.collateral)).decimals()
+            IERC20Metadata(address($.assets.collateral)).decimals(),
+            Math.Rounding.Floor
         );
 
         // withdraw and transfer equity asset amount
@@ -267,7 +267,7 @@ library RebalanceLogic {
         uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 
         return ConversionMath.convertUSDToAsset(
-            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
+            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals, Math.Rounding.Floor
         );
     }
 
@@ -318,7 +318,7 @@ library RebalanceLogic {
             LoanLogic.shareDebtAndEquity(state, shares, totalShares);
 
         // case when redeemer is redeeming all remaining shares
-        if (state.debtUSD <= shareDebtUSD) {
+        if (state.debtUSD == shareDebtUSD) {
             uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
                 USDWadRayMath.USD
                     - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
@@ -371,7 +371,8 @@ library RebalanceLogic {
         shareEquityAsset = ConversionMath.convertUSDToAsset(
             shareEquityUSD,
             $.oracle.getAssetPrice(address($.assets.underlying)),
-            IERC20Metadata(address($.assets.underlying)).decimals()
+            IERC20Metadata(address($.assets.underlying)).decimals(),
+            Math.Rounding.Floor
         );
 
         return shareEquityAsset;
@@ -431,7 +432,7 @@ library RebalanceLogic {
 
             // convert borrowAmount from USD to a borrowAsset amount
             uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
-                borrowAmountUSD, debtPriceUSD, debtDecimals
+                borrowAmountUSD, debtPriceUSD, debtDecimals, Math.Rounding.Floor
             );
 
             if (borrowAmountAsset == 0) {

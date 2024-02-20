@@ -50,7 +50,7 @@ contract ConversionMathTest is Test {
         usdAmount = bound(usdAmount, 1, 5 * 10 ** 50); // assume no astronomical value of USD to be converted
 
         uint256 assetAmount = ConversionMath.convertUSDToAsset(
-            usdAmount, priceInUSD, assetDecimals
+            usdAmount, priceInUSD, assetDecimals, Math.Rounding.Floor
         );
 
         assertEq(

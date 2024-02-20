@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.21;
 
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { ConversionMath } from "./ConversionMath.sol";
 import { USDWadRayMath } from "./USDWadRayMath.sol";
 import { LoanState } from "../../types/DataTypes.sol";
@@ -102,7 +103,7 @@ library RebalanceMath {
             : neededCollateralUSD;
 
         return ConversionMath.convertUSDToAsset(
-            collateralAmountUSD, collateralPriceUSD, collateralDecimals
+            collateralAmountUSD, collateralPriceUSD, collateralDecimals, Math.Rounding.Ceil
         );
     }
 }

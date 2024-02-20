@@ -107,18 +107,21 @@ library LoanLogic {
         uint256 shares,
         uint256 totalShares
     ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-        // adding 1 unit to shareDebtUSD because roundingUp is needed here
-        shareDebtUSD = USDWadRayMath.wadToUSD(
-            USDWadRayMath.usdToWad(state.debtUSD).wadMul(shares).wadDiv(
-                totalShares
-            )
-        ) + 1;
+        shareDebtUSD = 
+            Math.mulDiv(
+                state.debtUSD, 
+                shares, 
+                totalShares, 
+                Math.Rounding.Ceil
+            );
 
-        shareEquityUSD = USDWadRayMath.wadToUSD(
-            USDWadRayMath.usdToWad(state.collateralUSD).wadMul(shares).wadDiv(
-                totalShares
-            )
-        ) - shareDebtUSD;
+        shareEquityUSD =
+            Math.mulDiv(
+                state.collateralUSD,
+                shares,
+                totalShares,
+                Math.Rounding.Floor
+            ) - shareDebtUSD;
     }
 
     /// @notice returns the current state of loan position on the Seamless Protocol lending pool for the caller's account
