@@ -5,6 +5,7 @@ pragma solidity ^0.8.21;
 import { IPoolConfigurator } from
     "@aave/contracts/interfaces/IPoolConfigurator.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { RebalanceLogicContext } from "./RebalanceLogicContext.t.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
@@ -14,8 +15,6 @@ import { LoanState } from "../../src/types/DataTypes.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
-
-import "forge-std/console.sol";
 
 /// @title RebalanceLogicTest
 /// @dev RebalanceLogicTest contract which exposes RebalanceLogic library functions
@@ -71,7 +70,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
             LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
             USDbC_price,
-            6
+            6,
+            Math.Rounding.Floor
         );
 
         state =
@@ -115,7 +115,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
             LoanLogic.getMaxBorrowUSD($.lendingPool, $.assets.debt, USDbC_price),
             USDbC_price,
-            6
+            6,
+            Math.Rounding.Floor
         );
 
         state =

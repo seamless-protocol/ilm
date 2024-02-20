@@ -6,6 +6,7 @@ import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IERC20Metadata } from
     "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { LoanLogic } from "./LoanLogic.sol";
 import { ConversionMath } from "./math/ConversionMath.sol";
@@ -146,7 +147,8 @@ library RebalanceLogic {
         shareEquityAsset = ConversionMath.convertUSDToAsset(
             shareEquityUSD,
             $.oracle.getAssetPrice(address($.assets.collateral)),
-            IERC20Metadata(address($.assets.collateral)).decimals()
+            IERC20Metadata(address($.assets.collateral)).decimals(),
+            Math.Rounding.Floor
         );
 
         // withdraw and transfer equity asset amount
@@ -265,7 +267,10 @@ library RebalanceLogic {
         uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 
         return ConversionMath.convertUSDToAsset(
-            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals
+            estimatedEquityUSD,
+            underlyingPriceUSD,
+            underlyingDecimals,
+            Math.Rounding.Floor
         );
     }
 
@@ -369,7 +374,8 @@ library RebalanceLogic {
         shareEquityAsset = ConversionMath.convertUSDToAsset(
             shareEquityUSD,
             $.oracle.getAssetPrice(address($.assets.underlying)),
-            IERC20Metadata(address($.assets.underlying)).decimals()
+            IERC20Metadata(address($.assets.underlying)).decimals(),
+            Math.Rounding.Floor
         );
 
         return shareEquityAsset;
@@ -429,7 +435,7 @@ library RebalanceLogic {
 
             // convert borrowAmount from USD to a borrowAsset amount
             uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
-                borrowAmountUSD, debtPriceUSD, debtDecimals
+                borrowAmountUSD, debtPriceUSD, debtDecimals, Math.Rounding.Floor
             );
 
             if (borrowAmountAsset == 0) {
