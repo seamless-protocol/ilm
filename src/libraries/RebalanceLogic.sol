@@ -267,7 +267,10 @@ library RebalanceLogic {
         uint256 estimatedEquityUSD = collateralAfterUSD - borrowAmountUSD;
 
         return ConversionMath.convertUSDToAsset(
-            estimatedEquityUSD, underlyingPriceUSD, underlyingDecimals, Math.Rounding.Floor
+            estimatedEquityUSD,
+            underlyingPriceUSD,
+            underlyingDecimals,
+            Math.Rounding.Floor
         );
     }
 

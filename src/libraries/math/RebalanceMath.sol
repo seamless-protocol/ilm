@@ -103,7 +103,10 @@ library RebalanceMath {
             : neededCollateralUSD;
 
         return ConversionMath.convertUSDToAsset(
-            collateralAmountUSD, collateralPriceUSD, collateralDecimals, Math.Rounding.Ceil
+            collateralAmountUSD,
+            collateralPriceUSD,
+            collateralDecimals,
+            Math.Rounding.Ceil
         );
     }
 }

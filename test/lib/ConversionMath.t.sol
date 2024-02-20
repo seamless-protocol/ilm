@@ -54,8 +54,7 @@ contract ConversionMathTest is Test {
         );
 
         assertEq(
-            assetAmount,
-            Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD)
+            assetAmount, Math.mulDiv(usdAmount, 10 ** assetDecimals, priceInUSD)
         );
     }
 }

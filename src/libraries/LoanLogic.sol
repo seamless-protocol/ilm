@@ -107,21 +107,12 @@ library LoanLogic {
         uint256 shares,
         uint256 totalShares
     ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
-        shareDebtUSD = 
-            Math.mulDiv(
-                state.debtUSD, 
-                shares, 
-                totalShares, 
-                Math.Rounding.Ceil
-            );
+        shareDebtUSD =
+            Math.mulDiv(state.debtUSD, shares, totalShares, Math.Rounding.Ceil);
 
-        shareEquityUSD =
-            Math.mulDiv(
-                state.collateralUSD,
-                shares,
-                totalShares,
-                Math.Rounding.Floor
-            ) - shareDebtUSD;
+        shareEquityUSD = Math.mulDiv(
+            state.collateralUSD, shares, totalShares, Math.Rounding.Floor
+        ) - shareDebtUSD;
     }
 
     /// @notice returns the current state of loan position on the Seamless Protocol lending pool for the caller's account

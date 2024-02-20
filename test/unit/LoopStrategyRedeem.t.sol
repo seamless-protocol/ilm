@@ -412,7 +412,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         assertLe(
             receivedCollateral,
             ConversionMath.convertUSDToAsset(
-                initialShareEquityUSD, DROPPED_COLLATERAL_PRICE, 18, Math.Rounding.Floor
+                initialShareEquityUSD,
+                DROPPED_COLLATERAL_PRICE,
+                18,
+                Math.Rounding.Floor
             )
         );
 
@@ -434,7 +437,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // ensure that redeemAmount / initialTotalSupply of the total equity of the strategy
         // was transferred to Alice in the form of collateral asset, with a 0.0001% margin
         uint256 expectedTransferedTokens = ConversionMath.convertUSDToAsset(
-            initialShareEquityUSD, DROPPED_COLLATERAL_PRICE, 18, Math.Rounding.Floor
+            initialShareEquityUSD,
+            DROPPED_COLLATERAL_PRICE,
+            18,
+            Math.Rounding.Floor
         );
 
         assertEq(receivedCollateral, expectedTransferedTokens);
