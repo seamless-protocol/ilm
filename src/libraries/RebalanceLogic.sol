@@ -94,8 +94,10 @@ library RebalanceLogic {
 
         // if all shares are being withdrawn, then their debt is the strategy debt
         // so in that case the redeemer incurs the full cost of paying back the debt
-        // and is left with the remaining equity
-        if (state.debtUSD == shareDebtUSD) {
+        // and is left with the remaining equity.
+        // state.debtUSD can be less than shareDebtUSD because shareDebtAndEquity is
+        // adding 1 unit to the user debt
+        if (state.debtUSD <= shareDebtUSD) {
             // pay back the debt corresponding to the shares
             rebalanceDownToDebt($, state, 0);
 
@@ -316,7 +318,7 @@ library RebalanceLogic {
             LoanLogic.shareDebtAndEquity(state, shares, totalShares);
 
         // case when redeemer is redeeming all remaining shares
-        if (state.debtUSD == shareDebtUSD) {
+        if (state.debtUSD <= shareDebtUSD) {
             uint256 collateralNeededUSD = shareDebtUSD.usdDiv(
                 USDWadRayMath.USD
                     - $.swapper.offsetFactor($.assets.underlying, $.assets.debt)
