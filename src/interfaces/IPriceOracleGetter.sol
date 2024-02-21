@@ -7,7 +7,6 @@ pragma solidity ^0.8.21;
  * @author Aave
  * @notice Interface for the Aave price oracle.
  */
-
 interface IPriceOracleGetter {
     /**
      * @notice Returns the base currency address

@@ -124,11 +124,13 @@ contract LoopStrategyTest is BaseForkTest {
         _changePrice(CbETH, COLLATERAL_PRICE);
         _changePrice(WETH, COLLATERAL_PRICE * 80 / 100);
 
-        wrappedToken =
-        new WrappedERC20PermissionedDeposit("wCbETH", "wCbETH", CbETH, address(this));
+        wrappedToken = new WrappedERC20PermissionedDeposit(
+            "wCbETH", "wCbETH", CbETH, address(this)
+        );
 
-        swapper =
-        new SwapperMock(address(CbETH), address(USDbC), address(priceOracle));
+        swapper = new SwapperMock(
+            address(CbETH), address(USDbC), address(priceOracle)
+        );
         strategyAssets = StrategyAssets({
             underlying: CbETH,
             collateral: CbETH,

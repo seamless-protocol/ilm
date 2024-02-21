@@ -56,8 +56,9 @@ contract AerodromeAdapterTest is BaseForkTest {
     AerodromeAdapter adapter;
 
     function setUp() public {
-        adapter =
-        new AerodromeAdapter(OWNER, AERODROME_ROUTER, AERODROME_FACTORY, alice);
+        adapter = new AerodromeAdapter(
+            OWNER, AERODROME_ROUTER, AERODROME_FACTORY, alice
+        );
 
         deal(address(WETH), address(alice), 100 ether);
     }

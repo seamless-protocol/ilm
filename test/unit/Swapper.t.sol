@@ -89,7 +89,7 @@ contract SwapperTest is BaseForkTest {
         ERC1967Proxy swapperProxy = new ERC1967Proxy(
             address(swapperImplementation),
             abi.encodeWithSelector(
-                Swapper.Swapper_init.selector, 
+                Swapper.Swapper_init.selector,
                 OWNER,
                 IPriceOracleGetter(poolAddressProvider.getPriceOracle()),
                 1

@@ -22,8 +22,9 @@ contract WrappedERC20PermissionedDepositTest is Test {
 
     function setUp() public {
         mockERC20 = new MockERC20("Mock", "M");
-        wrappedToken =
-        new WrappedERC20PermissionedDeposit("WrappedMock", "WM", IERC20(mockERC20), address(this));
+        wrappedToken = new WrappedERC20PermissionedDeposit(
+            "WrappedMock", "WM", IERC20(mockERC20), address(this)
+        );
 
         deal(address(mockERC20), address(alice), 100 ether);
     }
