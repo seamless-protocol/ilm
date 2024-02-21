@@ -33,18 +33,6 @@ interface IAerodromeAdapter {
     /// @param routes array of routes for swap
     event RoutesSet(IERC20 from, IERC20 to, IRouter.Route[] routes);
 
-    /// @notice initializing function of adapter
-    /// @param owner address of adapter owner
-    /// @param router address of Aerodrome router
-    /// @param factory address of Aerodrome pair factory
-    /// @param swapper address of swapper
-    function AerodromeAdapter__Init(
-        address owner,
-        address router,
-        address factory,
-        address swapper
-    ) external;
-
     /// @notice sets the `isPoolStable` boolean for a given pair
     /// @param from address of first token
     /// @param to address of second token
@@ -70,23 +58,6 @@ interface IAerodromeAdapter {
     /// @param from address of token route ends with
     /// @param to address of token route starts with
     function removeRoutes(IERC20 from, IERC20 to) external;
-
-    /// @notice fetches the 'stable' status of a pool
-    /// @param from address of `from` token
-    /// @param to address of `to` token
-    /// @return status 'stable' status of pool
-    function getIsPoolStable(IERC20 from, IERC20 to)
-        external
-        view
-        returns (bool status);
-
-    /// @notice fetches the Aerodrome PoolFactory address
-    /// @return factory address of Aerodrome PoolFactory contract
-    function getPoolFactory() external view returns (address factory);
-
-    /// @notice fetches the Aerodrome Router address
-    /// @return router address of Aerodrome Router contract
-    function getRouter() external view returns (address router);
 
     /// @notice fetches the swap routes for a given token swap
     /// @param from address of `from` token

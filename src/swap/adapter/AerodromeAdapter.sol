@@ -2,35 +2,35 @@
 
 pragma solidity ^0.8.21;
 
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { SwapAdapterBase } from "./SwapAdapterBase.sol";
 import { IAerodromeAdapter } from "../../interfaces/IAerodromeAdapter.sol";
 import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
-import { AerodromeAdapterStorage as Storage } from
-    "../../storage/AerodromeAdapterStorage.sol";
-import { SwapAdapterBaseStorage as BaseStorage } from
-    "../../storage/SwapAdapterBaseStorage.sol";
 import { IPoolFactory } from "../../vendor/aerodrome/IPoolFactory.sol";
 import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
 
 /// @title AerodromeAdapter
 /// @notice Adapter contract for executing swaps on aerodrome
 contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
-    /// @inheritdoc IAerodromeAdapter
-    function AerodromeAdapter__Init(
-        address owner,
-        address router,
-        address factory,
-        address swapper
-    ) external initializer {
-        __Ownable_init(owner);
+    mapping(IERC20 from => mapping(IERC20 to => IRouter.Route[] routes)) public
+        swapRoutes;
+    mapping(IERC20 from => mapping(IERC20 to => bool isStable)) public
+        isPoolStable;
+    mapping(address pair => address factory) public pairFactory;
+    address public router;
+    address public poolFactory;
 
-        Storage.Layout storage $ = Storage.layout();
-        $.router = router;
-        $.poolFactory = factory;
-
-        BaseStorage.layout().swapper = swapper;
+    constructor(
+        address _owner,
+        address _router,
+        address _factory,
+        address _swapper
+    ) Ownable(_owner) {
+        router = _router;
+        poolFactory = _factory;
+        _setSwapper(_swapper);
     }
 
     /// @inheritdoc ISwapAdapter
@@ -48,23 +48,23 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
         external
         onlyOwner
     {
-        Storage.layout().isPoolStable[from][to] = status;
+        isPoolStable[from][to] = status;
 
         emit IsPoolStableSet(from, to, status);
     }
 
     /// @inheritdoc IAerodromeAdapter
     function setPoolFactory(address factory) external onlyOwner {
-        Storage.layout().poolFactory = factory;
+        poolFactory = factory;
 
         emit PoolFactorySet(factory);
     }
 
     /// @inheritdoc IAerodromeAdapter
-    function setRouter(address router) external onlyOwner {
-        Storage.layout().router = router;
+    function setRouter(address _router) external onlyOwner {
+        router = _router;
 
-        emit RouterSet(router);
+        emit RouterSet(_router);
     }
 
     /// @inheritdoc IAerodromeAdapter
@@ -72,14 +72,12 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
         external
         onlyOwner
     {
-        Storage.Layout storage $ = Storage.layout();
-
-        if ($.swapRoutes[from][to].length != 0) {
+        if (swapRoutes[from][to].length != 0) {
             _removeRoutes(from, to);
         }
 
         for (uint256 i; i < routes.length; ++i) {
-            $.swapRoutes[from][to].push(routes[i]);
+            swapRoutes[from][to].push(routes[i]);
         }
 
         emit RoutesSet(from, to, routes);
@@ -95,44 +93,20 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
         _setSwapper(swapper);
     }
 
-    /// @inheritdoc ISwapAdapter
-    function getSwapper() external view returns (address swapper) {
-        return _getSwapper();
-    }
-
     /// @inheritdoc IAerodromeAdapter
-    function getIsPoolStable(IERC20 from, IERC20 to)
-        external
-        view
-        returns (bool status)
-    {
-        return Storage.layout().isPoolStable[from][to];
-    }
-
-    /// @inheritdoc IAerodromeAdapter
-    function getPoolFactory() external view returns (address factory) {
-        return Storage.layout().poolFactory;
-    }
-
-    //// @inheritdoc IAerodromeAdapter
-    function getRouter() external view returns (address router) {
-        return Storage.layout().router;
-    }
-
-    //// @inheritdoc IAerodromeAdapter
     function getSwapRoutes(IERC20 from, IERC20 to)
         external
         view
         returns (IRouter.Route[] memory routes)
     {
-        return Storage.layout().swapRoutes[from][to];
+        return swapRoutes[from][to];
     }
 
     /// @notice deletes existing routes for a given swap
     /// @param from address of token route ends with
     /// @param to address of token route starts with
     function _removeRoutes(IERC20 from, IERC20 to) internal {
-        delete Storage.layout().swapRoutes[from][to];
+        delete swapRoutes[from][to];
 
         emit RoutesRemoved(from, to);
     }
@@ -150,16 +124,14 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
         uint256 fromAmount,
         address payable beneficiary
     ) internal override returns (uint256 toAmount) {
-        Storage.Layout storage $ = Storage.layout();
-
         from.transferFrom(msg.sender, address(this), fromAmount);
 
-        from.approve($.router, fromAmount);
+        from.approve(router, fromAmount);
 
-        uint256[] memory toAmounts = IRouter($.router).swapExactTokensForTokens(
+        uint256[] memory toAmounts = IRouter(router).swapExactTokensForTokens(
             fromAmount,
             0,
-            $.swapRoutes[from][to],
+            swapRoutes[from][to],
             beneficiary,
             block.timestamp + 10
         );

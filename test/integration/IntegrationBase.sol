@@ -107,18 +107,17 @@ contract IntegrationBase is Test, DeployHelper, DeployForkConfigs {
     function _changeBorrowInterestRate(uint256 borrowRate) internal {
         vm.startPrank(testDeployer.addr);
 
-        DefaultReserveInterestRateStrategy interestRateStrategy =
-        new DefaultReserveInterestRateStrategy(
+        DefaultReserveInterestRateStrategy interestRateStrategy = new DefaultReserveInterestRateStrategy(
             poolAddressesProvider,
-            0.5 * 1e27,               
-            borrowRate,               
-            0.0000001 * 1e27,           
-            0.0000001 * 1e27,               
-            0.0000001 * 1e27,             
-            0.0000001 * 1e27,             
-            0.0000001 * 1e27,           
-            0.0000001 * 1e27,             
-            0.0000001 * 1e27          
+            0.5 * 1e27,
+            borrowRate,
+            0.0000001 * 1e27,
+            0.0000001 * 1e27,
+            0.0000001 * 1e27,
+            0.0000001 * 1e27,
+            0.0000001 * 1e27,
+            0.0000001 * 1e27,
+            0.0000001 * 1e27
         );
 
         IPoolConfigurator(poolAddressesProvider.getPoolConfigurator())

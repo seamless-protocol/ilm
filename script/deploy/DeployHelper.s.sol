@@ -65,11 +65,11 @@ contract DeployHelper is BaseMainnetConstants {
         IERC20 underlyingToken
     ) internal returns (WrappedERC20PermissionedDeposit wrappedToken) {
         wrappedToken = new WrappedERC20PermissionedDeposit(
-      wrappedTokenERC20Config.name, 
-      wrappedTokenERC20Config.symbol, 
-      underlyingToken,
-      initialAdmin
-    );
+            wrappedTokenERC20Config.name,
+            wrappedTokenERC20Config.symbol,
+            underlyingToken,
+            initialAdmin
+        );
 
         _logAddress("WrappedToken", address(wrappedToken));
     }
@@ -140,14 +140,14 @@ contract DeployHelper is BaseMainnetConstants {
     ) internal returns (Swapper swapper) {
         Swapper swapperImplementation = new Swapper();
         ERC1967Proxy swapperProxy = new ERC1967Proxy(
-          address(swapperImplementation),
-          abi.encodeWithSelector(
-              Swapper.Swapper_init.selector, 
-              initialAdmin,
-              IPriceOracleGetter(poolAddressesProvider.getPriceOracle()),
-              swapperOffsetDeviation
-          )
-      );
+            address(swapperImplementation),
+            abi.encodeWithSelector(
+                Swapper.Swapper_init.selector,
+                initialAdmin,
+                IPriceOracleGetter(poolAddressesProvider.getPriceOracle()),
+                swapperOffsetDeviation
+            )
+        );
 
         swapper = Swapper(address(swapperProxy));
 
@@ -178,10 +178,8 @@ contract DeployHelper is BaseMainnetConstants {
         IERC20 underlyingToken = wrappedToken.underlying();
 
         // WrappedToken Adapter
-        wrappedTokenAdapter = new WrappedTokenAdapter();
-        wrappedTokenAdapter.WrappedTokenAdapter__Init(
-            initialAdmin, address(swapper)
-        );
+        wrappedTokenAdapter =
+            new WrappedTokenAdapter(initialAdmin, address(swapper));
         wrappedTokenAdapter.setWrapper(
             underlyingToken,
             IERC20(address(wrappedToken)),
@@ -189,8 +187,7 @@ contract DeployHelper is BaseMainnetConstants {
         );
 
         // UnderlyingToken <-> WETH Aerodrome Adapter
-        aerodromeAdapter = new AerodromeAdapter();
-        aerodromeAdapter.AerodromeAdapter__Init(
+        aerodromeAdapter = new AerodromeAdapter(
             initialAdmin, AERODROME_ROUTER, AERODROME_FACTORY, address(swapper)
         );
 
@@ -294,21 +291,21 @@ contract DeployHelper is BaseMainnetConstants {
         LoopStrategy strategyImplementation = new LoopStrategy();
 
         ERC1967Proxy strategyProxy = new ERC1967Proxy(
-          address(strategyImplementation),
-          abi.encodeWithSelector(
-              LoopStrategy.LoopStrategy_init.selector,
-              config.strategyERC20Config.name,
-              config.strategyERC20Config.symbol,
-              initialAdmin,
-              strategyAssets,
-              config.collateralRatioConfig.collateralRatioTargets,
-              poolAddressesProvider,
-              IPriceOracleGetter(poolAddressesProvider.getPriceOracle()),
-              swapper,
-              config.collateralRatioConfig.ratioMargin,
-              config.collateralRatioConfig.maxIterations
-          )
-      );
+            address(strategyImplementation),
+            abi.encodeWithSelector(
+                LoopStrategy.LoopStrategy_init.selector,
+                config.strategyERC20Config.name,
+                config.strategyERC20Config.symbol,
+                initialAdmin,
+                strategyAssets,
+                config.collateralRatioConfig.collateralRatioTargets,
+                poolAddressesProvider,
+                IPriceOracleGetter(poolAddressesProvider.getPriceOracle()),
+                swapper,
+                config.collateralRatioConfig.ratioMargin,
+                config.collateralRatioConfig.maxIterations
+            )
+        );
         strategy = LoopStrategy(address(strategyProxy));
 
         strategy.grantRole(strategy.PAUSER_ROLE(), initialAdmin);

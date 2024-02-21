@@ -56,9 +56,7 @@ contract AerodromeAdapterTest is BaseForkTest {
     AerodromeAdapter adapter;
 
     function setUp() public {
-        adapter = new AerodromeAdapter();
-
-        adapter.AerodromeAdapter__Init(
+        adapter = new AerodromeAdapter(
             OWNER, AERODROME_ROUTER, AERODROME_FACTORY, alice
         );
 
@@ -247,7 +245,7 @@ contract AerodromeAdapterTest is BaseForkTest {
     /// and emits the appropirate event
     function test_setIsPoolStable_setsValueForIsPoolStableForGivenTokens_andEmitsIsPoolStableSetEvent(
     ) public {
-        assertEq(adapter.getIsPoolStable(WETH, CbETH), false);
+        assertEq(adapter.isPoolStable(WETH, CbETH), false);
 
         vm.prank(OWNER);
 
@@ -256,7 +254,7 @@ contract AerodromeAdapterTest is BaseForkTest {
 
         adapter.setIsPoolStable(WETH, CbETH, true);
 
-        assertEq(adapter.getIsPoolStable(WETH, CbETH), true);
+        assertEq(adapter.isPoolStable(WETH, CbETH), true);
     }
 
     /// @dev ensures setIsPoolStable reverts when called by non owner
@@ -278,7 +276,7 @@ contract AerodromeAdapterTest is BaseForkTest {
     function test_setRouter_setAddressForRouter_and_EmitsRouterSetEvent()
         public
     {
-        assertEq(adapter.getRouter(), AERODROME_ROUTER);
+        assertEq(adapter.router(), AERODROME_ROUTER);
 
         vm.prank(OWNER);
 
@@ -306,7 +304,7 @@ contract AerodromeAdapterTest is BaseForkTest {
     /// and emits the appropirate event
     function test_setPoolFactory_setAddressForPoolFactory_andEmitsPoolFactorySetEvent(
     ) public {
-        assertEq(adapter.getPoolFactory(), AERODROME_FACTORY);
+        assertEq(adapter.poolFactory(), AERODROME_FACTORY);
 
         vm.prank(OWNER);
 
