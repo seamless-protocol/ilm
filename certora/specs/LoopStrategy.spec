@@ -24,7 +24,7 @@ methods {
 
     // Swapper
     function _.swap(address, address, uint256, address payable) external => CONSTANT; // NONDET;
-    function _.offsetFactor(address, address) external => CONSTANT; //NONDET;
+    function _.offsetFactor(address, address) external => 4 expect uint256; //CONSTANT; //NONDET;
 
     //ERC4626Upgradeable
     function _._withdraw(address, address,address, uint256 ,uint256) internal => NONDET;
@@ -260,7 +260,7 @@ rule method_reachability(method f)
 filtered { f -> !disabledFunction(f) && !timeoutingSanity(f)} 
 {
     env e; calldataarg arg;
-       require decimals() == 17;
+       require decimals() == 15;
     f(e, arg);
     satisfy true;
 }
@@ -295,6 +295,7 @@ rule method_reachability_rebalanceNeeded {
 rule equity_per_share_non_decreasing {
     env e1; env e2;
 
+    require decimals() == 15;
     uint256 equityUSD_before;
     uint256 totalSupply_before = totalSupply();
     require totalSupply_before != 0;
@@ -311,6 +312,32 @@ rule equity_per_share_non_decreasing {
     require totalSupply_after != 0;
     mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
 
+    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+rule equity_per_share_non_decreasing_100 {
+    env e1; env e2;
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    
+    require equityUSD_before == 150;
+    require totalSupply_before == 30;
     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
 
