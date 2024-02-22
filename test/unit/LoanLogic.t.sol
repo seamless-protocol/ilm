@@ -391,6 +391,19 @@ contract LoanLogicTest is BaseForkTest {
         assertEq(shareEquityUSD, 26622296172);
     }
 
+    /// @dev test confirming that getCollateralUSD function returns the same value as totalCollateralUSD
+    /// @dev from getUserAccountData function when only one asset is suplied
+    function test_getCollateralUSD() public {
+        uint256 supplyAmount = 10 ether;
+        LoanState memory loanState;
+        loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
+
+        (uint256 totalCollateralUSD,,,,,) =
+            lendingPool.pool.getUserAccountData(address(this));
+
+        assertEq(loanState.collateralUSD, totalCollateralUSD);
+    }
+
     /// @dev changes the borrow cap parameter for the given asset
     /// @param asset asset to change borrow cap
     /// @param borrowCap new borrow cap amount (in the whole token amount of asset - i.e. no decimals)
