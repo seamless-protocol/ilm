@@ -82,6 +82,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         ) / (startLeverage * 1e18);
         uint256 startDebt = startDebtUSD / 1e2;
 
+        LendingPool memory lendingPool = strategy.getLendingPool();
+
         vm.startPrank(address(strategy));
         deal(address(CbETH), address(strategy), startCollateral);
         lendingPool.pool.supply(

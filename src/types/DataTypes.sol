@@ -3,6 +3,7 @@
 pragma solidity ^0.8.21;
 
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
+import { IAToken } from "@aave/contracts/interfaces/IAToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { ISwapAdapter } from "../interfaces/ISwapAdapter.sol";
@@ -46,6 +47,8 @@ struct LendingPool {
     IPool pool;
     /// @dev interest rate mode used on loan
     uint256 interestRateMode;
+    /// @dev sToken for the collateral asset
+    IAToken sTokenCollateral;
 }
 
 /// @dev contains all data pertaining to the current position state of the strategy

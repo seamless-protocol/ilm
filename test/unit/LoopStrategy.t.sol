@@ -82,7 +82,6 @@ contract LoopStrategyTest is BaseForkTest {
     ISwapper public swapper;
     StrategyAssets public strategyAssets;
     CollateralRatio public collateralRatioTargets;
-    LendingPool public lendingPool;
 
     LoopStrategy public strategy;
 
@@ -105,12 +104,6 @@ contract LoopStrategyTest is BaseForkTest {
     address NO_ROLE = makeAddr("norole");
 
     function setUp() public virtual {
-        lendingPool = LendingPool({
-            pool: IPool(poolAddressProvider.getPool()),
-            // variable interest rate mode is 2
-            interestRateMode: 2
-        });
-
         poolDataProvider =
             IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
 
