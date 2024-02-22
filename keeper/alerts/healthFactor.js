@@ -2,11 +2,11 @@ const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
 
 const strategyABI = [
-    "function debt() external view override returns (uint256 amount)",
-    "function collateral() external view override returns (uint256 amount)",
+    "function debt() external view returns (uint256)",
+    "function collateral() external view returns (uint256)",
 ];
 const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
-const healthFactorThreshold = '';
+const healthFactorThreshold = 10**8; //value used for testing
 const BASE = 10**8;
 
 // check whether health factor is below threshhold
@@ -15,7 +15,7 @@ async function isStrategyAtRisk(strategy) {
         const debtUSD = await strategy.debt();
         const collateralUSD = await strategy.collateral();
 
-        const healthFactor =  collateralUSD * BASE / debtUSD;
+        const healthFactor = collateralUSD * BASE / debtUSD;
 
         return {
             isAtRisk: healthFactor <= healthFactorThreshold,
@@ -26,7 +26,7 @@ async function isStrategyAtRisk(strategy) {
     }
 }
 
-// checls that alert channels matching 'seamless-alerts' alias exist and returns them
+// checks that alert channels matching 'seamless-alerts' alias exist and returns them
 async function checkAlertChannelsExist(client) {
     const notificationChannels = await client.monitor.listNotificationChannels();
     
@@ -62,5 +62,9 @@ exports.handler = async function (credentials, context) {
         }
     }
 }
+
+exports.isStrategyAtRisk = isStrategyAtRisk;
+exports.checkAlertChannelsExist = checkAlertChannelsExist;
+exports.healthFactorThreshold = healthFactorThreshold;
 
 
