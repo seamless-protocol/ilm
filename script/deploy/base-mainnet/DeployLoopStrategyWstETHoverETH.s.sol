@@ -42,11 +42,11 @@ contract LoopStrategyWstETHoverETHConfig is BaseMainnetConstants {
         wrappedTokenReserveConfig: ReserveConfig(address(0),"","","","","","",0,0,0), // empty, not used
         collateralRatioConfig: CollateralRatioConfig({
             collateralRatioTargets: CollateralRatio({
-                target: USDWadRayMath.usdDiv(150, 50), // 1.5
-                minForRebalance: USDWadRayMath.usdDiv(135, 35), // 1.35
-                maxForRebalance: USDWadRayMath.usdDiv(1500015, 500015), // 1.500015
-                maxForDepositRebalance: USDWadRayMath.usdDiv(150, 50), // 1.5
-                minForWithdrawRebalance: USDWadRayMath.usdDiv(150, 50) // 1.5
+                target: USDWadRayMath.usdDiv(150, 100), // 1.5
+                minForRebalance: USDWadRayMath.usdDiv(135, 100), // 1.35
+                maxForRebalance: USDWadRayMath.usdDiv(1500015, 1000000), // 1.500015
+                maxForDepositRebalance: USDWadRayMath.usdDiv(150, 100), // 1.5
+                minForWithdrawRebalance: USDWadRayMath.usdDiv(150, 100) // 1.5
              }),
             ratioMargin: 1, // 0.000001% ratio margin
             maxIterations: 10
