@@ -55,7 +55,7 @@ exports.handler = async function (credentials, context) {
             notificationClient.send({
                 channelAlias: 'seamless-alerts',
                 subject: 'HEALTH FACTOR THRESHOLD BREACHED',
-                message: `Current strategy health factor factory is: ${healthFactorThreshold} and healthFactor is ${healthFactor} `,
+                message: `Current strategy health factor threshold is: ${healthFactorThreshold} and healthFactor is ${healthFactor} `,
               });
         } catch (error) {
             console.error('Failed to send notification', error);
