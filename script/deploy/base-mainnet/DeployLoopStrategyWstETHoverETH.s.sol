@@ -71,7 +71,7 @@ contract DeployLoopStrategyWstETHoverETH is Script, DeployHelper, LoopStrategyWs
         );
 
         (WrappedTokenAdapter wrappedTokenAdapter, AerodromeAdapter aerodromeAdapter) = _deploySwapAdapters(
-            Swapper(address(swapper)), wrappedToken, deployerAddress
+            swapper, wrappedToken, deployerAddress
         );
 
         _setupSwapperRoutes(
