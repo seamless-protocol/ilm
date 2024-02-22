@@ -248,11 +248,11 @@ library LoanLogic {
         IERC20 debtAsset,
         uint256 debtAssetPrice
     ) internal view returns (uint256 maxBorrowUSD) {
-        uint256 availableAssetSupply =
-            getAvailableAssetSupply(lendingPool, debtAsset);
-        uint256 assetDecimals = IERC20Metadata(address(debtAsset)).decimals();
-        uint256 availableAssetSupplyUSD =
-            availableAssetSupply * debtAssetPrice / (10 ** assetDecimals);
+        uint256 availableAssetSupplyUSD = ConversionMath.convertAssetToUSD(
+            getAvailableAssetSupply(lendingPool, debtAsset),
+            debtAssetPrice,
+            IERC20Metadata(address(debtAsset)).decimals()
+        );
 
         (,, uint256 availableBorrowsUSD,,,) =
             lendingPool.pool.getUserAccountData(address(this));
