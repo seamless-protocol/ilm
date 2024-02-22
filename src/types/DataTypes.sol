@@ -47,7 +47,7 @@ struct LendingPool {
     IPool pool;
     /// @dev interest rate mode used on loan
     uint256 interestRateMode;
-    /// @dev sToken for the collateral asset 
+    /// @dev sToken for the collateral asset
     IAToken sTokenCollateral;
 }
 

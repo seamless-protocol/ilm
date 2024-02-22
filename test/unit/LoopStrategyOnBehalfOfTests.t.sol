@@ -37,26 +37,27 @@ import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
 contract LoopStrategyOnBehalfOfTests is LoopStrategyTest {
+    function test_supplyOnBehalfOfStrategy_shouldNotChangeCollateralUSD()
+        public
+    {
+        LendingPool memory lendingPool = strategy.getLendingPool();
 
-  function test_supplyOnBehalfOfStrategy_shouldNotChangeCollateralUSD() public {
-    
-    LendingPool memory lendingPool = strategy.getLendingPool();
+        uint256 depositAmount = 5 ether;
+        _depositFor(alice, depositAmount);
 
-    uint256 depositAmount = 5 ether;
-    _depositFor(alice, depositAmount);
+        uint256 collateralStart = strategy.collateral();
 
-    uint256 collateralStart = strategy.collateral();
-
-    vm.startPrank(bob);
+        vm.startPrank(bob);
         uint256 supplyAmount = 5000 * 1e8;
         deal(address(USDbC), bob, supplyAmount);
         USDbC.approve(address(lendingPool.pool), supplyAmount);
-        lendingPool.pool.supply(address(USDbC), supplyAmount, address(strategy), 0);
-    vm.stopPrank();
+        lendingPool.pool.supply(
+            address(USDbC), supplyAmount, address(strategy), 0
+        );
+        vm.stopPrank();
 
-    uint256 collateralEnd = strategy.collateral();
+        uint256 collateralEnd = strategy.collateral();
 
-    assertEq(collateralStart, collateralEnd);
-  }
-
+        assertEq(collateralStart, collateralEnd);
+    }
 }

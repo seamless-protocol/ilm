@@ -12,7 +12,8 @@ import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IAToken } from "@aave/contracts/interfaces/IAToken.sol";
-import { IPoolDataProvider } from "@aave/contracts/interfaces/IPoolDataProvider.sol";
+import { IPoolDataProvider } from
+    "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IVariableDebtToken } from
     "@aave/contracts/interfaces/IVariableDebtToken.sol";
 import { ReserveConfiguration } from
@@ -123,13 +124,20 @@ library LoanLogic {
     /// @notice returns the USD vaue of supplied collateral, counting only for defined strategy collateral asset
     /// @param lendingPool struct which contains lending pool setup (pool address, interest mode, sToken)
     /// @return collateralUSD USD value of collateral
-    function _getCollateralUSD(LendingPool memory lendingPool) internal view returns(uint256 collateralUSD) {
+    function _getCollateralUSD(LendingPool memory lendingPool)
+        internal
+        view
+        returns (uint256 collateralUSD)
+    {
         IPriceOracleGetter priceOracle = IPriceOracleGetter(
-            IPoolAddressesProvider(lendingPool.pool.ADDRESSES_PROVIDER()).getPriceOracle()
+            IPoolAddressesProvider(lendingPool.pool.ADDRESSES_PROVIDER())
+                .getPriceOracle()
         );
 
-        uint256 collateralAsset = lendingPool.sTokenCollateral.balanceOf(address(this));
-        address underlyingCollateralAsset = lendingPool.sTokenCollateral.UNDERLYING_ASSET_ADDRESS();
+        uint256 collateralAsset =
+            lendingPool.sTokenCollateral.balanceOf(address(this));
+        address underlyingCollateralAsset =
+            lendingPool.sTokenCollateral.UNDERLYING_ASSET_ADDRESS();
 
         collateralUSD = ConversionMath.convertAssetToUSD(
             collateralAsset,
@@ -267,9 +275,9 @@ library LoanLogic {
     /// @param asset asset for which to get sToken address
     /// @return sToken sToken address
     function getSToken(
-        IPoolAddressesProvider poolAddressesProvider, 
+        IPoolAddressesProvider poolAddressesProvider,
         IERC20 asset
-    ) internal view returns(IAToken sToken) {
+    ) internal view returns (IAToken sToken) {
         IPoolDataProvider poolDataProvider =
             IPoolDataProvider(poolAddressesProvider.getPoolDataProvider());
 

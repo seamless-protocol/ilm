@@ -53,7 +53,6 @@ contract LoanLogicTest is BaseForkTest {
     /// @dev set up testing on the fork of the base mainnet
     /// @dev and get all needed parameters from already deployed pool
     function setUp() public {
-
         poolDataProvider =
             IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
         (,, lqtWETH,,,,,,,) =
