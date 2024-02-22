@@ -49,11 +49,11 @@ contract LoopStrategyWstETHoverETHConfig is BaseMainnetConstants {
                 minForWithdrawRebalance: USDWadRayMath.usdDiv(150, 100) // 1.5
              }),
             ratioMargin: 1, // 0.000001% ratio margin
-            maxIterations: 10
+            maxIterations: 20
         }),
         swapperConfig: SwapperConfig({
             swapperOffsetFactor: 350000, // 0.35 %
-            swapperOffsetDeviation: 100000000 // 100%
+            swapperOffsetDeviation: 200000000 // 200%
          })
     });
 }
@@ -110,11 +110,3 @@ contract DeployLoopStrategyWstETHoverETH is Script, DeployHelper, LoopStrategyWs
         vm.stopBroadcast();
     }
 }
-
-// After deploy SEAMLESS_COMMUNITY_MULTISIG should execute:
-    // wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), strategy);
-    // wrappedToken.grantRole(
-    //     wrappedToken.DEPOSITOR_ROLE(), wrappedTokenAdapter
-    // );
-    // wrappedTokenAdapter.acceptOwnership()
-    // aerodromeAdapter.acceptOwnership()
