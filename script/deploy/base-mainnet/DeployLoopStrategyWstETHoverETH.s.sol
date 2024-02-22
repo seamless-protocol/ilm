@@ -100,20 +100,20 @@ contract DeployLoopStrategyWstETHoverETH is
 
         // set admin roles on swapper
         swapper.grantRole(
-            wrappedToken.DEFAULT_ADMIN_ROLE(),
+            swapper.DEFAULT_ADMIN_ROLE(),
             SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS
         );
         swapper.grantRole(
-            wrappedToken.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG
+            swapper.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG
         );
 
         // set admin roles on strategy
         strategy.grantRole(
-            wrappedToken.DEFAULT_ADMIN_ROLE(),
+            strategy.DEFAULT_ADMIN_ROLE(),
             SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS
         );
         strategy.grantRole(
-            wrappedToken.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG
+            strategy.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG
         );
 
         // transfer ownership on token adapters
@@ -121,9 +121,9 @@ contract DeployLoopStrategyWstETHoverETH is
         aerodromeAdapter.transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
 
         // renounce deployer admin roles
-        swapper.renounceRole(wrappedToken.DEFAULT_ADMIN_ROLE(), deployerAddress);
+        swapper.renounceRole(swapper.DEFAULT_ADMIN_ROLE(), deployerAddress);
         strategy.renounceRole(
-            wrappedToken.DEFAULT_ADMIN_ROLE(), deployerAddress
+            strategy.DEFAULT_ADMIN_ROLE(), deployerAddress
         );
 
         vm.stopBroadcast();
