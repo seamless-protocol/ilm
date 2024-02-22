@@ -55,7 +55,8 @@ contract LoanLogicTest is BaseForkTest {
         lendingPool = LendingPool({
             pool: IPool(poolAddressProvider.getPool()),
             // variable interest rate mode is 2
-            interestRateMode: 2
+            interestRateMode: 2,
+            sTokenCollateral: IERC20(address(1))
         });
 
         poolDataProvider =

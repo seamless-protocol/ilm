@@ -42,10 +42,16 @@ struct StrategyAssets {
 
 /// @dev conatins address of the lending pool and configuration
 struct LendingPool {
+    // works when defined here
+    // IERC20 sTokenCollateral;
+
     /// @dev address of the lending pool
     IPool pool;
     /// @dev interest rate mode used on loan
     uint256 interestRateMode;
+
+    // doesn't work when defined here
+    IERC20 sTokenCollateral;
 }
 
 /// @dev contains all data pertaining to the current position state of the strategy
