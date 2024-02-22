@@ -10,6 +10,7 @@ import { IPoolDataProvider } from
 import { IPriceOracleGetter } from
     "@aave/contracts/interfaces/IPriceOracleGetter.sol";
 import { IACLManager } from "@aave/contracts/interfaces/IACLManager.sol";
+import { IAToken } from "@aave/contracts/interfaces/IAToken.sol";
 import { IPoolConfigurator } from
     "@aave/contracts/interfaces/IPoolConfigurator.sol";
 import { ReserveConfiguration } from
@@ -52,11 +53,6 @@ contract LoanLogicTest is BaseForkTest {
     /// @dev set up testing on the fork of the base mainnet
     /// @dev and get all needed parameters from already deployed pool
     function setUp() public {
-        lendingPool = LendingPool({
-            pool: IPool(poolAddressProvider.getPool()),
-            // variable interest rate mode is 2
-            interestRateMode: 2
-        });
 
         poolDataProvider =
             IPoolDataProvider(poolAddressProvider.getPoolDataProvider());
@@ -71,6 +67,13 @@ contract LoanLogicTest is BaseForkTest {
             poolDataProvider.getReserveTokensAddresses(address(USDbC));
         sUSDbC = IERC20(sUSDbCaddress);
         debtUSDbC = IERC20(debtUSDbCaddress);
+
+        lendingPool = LendingPool({
+            pool: IPool(poolAddressProvider.getPool()),
+            // variable interest rate mode is 2
+            interestRateMode: 2,
+            sTokenCollateral: IAToken(sWETHaddress)
+        });
 
         // getting token prices
         priceOracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());

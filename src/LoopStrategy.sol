@@ -93,7 +93,8 @@ contract LoopStrategy is
         $.lendingPool = LendingPool({
             pool: IPool(_poolAddressProvider.getPool()),
             // 2 is the variable interest rate mode
-            interestRateMode: 2
+            interestRateMode: 2,
+            sTokenCollateral: LoanLogic.getSToken($.poolAddressProvider, $.assets.collateral)
         });
 
         // there is no assets cap until it's otherwise set by the setter function

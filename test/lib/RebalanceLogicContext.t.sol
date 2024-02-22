@@ -26,6 +26,7 @@ import {
     StrategyAssets,
     Step
 } from "../../src/types/DataTypes.sol";
+import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 
 /// @title RebalanceLogicContext contract
 /// @dev Setup for the context in which the RebalanceLogic library is tested.
@@ -33,11 +34,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
     /// contracts needed for setting up and testing RebalanceLogic
     IPoolAddressesProvider public constant poolAddressProvider =
         IPoolAddressesProvider(SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET);
-    // IPriceOracleGetter public oracle;
-    IPoolDataProvider public poolDataProvider;
-    // LendingPool lendingPool;
-    // StrategyAssets public assets;
-    // SwapperMock public swapper;
+    
     IERC20 public constant WETH = IERC20(BASE_MAINNET_WETH);
     IERC20 public constant USDbC = IERC20(BASE_MAINNET_USDbC);
     IERC20 public constant CbETH = IERC20(BASE_MAINNET_CbETH);
@@ -74,7 +71,8 @@ abstract contract RebalanceLogicContext is BaseForkTest {
         $.lendingPool = LendingPool({
             pool: IPool(poolAddressProvider.getPool()),
             // variable interest rate mode is 2
-            interestRateMode: 2
+            interestRateMode: 2,
+            sTokenCollateral: LoanLogic.getSToken(poolAddressProvider, $.assets.collateral)
         });
         $.oracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
         $.ratioMargin = 100_000; // 1e2 / 1e8 = 0.001%

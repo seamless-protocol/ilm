@@ -9,6 +9,10 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
+import { IAToken } from "@aave/contracts/interfaces/IAToken.sol";
+import { IPoolDataProvider } from "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IVariableDebtToken } from
     "@aave/contracts/interfaces/IVariableDebtToken.sol";
 import { ReserveConfiguration } from
@@ -18,6 +22,7 @@ import { DataTypes } from
 import { PercentageMath } from
     "@aave/contracts/protocol/libraries/math/PercentageMath.sol";
 import { USDWadRayMath } from "./math/USDWadRayMath.sol";
+import { ConversionMath } from "./math/ConversionMath.sol";
 import { LoanState, LendingPool } from "../types/DataTypes.sol";
 
 /// @title LoanLogic
@@ -115,17 +120,38 @@ library LoanLogic {
         ) - shareDebtUSD;
     }
 
+    /// @notice returns the USD vaue of supplied collateral, counting only for defined strategy collateral asset
+    /// @param lendingPool struct which contains lending pool setup (pool address, interest mode, sToken)
+    /// @return collateralUSD USD value of collateral
+    function _getCollateralUSD(LendingPool memory lendingPool) internal view returns(uint256 collateralUSD) {
+        IPriceOracleGetter priceOracle = IPriceOracleGetter(
+            IPoolAddressesProvider(lendingPool.pool.ADDRESSES_PROVIDER()).getPriceOracle()
+        );
+
+        uint256 collateralAsset = lendingPool.sTokenCollateral.balanceOf(address(this));
+        address underlyingCollateralAsset = lendingPool.sTokenCollateral.UNDERLYING_ASSET_ADDRESS();
+
+        collateralUSD = ConversionMath.convertAssetToUSD(
+            collateralAsset,
+            priceOracle.getAssetPrice(underlyingCollateralAsset),
+            IERC20Metadata(underlyingCollateralAsset).decimals()
+        );
+    }
+
     /// @notice returns the current state of loan position on the Seamless Protocol lending pool for the caller's account
     /// @notice all returned values are in USD value
-    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
+    /// @param lendingPool struct which contains lending pool setup (pool address, interest mode, sToken)
     /// @return state loan state after supply call
     function getLoanState(LendingPool memory lendingPool)
         internal
         view
         returns (LoanState memory state)
     {
+        uint256 collateralUSD = _getCollateralUSD(lendingPool);
+
         (
-            uint256 totalCollateralUSD,
+            /* totalCollateralUSD */
+            ,
             uint256 totalDebtUSD,
             /* availableBorrowsUSD8 */
             ,
@@ -135,7 +161,7 @@ library LoanLogic {
             /* healthFactor */
         ) = lendingPool.pool.getUserAccountData(address(this));
 
-        if (totalCollateralUSD == 0) {
+        if (collateralUSD == 0) {
             return LoanState({
                 collateralUSD: 0,
                 debtUSD: 0,
@@ -147,14 +173,14 @@ library LoanLogic {
         // This can happen when the debt is already above liquidation trashold
         // (due to collateral asset price fall, borrow asset price raise, or interest increase)
         if (
-            totalCollateralUSD
+            collateralUSD
                 < PercentageMath.percentDiv(
                     totalDebtUSD, currentLiquidationThreshold
                 )
         ) {
             maxWithdrawAmount = 0;
         } else {
-            maxWithdrawAmount = totalCollateralUSD
+            maxWithdrawAmount = collateralUSD
                 - PercentageMath.percentDiv(
                     totalDebtUSD, currentLiquidationThreshold
                 );
@@ -164,14 +190,14 @@ library LoanLogic {
             PercentageMath.percentMul(maxWithdrawAmount, MAX_AMOUNT_PERCENT);
 
         return LoanState({
-            collateralUSD: totalCollateralUSD,
+            collateralUSD: collateralUSD,
             debtUSD: totalDebtUSD,
             maxWithdrawAmount: maxWithdrawAmount
         });
     }
 
     /// @notice returns the available supply for the asset, taking into account defined borrow cap
-    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
+    /// @param lendingPool struct which contains lending pool setup (pool address, interest mode, sToken)
     /// @param asset asset for which the available supply is returned
     /// @return availableAssetSupply available supply
     function getAvailableAssetSupply(
@@ -213,7 +239,7 @@ library LoanLogic {
     }
 
     /// @notice returns the maximum borrow avialble for the asset in USD terms, taking into account borrow cap and asset supply
-    /// @param lendingPool struct which contains lending pool setup (pool address and interest rate mode)
+    /// @param lendingPool struct which contains lending pool setup (pool address, interest mode, sToken)
     /// @param debtAsset asset for wich max borrow is returned
     /// @param debtAssetPrice price of the asset
     /// @return maxBorrowUSD maximum available borrow
@@ -234,5 +260,23 @@ library LoanLogic {
         maxBorrowUSD =
             PercentageMath.percentMul(maxBorrowUSD, MAX_AMOUNT_PERCENT);
         return maxBorrowUSD;
+    }
+
+    /// @notice returns sToken address for the provided asset
+    /// @param poolAddressesProvider lending pool addresses provider
+    /// @param asset asset for which to get sToken address
+    /// @return sToken sToken address
+    function getSToken(
+        IPoolAddressesProvider poolAddressesProvider, 
+        IERC20 asset
+    ) internal view returns(IAToken sToken) {
+        IPoolDataProvider poolDataProvider =
+            IPoolDataProvider(poolAddressesProvider.getPoolDataProvider());
+
+        // getting reserve token addresses
+        (address sTokenAddress,,) =
+            poolDataProvider.getReserveTokensAddresses(address(asset));
+
+        sToken = IAToken(sTokenAddress);
     }
 }

@@ -130,7 +130,7 @@ contract LoopStrategySetupTest is LoopStrategyTest {
                 bytes32(
                     uint256(
                         0x324C4071AA3926AF75895CE4C01A62A23C8476ED82CD28BA23ABB8C0F6634B00
-                    ) + 12
+                    ) + 13
                 )
             )
         );
