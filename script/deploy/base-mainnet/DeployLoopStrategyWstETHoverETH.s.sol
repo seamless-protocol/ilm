@@ -4,6 +4,8 @@ pragma solidity 0.8.21;
 
 import { Script } from "forge-std/Script.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IAccessControl } from
+    "@openzeppelin/contracts/access/IAccessControl.sol";
 import { ISwapper, Swapper } from "../../../src/swap/Swapper.sol";
 import { LoopStrategy, ILoopStrategy } from "../../../src/LoopStrategy.sol";
 import { WrappedTokenAdapter } from
@@ -98,34 +100,38 @@ contract DeployLoopStrategyWstETHoverETH is
 
         _setupSwapperRoles(Swapper(address(swapper)), strategy);
 
-        // set admin roles on swapper
-        swapper.grantRole(
-            swapper.DEFAULT_ADMIN_ROLE(),
-            SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS
-        );
-        swapper.grantRole(
-            swapper.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG
-        );
+        // set roles on swapper
+        _grantRoles(swapper, swapper.DEFAULT_ADMIN_ROLE());
+        _grantRoles(swapper, swapper.MANAGER_ROLE());
+        _grantRoles(swapper, swapper.UPGRADER_ROLE());
 
-        // set admin roles on strategy
-        strategy.grantRole(
-            strategy.DEFAULT_ADMIN_ROLE(),
-            SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS
-        );
-        strategy.grantRole(
-            strategy.DEFAULT_ADMIN_ROLE(), SEAMLESS_COMMUNITY_MULTISIG
-        );
+        // set roles on strategy
+        _grantRoles(strategy, strategy.DEFAULT_ADMIN_ROLE());
+        _grantRoles(strategy, strategy.MANAGER_ROLE());
+        _grantRoles(strategy, strategy.UPGRADER_ROLE());
+        _grantRoles(strategy, strategy.PAUSER_ROLE());
 
         // transfer ownership on token adapters
         wrappedTokenAdapter.transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
         aerodromeAdapter.transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
 
-        // renounce deployer admin roles
+        // renounce deployer roles
+        swapper.renounceRole(swapper.MANAGER_ROLE(), deployerAddress);
+        swapper.renounceRole(swapper.UPGRADER_ROLE(), deployerAddress);
         swapper.renounceRole(swapper.DEFAULT_ADMIN_ROLE(), deployerAddress);
-        strategy.renounceRole(
-            strategy.DEFAULT_ADMIN_ROLE(), deployerAddress
-        );
+
+        strategy.renounceRole(strategy.MANAGER_ROLE(), deployerAddress);
+        strategy.renounceRole(strategy.PAUSER_ROLE(), deployerAddress);
+        strategy.renounceRole(strategy.UPGRADER_ROLE(), deployerAddress);
+        strategy.renounceRole(strategy.DEFAULT_ADMIN_ROLE(), deployerAddress);
 
         vm.stopBroadcast();
+    }
+
+    function _grantRoles(IAccessControl accessContract, bytes32 role)
+        internal
+    {
+        accessContract.grantRole(role, SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS);
+        accessContract.grantRole(role, SEAMLESS_COMMUNITY_MULTISIG);
     }
 }
