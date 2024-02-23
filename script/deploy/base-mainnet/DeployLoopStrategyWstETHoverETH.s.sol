@@ -98,7 +98,7 @@ contract DeployLoopStrategyWstETHoverETH is
 
         strategy.setAssetsCap(assetsCap);
 
-        _setupSwapperRoles(Swapper(address(swapper)), strategy);
+        _setupSwapperRoles(swapper, strategy);
 
         // set roles on swapper
         _grantRoles(swapper, swapper.DEFAULT_ADMIN_ROLE());
