@@ -119,10 +119,6 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         external
         onlyRole(MANAGER_ROLE)
     {
-        if (offsetDeviationUSD > USDWadRayMath.USD) {
-            revert USDValueOutsideRange();
-        }
-
         Storage.layout().offsetDeviationUSD = offsetDeviationUSD;
 
         emit OffsetDeviationSet(offsetDeviationUSD);

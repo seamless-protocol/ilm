@@ -17,3 +17,6 @@ test                    :; forge test -vvvv --gas-report
 # Deploy
 deploy-wrappedwstETH-base-mainnet 		:; forge script script/deploy/base-mainnet/DeployWrappedwstETH.s.sol --tc DeployWrappedwstETH --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-wrappedwstETH-fork 						:; forge script script/deploy/base-mainnet/DeployWrappedwstETH.s.sol --tc DeployWrappedwstETH --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
+
+deploy-loopStrategyWstETHoverETH-base-mainnet 		:; forge script script/deploy/base-mainnet/DeployLoopStrategyWstETHoverETH.s.sol --tc DeployLoopStrategyWstETHoverETH --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-loopStrategyWstETHoverETH-fork 						:; forge script script/deploy/base-mainnet/DeployLoopStrategyWstETHoverETH.s.sol --tc DeployLoopStrategyWstETHoverETH --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
