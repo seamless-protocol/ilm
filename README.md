@@ -19,14 +19,17 @@ The ILM repo is subject to the [Styling Guide](./STYLING_GUIDE.md).
 
 The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol) which fulfills the role of the lender. 
 
-## Smart Contract addresses on Base
-| Smart Contract | Address |
-| --- | --- |
-| wstETH/ETH 3x Loop Strategy | [0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e](https://basescan.org/address/0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e) |
-| Seamless ILM Reserved wstETH | [0xc9ae3B5673341859D3aC55941D27C8Be4698C9e4](https://basescan.org/address/0xc9ae3B5673341859D3aC55941D27C8Be4698C9e4) |
-| Swapper | [0xE314ae9D279919a00d4773cCe37946A98fADDaBc](https://basescan.org/address/0xE314ae9D279919a00d4773cCe37946A98fADDaBc) |
-| WrappedTokenAdapter | [0xc3e17CDac7C6ED317f0D9845d47df1a281B5f79E](https://basescan.org/address/0xc3e17CDac7C6ED317f0D9845d47df1a281B5f79E) |
-| AerodromeAdapter | [0x6Cfc78c96f87e522EBfDF86995609414cFB1DcB2](https://basescan.org/address/0x6Cfc78c96f87e522EBfDF86995609414cFB1DcB2) |
+## Deployment Addresses
+
+### Base Mainnet
+
+| Contract                      | Proxy address                                | Implementation address                       |
+| --------------------------    | -------------------------------------------- | -------------------------------------------- |
+| wstETH/ETH 3x Loop Strategy   | `0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e` | `0xb94799306c30c091779f4801cc4cd293f7f993b7` |
+| Seamless ILM Reserved wstETH  |                                              | `0xc9ae3B5673341859D3aC55941D27C8Be4698C9e4` |
+| Swapper                       | `0xE314ae9D279919a00d4773cCe37946A98fADDaBc` | `0x04550e50f4753352f233aba53f094fc3cd62c54e` |
+| WrappedTokenAdapter           |                                              | `0xc3e17CDac7C6ED317f0D9845d47df1a281B5f79E` |
+| AerodromeAdapter              |                                              | `0x6Cfc78c96f87e522EBfDF86995609414cFB1DcB2` |
 
 ## Audits
 TBA
