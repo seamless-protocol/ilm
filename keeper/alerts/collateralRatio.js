@@ -20,7 +20,7 @@ async function isStrategyOverexposed(strategy) {
        };
         
     } catch (err) {
-        console.error('An error has occured during collateral ratio checl: ', err);
+        console.error('An error has occured during collateral ratio check: ', err);
     }
 }
 
@@ -49,3 +49,5 @@ exports.handler = async function (credentials, context) {
         }
     }
 }
+
+exports.isStrategyOverexposed = isStrategyOverexposed;
