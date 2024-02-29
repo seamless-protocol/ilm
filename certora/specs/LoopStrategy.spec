@@ -2,29 +2,29 @@
 import "CVLMath.spec";
 
 using LoopStrategyHarness as _LoopStrategy;
+using CollateralERC20 as _CollateralERC20;
 
 methods {
 
-
-    // Pool:
-
-    //using under-approx. for refuting. Todo: remove
-    function _.getUserAccountData(address user) external => DISPATCHER(true);
-//    function _.getUserAccountData(address user) external   => CONSTANT;
-//    function _.getUserAccountData(address user) external   => getUserAccountData_nondet(user) expect (uint256,uint256,uint256,uint256,uint256,uint256);
-//    function _.getUserAccountData(address user) external   => getUserAccountData_ones(user) expect (uint256,uint256,uint256,uint256,uint256,uint256);
-
+    // envfree
     function equity() external returns (uint256) envfree;
     function equityUSD() external returns (uint256) envfree;
     function debt() external returns (uint256) envfree;
     function collateral() external returns (uint256) envfree;
     function currentCollateralRatio() external returns (uint256) envfree;
     function totalSupply() external returns (uint256) envfree;
+    function getCollateralRatioTargets() external returns (LoopStrategyHarness.CollateralRatio) envfree;
+    function getRatioMagin() external returns (uint256) envfree;
 
+    
+    //Summaries
 
+    //WrappedERC20PermissionedDeposit
+    function _.withdraw(uint256 amount) external => NONDET; 
+    
     // Swapper
-    function _.swap(address, address, uint256, address payable) external => CONSTANT; // NONDET;
-    function _.offsetFactor(address, address) external => 4 expect uint256; //CONSTANT; //NONDET;
+    function _.swap(address, address, uint256, address payable) external => CONSTANT; 
+    function _.offsetFactor(address, address) external => 6000000 expect uint256; // TODO: relax
 
     //ERC4626Upgradeable
     function _._withdraw(address, address,address, uint256 ,uint256) internal => NONDET;
@@ -32,80 +32,57 @@ methods {
     //ERC20Upgradeable
     function _._mint(address, uint256) internal => NONDET;
 
-    // function _.supply(address, uint256, address, uint16) external => DISPATCHER(true); 
-    // function _.repay(address, uint256, uint256, address) external => DISPATCHER(true);
-    // function _.withdraw(address, uint256, address) external => DISPATCHER(true);
-     function _.getReserveData(address) external => CONSTANT;
-    // function _.borrow(address, uint256, uint256, uint16, address) external => DISPATCHER(true);
-    // function _.getReserveNormalizedVariableDebt(address) external => DISPATCHER(true);
+    // Pool:
+    function _.getUserAccountData(address user) external   => simplified_getUserAccountData(user) expect (uint256,uint256,uint256,uint256,uint256,uint256);
+    function _.supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external
+            => simplified_supply(asset, amount, onBehalfOf, referralCode) expect void;
 
-    function decimals() external returns uint8 envfree;
-    // ERC20Metadata
-    //function _.name() external => DISPATCHER(true);
-    //function _.symbol() external => DISPATCHER(true);
-    function _.decimals() external => const_decimals() expect uint256;
-    //function _.getDecimals() external => const_decimals() expect uint256;
+    function _.repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) external
+             => simplified_repay(asset, amount, interestRateMode, onBehalfOf) expect uint256;
 
+     function _.withdraw(address asset, uint256 amount, address to) external
+            => simplified_withdraw(asset, amount, to) expect uint256;
+
+    function _.borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf) external 
+                => simplified_borrow(asset, amount, interestRateMode, referralCode, onBehalfOf) expect void;
     
-/*
+    function _.getReserveData(address) external => CONSTANT;
+    
 
+    // ERC20Metadata
+    function decimals() external returns uint8 envfree;
+    function _.decimals() external => 10 expect uint256; //toodo: relax
+    
     // IERC20
-    function _.approve(address, uint256) external => DISPATCHER(true);
-    function _.transfer(address, uint256) external => DISPATCHER(true);
-    function _.transferFrom(address, address, uint256) external => DISPATCHER(true);
-    function _.balanceOf(address) external => DISPATCHER(true);
+    function _.approve(address, uint256) external => NONDET;
+    function _.balanceOf(address) external => DISPATCHER(true); // only DebtERC20.balanceOf() is used
 
-*/
+
     // PriceOracle
-    //function _.setAssetPrice(address, uint256) external => DISPATCHER(true);
-    function _.getAssetPrice(address) external => CONSTANT;
+    function _.getAssetPrice(address a)  external => 10 ^ 11 expect uint256; //todo: allow any price
 
-
-
-/*
     // IVariableDebtToken
-    function _.scaledTotalSupply() external => DISPATCHER(true);
-
+    //function _.scaledTotalSupply() external => DISPATCHER(true);
 
     // IACLManager
     function _.isPoolAdmin(address) external => DISPATCHER(true);
 
-
-    // IPoolAddressProvider // breaks the prover if AAVE pool is added
-    //function _.getACLManager() external => DISPATCHER(true);
-
-    // IAaveIncentivesController  // implemented only in MockIncentivesController as an empty function
-    // function _.handleAction(address, uint256, uint256) external => DISPATCHER(true)
-
-*/
     // ISwapAdapter
     function _.executeSwap(address, address, uint256, address payable) external => DISPATCHER(true);
 
-    /*
-        Summarizations for deposit function
-    */
-    // function _.rebalanceAfterSupply(address storage, address memory, uint256) external => emptyFunction() expect void;
 
-    // function _.safeTransferFrom(address token, address from, address to, uint256 amount) internal => emptyFunction() expect void;
-
-    // function updateState(Storage.Layout storage)    public
-    //     returns (LoanState memory state)
-
-    // function _._deposit(uint256, address, uint256) external => depositSummarization() expect (uint256);
-    // function _._deposit(uint256, address, uint256) internal => depositSummarization() expect (uint256);
-
-
-   // function USDWadRayMath.usdDiv(uint256, uint256) internal returns (uint256);
-
-    // /LoopStrategyHarness
+    // LoopStrategyHarness - required for self sanity checks only
     function usdDivMock(uint256 a, uint256 b) external returns (uint256) envfree;
     function usdMulMock(uint256 a, uint256 b) external returns (uint256) envfree;
 
 
-    // MathSummarizations
-    //Formal-friendly summarries of multiple and divide
-    function _.mulDivDown(uint256 a, uint256 b, uint256 c) internal => mulDivDownAbstractPlus(a, b, c) expect uint256 ALL;
+    // Math Summarizations - Formal-friendly summarries of multiple and divide
+    
+    ///Openzeppelin Math.sol
+    function _.mulDiv(uint256 x, uint256 y, uint256 denominator) internal => mulDivDownAbstractPlus(x, y, denominator) expect uint256 ALL; 
+    function _.mulDiv(uint256 x, uint256 y, uint256 denominator, Math.Rounding rounding) internal  => mulDiv_with_rounding(x, y, denominator, rounding) expect uint256 ALL;
 
+    function _.mulDivDown(uint256 a, uint256 b, uint256 c) internal => mulDivDownAbstractPlus(a, b, c) expect uint256 ALL;
     function _.rayDiv(uint256 a, uint256 b) internal => divNearestRay(a, b) expect uint256;
     function _.rayMul(uint256 a, uint256 b) internal => mulNearestRay(a, b) expect uint256;
     function _.wadDiv(uint256 a, uint256 b) internal => divNearestWad(a, b) expect uint256;
@@ -114,36 +91,58 @@ methods {
     function _.usdMul(uint256 value, uint256 percentage) internal => mulNearestUSD(value, percentage) expect uint256;
     function _.percentDiv(uint256 value, uint256 percentage) internal => divNearestPercent(value, percentage) expect uint256;
     function _.percentMul(uint256 value, uint256 percentage) internal => mulNearestPercent(value, percentage) expect uint256;
-
     //TODO: summarize wadToUSD
 
-
 }
 
-
-//LoanLogic.getMaxBorrowUSD: (,, uint256 availableBorrowsUSD,,,) = lendingPool.pool.getUserAccountData(address(this));
-//function getUserAccountData(address) external PoolLogic.executeGetUserAccountData(
-
-
-function const_decimals() returns uint256 {return 10; }
- function getUserAccountData_nondet(address user) returns (uint256,uint256,uint256,uint256,uint256,uint256) 
+//Openzeppelin Math.sol
+function mulDiv_with_rounding(uint256 x, uint256 y, uint256 denominator, Math.Rounding rounding) returns uint256
 {
-        return (_, _, _, _, _, _);
-}
- 
- function getUserAccountData_ones(address user) returns (uint256,uint256,uint256,uint256,uint256,uint256) 
+     if (assert_uint8(rounding) == 1 || assert_uint8(rounding) == 3)
+         return mulDivUpAbstractPlus(x, y, denominator);
+    //if (assert_uint8(rounding) == 0 || assert_uint8(rounding) == 2)
+         return mulDivDownAbstractPlus(x, y, denominator);
+    //return _;
+
+
+ }
+
+ghost uint256 totalCollateralBase;
+ghost uint256 totalDebtBase;
+ghost uint256 availableBorrowsBase;
+ghost  uint256 currentLiquidationThreshold;
+ghost uint256 collateralIndex; //TODO: used scaled values. TODO: allow monotonic non-decreasing 
+ghost uint256 debtIndex1; //TODO: allow monotonic non-decreasing 
+
+function simplified_getUserAccountData(address user) returns (uint256,uint256,uint256,uint256,uint256,uint256) 
 {
-        return (1, 1, 1, 1, 1, 1);
+        return (totalCollateralBase, totalDebtBase, availableBorrowsBase, currentLiquidationThreshold, _, _);
 }
 
+function simplified_borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
+{
+    totalDebtBase = require_uint256(totalDebtBase + amount);
+}
 
-// function emptyFunction() {
-//     assert true;
-// }
+function simplified_repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) returns uint256
+{
+    //todo: add implemention - if (amount == max_uint256)
+    totalDebtBase = require_uint256(totalDebtBase - amount);
+    return amount;
+}
 
-// function depositSummarization() returns uint256 {
-//     return 10;
-// }
+function simplified_supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode)
+{
+    totalCollateralBase = require_uint256(totalCollateralBase + amount);
+}
+
+function simplified_withdraw(address asset, uint256 amount, address to) returns uint256
+{
+    //todo: add implemention - if (amount == max_uint256)
+    totalCollateralBase = require_uint256(totalCollateralBase - amount);
+    return amount;
+}
+
 
 
 definition disabledFunction(method f) returns bool = 
@@ -153,26 +152,18 @@ definition disabledFunction(method f) returns bool =
     f.selector == sig:_LoopStrategy.withdraw(uint256, address, address).selector ||
     f.selector == sig:_LoopStrategy.previewWithdraw(uint256).selector ||
     f.selector == sig:_LoopStrategy.maxWithdraw(address).selector;
-/*    f.selector == sig:VariableDebtToken.transferFrom(address, address, uint256).selector ||
-    f.selector == sig:VariableDebtToken.mint(address,address,uint256,uint256).selector ||
-    f.selector == sig:VariableDebtToken.transfer(address, uint256).selector ||
-    f.selector == sig:VariableDebtToken.allowance(address, address).selector ||
-    f.selector == sig:VariableDebtToken.approve(address, uint256).selector ||
-    f.selector == sig:VariableDebtToken.increaseAllowance(address, uint256).selector ||
-    f.selector == sig:VariableDebtToken.decreaseAllowance(address, uint256).selector;
-*/
+
 definition timeoutingSanity(method f) returns bool = 
     f.selector == sig:_LoopStrategy.deposit(uint256, address).selector ||
     f.selector == sig:_LoopStrategy.deposit(uint256, address, uint256).selector;
 
 
-
-
-
 rule rebalance_not_needed_after_rebalance
 {
     env e1; env e2;
-     require decimals() == 15;
+    requireInvariant validCollateralRatioTargets();
+    require decimals() == 15;
+    
     rebalance(e1);
     assert !rebalanceNeeded(e2);
 }
@@ -180,8 +171,20 @@ rule rebalance_not_needed_after_rebalance
 rule rebalance_not_needed_after_rebalance__nonzero_debt
 {
     env e1; env e2;
-    require debt() != 0;
+    requireInvariant validCollateralRatioTargets();
     require decimals() == 15;
+    require debt() != 0;
+    
+    rebalance(e1);
+    assert !rebalanceNeeded(e2);
+}
+
+rule rebalance_not_needed_after_rebalance__nonzero_price
+{
+    env e1; env e2;
+    require decimals() == 15;
+    requireInvariant validCollateralRatioTargets();
+    
     rebalance(e1);
     assert !rebalanceNeeded(e2);
 }
@@ -189,6 +192,7 @@ rule rebalance_not_needed_after_rebalance__nonzero_debt
 rule rebalance_not_needed_after_rebalance__nonzero_debt_4000_12000_100
 {
     env e1; env e2;
+    requireInvariant validCollateralRatioTargets();
     require debt() == 4000;
     require collateral() == 12000;
     require totalSupply() == 100;
@@ -202,20 +206,11 @@ rule rebalance_not_needed_after_rebalance__nonzero_debt_4000_12000_100
 rule rebalance_not_needed_after_rebalance_witness
 {
     env e;
+    requireInvariant validCollateralRatioTargets();
     rebalance(e);
     satisfy !rebalanceNeeded(e);
 }
 
-
-// rule rebalance_not_needed_after_rebalance
-// {
-//     env e;
-//     storage init = lastStorage;
-//     rebalance(e);
-//     rebalance(e);
-
-//     assert !rebalanceNeeded(e);
-// }
 
 rule usdMul_summary_self_check
 {
@@ -256,12 +251,19 @@ rule usdDiv_summary_under_approximation_self_check
 }
 
 rule method_reachability(method f) 
-//filtered { f -> !disabledFunction(f)} 
 filtered { f -> !disabledFunction(f) && !timeoutingSanity(f)} 
 {
     env e; calldataarg arg;
        require decimals() == 15;
     f(e, arg);
+    satisfy true;
+}
+
+rule method_reachability_redeem {
+    env e;
+    require decimals() == 17;
+    uint256 shares; address receiver; address owner;
+    redeem(e, shares, receiver, owner);
     satisfy true;
 }
 
@@ -291,12 +293,105 @@ rule method_reachability_rebalanceNeeded {
     satisfy true;
 }
 
+rule equity_per_share_non_decreasing_after_deposit {
+    env e1; env e2;
+
+    require decimals() == 15;
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+
+    uint256 assets;
+    address receiver;
+     deposit(e1, assets, receiver);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply();
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+
+rule equity_per_share_non_decreasing_after_rebalance {
+    env e1; env e2;
+
+    require decimals() == 15;
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+
+    rebalance(e1);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply();
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+
+//fail
+rule equity_non_decreasing_after_rebalance {
+    env e1; env e2;
+
+    require e1.msg.sender != _CollateralERC20;
+    require e2.msg.sender != _CollateralERC20;
+
+    require decimals() == 15;
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
+    uint256 equityUSD_before = equityUSD();
+
+    rebalance(e1);
+
+    uint256 equityUSD_after = equityUSD();
+
+    assert  equityUSD_after >= equityUSD_before;
+}
+
+rule total_supply_stable_after_rebalance {
+    env e1; env e2;
+
+    require decimals() == 15;
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
+    uint256 totalSupply_before = totalSupply();
+    
+
+    rebalance(e1);
+
+    uint256 totalSupply_after = totalSupply();
+    
+    assert  totalSupply_after == totalSupply_before;
+}
+
 
 rule equity_per_share_non_decreasing {
     env e1; env e2;
 
     require decimals() == 15;
-    uint256 equityUSD_before;
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
+    uint256 equityUSD_before = equityUSD();
     uint256 totalSupply_before = totalSupply();
     require totalSupply_before != 0;
     mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
@@ -317,6 +412,10 @@ rule equity_per_share_non_decreasing {
 rule equity_per_share_non_decreasing_100 {
     env e1; env e2;
 
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
     require decimals() == 15;
     uint256 equityUSD_before = equityUSD();
     uint256 totalSupply_before = totalSupply();
@@ -331,7 +430,7 @@ rule equity_per_share_non_decreasing_100 {
     uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
 
     uint256 equityUSD_after = equityUSD();
-    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    mathint totalSupply_after = require_uint256(totalSupply_before - shares_to_redeem);
     require totalSupply_after != 0;
     mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
 
@@ -341,8 +440,100 @@ rule equity_per_share_non_decreasing_100 {
     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
 
+rule equity_per_share_non_decreasing_100_mul {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    require !rebalanceNeeded(e1);
+
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+        
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+rule equity_per_share_non_decreasing_100_mul_no_debt {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    require debt() != 0;
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+        
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+//fail
+rule equity_per_share_non_decreasing_100_mul_fail {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    //mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+    
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
 rule equity_per_share_non_decreasing_2 {
     env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
 
     uint256 equityUSD_before = equityUSD();
     uint256 totalSupply_before = totalSupply();
@@ -532,4 +723,29 @@ rule redeemed_test_4000_12000_100_10 {
     assert  false;
 }
 
-    // require to_mathint(x) * 10 ^ 8 == to_mathint(y) * to_mathint(z);
+
+rule redeem_reverts {
+    env e1; env e2;
+
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    uint256 balance_before = balanceOf(e1, owner);
+
+    uint256 assets_redeeemed = redeem@withrevert(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+ 
+ 
+    assert  balance_before < shares_to_redeem => lastReverted;
+}
+
+invariant validCollateralRatioTargets()
+        getCollateralRatioTargets().minForRebalance <= getCollateralRatioTargets().target
+        && getCollateralRatioTargets().maxForRebalance >= getCollateralRatioTargets().target
+        && getCollateralRatioTargets().minForRebalance <= getCollateralRatioTargets().minForWithdrawRebalance
+        && getCollateralRatioTargets().maxForRebalance >= getCollateralRatioTargets().maxForDepositRebalance;
+
+invariant ratioMagin_leq_1usd()
+        getRatioMagin() <= 10 ^ 8;
