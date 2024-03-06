@@ -22,8 +22,6 @@ The ILM repo is subject to the [Styling Guide](./STYLING_GUIDE.md).
 
 The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol) which fulfills the role of the lender.
 
-## Smart Contract addresses on Base
-
 ## Deployment Addresses
 
 ### Base Mainnet
