@@ -13,7 +13,12 @@ deployed-contracts.json
 # Foundry files
 cache_forge
 out
-broadcast
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/**/dry-run/
+/broadcast/**/run-latest.json
+forkbroadcast
 
 # mac OS
 **/.DS_Store
