@@ -34,7 +34,7 @@ methods {
     function _._mint(address, uint256) internal => NONDET;
 
     // Pool:
-    function _.getUserAccountData(address user) external   => simplified_getUserAccountData(user) expect (uint256,uint256,uint256,uint256,uint256,uint256);
+    function _.getUserAccountData(address user) external   => simplified_getUserAccountData() expect (uint256,uint256,uint256,uint256,uint256,uint256);
     function _.supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external
             => simplified_supply(asset, amount, onBehalfOf, referralCode) expect void;
 
@@ -102,9 +102,9 @@ function mulDiv_with_rounding(uint256 x, uint256 y, uint256 denominator, Math.Ro
 {
      if (assert_uint8(rounding) == 1 || assert_uint8(rounding) == 3)
          return mulDivUpAbstractPlus(x, y, denominator);
-    //if (assert_uint8(rounding) == 0 || assert_uint8(rounding) == 2)
+    if (assert_uint8(rounding) == 0 || assert_uint8(rounding) == 2)
          return mulDivDownAbstractPlus(x, y, denominator);
-    //return _;
+    return _;
 
 
  }
@@ -133,16 +133,29 @@ ghost  uint256 currentLiquidationThreshold;
 ghost uint256 collateralIndex; //TODO: used scaled values. TODO: allow monotonic non-decreasing 
 ghost uint256 debtIndex1; //TODO: allow monotonic non-decreasing 
 
-function simplified_getUserAccountData(address user) returns (uint256,uint256,uint256,uint256,uint256,uint256) 
+
+function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint256,uint256,uint256) 
 {
         return (
             mulDivDownAbstractPlus(totalCollateralBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals())),
-            mulDivDownAbstractPlus(totalDebtBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals())),
+            getState_debtUSD(),
             availableBorrowsBase, 
             currentLiquidationThreshold,
             _,
             _);
 }
+
+//
+function getState_debtUSD() returns uint256
+{
+    return mulDivDownAbstractPlus(totalDebtBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
+}
+
+function getShareDebtUSD(uint256 shares, uint256 totalShares) returns uint256
+{
+    return mulDivUpAbstractPlus(getState_debtUSD(), shares, totalShares);
+}
+
 
 function simplified_borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
 {
@@ -476,6 +489,46 @@ rule equity_per_share_non_decreasing_100 {
     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
 
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2 {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    //require !rebalanceNeeded(e1);
+
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    uint256 equity_before = equity();
+    uint256 debt_before = debt();
+    uint256 collateral_before = collateral();
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);
+    
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+    uint256 equity_after = equity();    
+    uint256 debt_after = debt();
+    uint256 collateral_after = collateral();
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+
 rule equity_per_share_non_decreasing_100_mul {
     env e1; env e2;
 
@@ -611,6 +664,46 @@ rule equity_per_share_non_decreasing_100_mul_no_debt_rebalance_not_needed__posit
     // require shares_to_redeem == 50;
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
+
+rule equity_per_share_non_decreasing_100_mul_no_debt__cr_eq_target__positive_target__avoid_C2_H2 {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    require e2.msg.sender != _CollateralERC20;
+
+    require currentCollateralRatio() ==  getCollateralRatioTargets().target;
+    require debt() != 0;
+    require getCollateralRatioTargets().target > 0;
+  uint256 equity_before = equity();
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    //uint256 equity_before = equity();
+    
+    uint256 totalSupply_before = totalSupply();
+    //require totalSupply_before != 0;
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+  uint256 equity_after = equity();
+    uint256 equityUSD_after = equityUSD();
+    //uint256 equity_after = equity();
+    //uint256 wrong_totalSupply_after = totalSupply();
+
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+        
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
 
 rule equity_per_share_non_decreasing_100_mul_no_debt__cr_eq_target__positive_target {
     env e1; env e2;
