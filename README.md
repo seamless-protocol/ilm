@@ -20,7 +20,7 @@ A [summary](/docs/src/SUMMARY.md) of the `Looping Strategy` interfaces and contr
 
 The ILM repo is subject to the [Styling Guide](./STYLING_GUIDE.md).
 
-The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlessprotocol.com/overview/introduction-to-seamless-protocol) which fulfills the role of the lender.
+The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlessprotocol.com) which fulfills the role of the lender.
 
 ## Deployment Addresses
 
