@@ -35,9 +35,16 @@ jobs:
           forge build --sizes
         id: build
 
-      - name: Run Forge Tests
+      - name: Run Unit Tests
         env: 
           BASE_MAINNET_RPC_URL: ${{ secrets.BASE_MAINNET_RPC_URL }}
         run: |
-          forge test -vvv --gas-report
+          forge test -vvv --no-match-test test_e2eSimulation --gas-report
         id: test
+      
+      - name: Run End-to-End Simulation Test
+        env:
+         BASE_MAINNET_RPC_URL: ${{ secrets.BASE_MAINNET_RPC_URL }}
+        run: |
+         forge test -vvv --mt test_e2eSimulation
+        id: simulation        
