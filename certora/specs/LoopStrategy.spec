@@ -529,6 +529,87 @@ rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2 {
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
 
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__nonzero_shares {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    //require !rebalanceNeeded(e1);
+
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+   // require totalSupply_before != 0;
+   // uint256 equity_before = equity();
+   // uint256 debt_before = debt();
+   // uint256 collateral_before = collateral();
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);  //avoid bugs C2 and H2
+    
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    //require totalSupply_after > 0;
+    //uint256 equity_after = equity();    
+    //uint256 debt_after = debt();
+    //uint256 collateral_after = collateral();
+    //require equityUSD_before == 600;
+    //require totalSupply_before == 150;
+    //require shares_to_redeem == 50;
+    require shares_to_redeem != 0;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__nonzero_shares__fixed {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    //require !rebalanceNeeded(e1);
+
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+   // require totalSupply_before != 0;
+   // uint256 equity_before = equity();
+   // uint256 debt_before = debt();
+   // uint256 collateral_before = collateral();
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);  //avoid bugs C2 and H2
+    
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    //require totalSupply_after > 0;
+    //uint256 equity_after = equity();    
+    //uint256 debt_after = debt();
+    //uint256 collateral_after = collateral();
+    //require equityUSD_before == 600;
+    //require totalSupply_before == 150;
+    //require shares_to_redeem == 50;
+    require shares_to_redeem != 0;
+    require to_mathint(equityUSD_before) == to_mathint(2 * totalSupply_before);
+    assert  to_mathint(equityUSD_after) >=  to_mathint(2 *  totalSupply_after);
+}
+
 
 rule equity_per_share_non_decreasing_100_mul {
     env e1; env e2;

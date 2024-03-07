@@ -1,6 +1,6 @@
 diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol
---- lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-03-06 14:47:48
-+++ lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-02-22 16:47:01
+--- lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-03-07 15:42:04
++++ lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-03-07 11:50:05
 @@ -132,10 +132,15 @@
  
      if (isolationModeActive) {
@@ -29,8 +29,8 @@ diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol li
 +    }
  }
 diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol
---- lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-03-06 14:47:48
-+++ lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-02-22 16:47:01
+--- lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-03-07 15:42:04
++++ lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-03-07 11:50:05
 @@ -135,15 +135,19 @@
  
          if (vars.ltv != 0) {
@@ -109,22 +109,9 @@ diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol l
 +            res = a * b / c;
 +    }
  }
-diff -ruN lib/openzeppelin-contracts/contracts/utils/Address.sol lib/openzeppelin-contracts/contracts/utils/Address.sol
---- lib/openzeppelin-contracts/contracts/utils/Address.sol	2024-03-06 14:47:49
-+++ lib/openzeppelin-contracts/contracts/utils/Address.sol	2024-03-06 13:59:32
-@@ -84,7 +84,8 @@
-         if (address(this).balance < value) {
-             revert AddressInsufficientBalance(address(this));
-         }
--        (bool success, bytes memory returndata) = target.call{value: value}(data);
-+        (bool success, bytes memory returndata) = target.call{value: value}(data); // Munged by Certora
-+    //    bool success; bytes memory returndata;
-         return verifyCallResultFromTarget(target, success, returndata);
-     }
- 
 diff -ruN src/interfaces/IAerodromeAdapter.sol src/interfaces/IAerodromeAdapter.sol
---- src/interfaces/IAerodromeAdapter.sol	2024-03-06 14:47:49
-+++ src/interfaces/IAerodromeAdapter.sol	2024-02-22 16:43:39
+--- src/interfaces/IAerodromeAdapter.sol	2024-03-07 15:42:04
++++ src/interfaces/IAerodromeAdapter.sol	2024-03-07 11:50:05
 @@ -33,6 +33,18 @@
      /// @param routes array of routes for swap
      event RoutesSet(IERC20 from, IERC20 to, IRouter.Route[] routes);
@@ -169,8 +156,8 @@ diff -ruN src/interfaces/IAerodromeAdapter.sol src/interfaces/IAerodromeAdapter.
      /// @notice fetches the swap routes for a given token swap
      /// @param from address of `from` token
 diff -ruN src/interfaces/IPriceOracleGetter.sol src/interfaces/IPriceOracleGetter.sol
---- src/interfaces/IPriceOracleGetter.sol	2024-03-06 14:47:49
-+++ src/interfaces/IPriceOracleGetter.sol	2024-02-22 16:43:39
+--- src/interfaces/IPriceOracleGetter.sol	2024-03-07 15:42:04
++++ src/interfaces/IPriceOracleGetter.sol	2024-03-07 11:50:05
 @@ -7,6 +7,7 @@
   * @author Aave
   * @notice Interface for the Aave price oracle.
@@ -180,8 +167,8 @@ diff -ruN src/interfaces/IPriceOracleGetter.sol src/interfaces/IPriceOracleGette
      /**
       * @notice Returns the base currency address
 diff -ruN src/interfaces/ISwapAdapter.sol src/interfaces/ISwapAdapter.sol
---- src/interfaces/ISwapAdapter.sol	2024-03-06 14:47:49
-+++ src/interfaces/ISwapAdapter.sol	2024-02-22 16:43:39
+--- src/interfaces/ISwapAdapter.sol	2024-03-07 15:42:04
++++ src/interfaces/ISwapAdapter.sol	2024-03-07 11:50:05
 @@ -33,4 +33,10 @@
      /// @dev this is a function that _must_ be implemented by a swap adapter
      /// @param swapper address of Swapper contract
@@ -194,8 +181,8 @@ diff -ruN src/interfaces/ISwapAdapter.sol src/interfaces/ISwapAdapter.sol
 +    function getSwapper() external view returns (address swapper);
  }
 diff -ruN src/interfaces/IWrappedTokenAdapter.sol src/interfaces/IWrappedTokenAdapter.sol
---- src/interfaces/IWrappedTokenAdapter.sol	2024-03-06 14:47:49
-+++ src/interfaces/IWrappedTokenAdapter.sol	2024-02-22 16:43:39
+--- src/interfaces/IWrappedTokenAdapter.sol	2024-03-07 15:42:04
++++ src/interfaces/IWrappedTokenAdapter.sol	2024-03-07 11:50:05
 @@ -10,6 +10,12 @@
  /// @title IWrappedTokenAdapter
  /// @notice interface for WrappedTokenAdapter functionality
@@ -224,8 +211,8 @@ diff -ruN src/interfaces/IWrappedTokenAdapter.sol src/interfaces/IWrappedTokenAd
 +        returns (IWrappedERC20PermissionedDeposit wrapper);
  }
 diff -ruN src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
---- src/libraries/LoanLogic.sol	2024-03-06 14:47:49
-+++ src/libraries/LoanLogic.sol	2024-02-29 09:20:41
+--- src/libraries/LoanLogic.sol	2024-03-07 15:42:04
++++ src/libraries/LoanLogic.sol	2024-03-07 11:50:05
 @@ -184,9 +184,12 @@
          uint256 totalBorrow = _getTotalBorrow(reserveData);
          uint256 borrowCap = reserveData.configuration.getBorrowCap();
@@ -262,8 +249,8 @@ diff -ruN src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
      }
  }
 diff -ruN src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.sol
---- src/libraries/RebalanceLogic.sol	2024-03-06 14:47:49
-+++ src/libraries/RebalanceLogic.sol	2024-02-22 16:43:39
+--- src/libraries/RebalanceLogic.sol	2024-03-07 15:42:04
++++ src/libraries/RebalanceLogic.sol	2024-03-07 11:50:05
 @@ -405,7 +405,8 @@
          uint256 offsetFactor =
              $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
@@ -305,8 +292,8 @@ diff -ruN src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.sol
 +
  }
 diff -ruN src/libraries/math/RebalanceMath.sol src/libraries/math/RebalanceMath.sol
---- src/libraries/math/RebalanceMath.sol	2024-03-06 14:47:49
-+++ src/libraries/math/RebalanceMath.sol	2024-02-22 16:43:39
+--- src/libraries/math/RebalanceMath.sol	2024-03-07 15:42:04
++++ src/libraries/math/RebalanceMath.sol	2024-03-07 11:50:05
 @@ -33,11 +33,16 @@
          returns (uint256 amount)
      {
@@ -339,7 +326,7 @@ diff -ruN src/libraries/math/RebalanceMath.sol src/libraries/math/RebalanceMath.
  }
 diff -ruN src/storage/AerodromeAdapterStorage.sol src/storage/AerodromeAdapterStorage.sol
 --- src/storage/AerodromeAdapterStorage.sol	1970-01-01 02:00:00
-+++ src/storage/AerodromeAdapterStorage.sol	2024-02-22 16:43:39
++++ src/storage/AerodromeAdapterStorage.sol	2024-03-07 11:50:05
 @@ -0,0 +1,31 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -374,7 +361,7 @@ diff -ruN src/storage/AerodromeAdapterStorage.sol src/storage/AerodromeAdapterSt
 +}
 diff -ruN src/storage/SwapAdapterBaseStorage.sol src/storage/SwapAdapterBaseStorage.sol
 --- src/storage/SwapAdapterBaseStorage.sol	1970-01-01 02:00:00
-+++ src/storage/SwapAdapterBaseStorage.sol	2024-02-22 16:43:39
++++ src/storage/SwapAdapterBaseStorage.sol	2024-03-07 11:50:05
 @@ -0,0 +1,22 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -400,7 +387,7 @@ diff -ruN src/storage/SwapAdapterBaseStorage.sol src/storage/SwapAdapterBaseStor
 +}
 diff -ruN src/storage/WrappedTokenAdapterStorage.sol src/storage/WrappedTokenAdapterStorage.sol
 --- src/storage/WrappedTokenAdapterStorage.sol	1970-01-01 02:00:00
-+++ src/storage/WrappedTokenAdapterStorage.sol	2024-02-22 16:43:39
++++ src/storage/WrappedTokenAdapterStorage.sol	2024-03-07 11:50:05
 @@ -0,0 +1,32 @@
 +// SPDX-License-Identifier: BUSL-1.1
 +
@@ -435,8 +422,8 @@ diff -ruN src/storage/WrappedTokenAdapterStorage.sol src/storage/WrappedTokenAda
 +    }
 +}
 diff -ruN src/swap/adapter/AerodromeAdapter.sol src/swap/adapter/AerodromeAdapter.sol
---- src/swap/adapter/AerodromeAdapter.sol	2024-03-06 14:47:49
-+++ src/swap/adapter/AerodromeAdapter.sol	2024-02-22 16:43:39
+--- src/swap/adapter/AerodromeAdapter.sol	2024-03-07 15:42:04
++++ src/swap/adapter/AerodromeAdapter.sol	2024-03-07 11:50:05
 @@ -2,35 +2,35 @@
  
  pragma solidity ^0.8.21;
@@ -604,8 +591,8 @@ diff -ruN src/swap/adapter/AerodromeAdapter.sol src/swap/adapter/AerodromeAdapte
              block.timestamp + 10
          );
 diff -ruN src/swap/adapter/SwapAdapterBase.sol src/swap/adapter/SwapAdapterBase.sol
---- src/swap/adapter/SwapAdapterBase.sol	2024-03-06 14:47:49
-+++ src/swap/adapter/SwapAdapterBase.sol	2024-02-22 16:43:39
+--- src/swap/adapter/SwapAdapterBase.sol	2024-03-07 15:42:04
++++ src/swap/adapter/SwapAdapterBase.sol	2024-03-07 11:50:05
 @@ -2,19 +2,22 @@
  
  pragma solidity ^0.8.21;
@@ -657,8 +644,8 @@ diff -ruN src/swap/adapter/SwapAdapterBase.sol src/swap/adapter/SwapAdapterBase.
      }
  }
 diff -ruN src/swap/adapter/WrappedTokenAdapter.sol src/swap/adapter/WrappedTokenAdapter.sol
---- src/swap/adapter/WrappedTokenAdapter.sol	2024-03-06 14:47:49
-+++ src/swap/adapter/WrappedTokenAdapter.sol	2024-02-22 16:43:39
+--- src/swap/adapter/WrappedTokenAdapter.sol	2024-03-07 15:42:04
++++ src/swap/adapter/WrappedTokenAdapter.sol	2024-03-07 11:50:05
 @@ -2,11 +2,14 @@
  
  pragma solidity ^0.8.21;
