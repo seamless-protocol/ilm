@@ -45,6 +45,17 @@ async function isStrategyOverexposed(strategy) {
     }
 }
 
+// checks that alert channels matching 'seamless-alerts' alias exist and returns them
+async function checkAlertChannelsExist(client) {
+    const notificationChannels = await client.monitor.listNotificationChannels();
+
+    let alertChannels = notificationChannels.filter(channel => channel.name === 'seamless-alerts');
+
+    if (alertChannels.length == 0) {
+        console.error('No alert notification channels exist.');
+    }
+}
+
 exports.handler = async function (credentials, context) {
     const client = new Defender(credentials);
     const { notificationClient } = context;
@@ -82,5 +93,6 @@ exports.handler = async function (credentials, context) {
 
 exports.isStrategyAtRisk = isStrategyAtRisk;
 exports.isStrategyOverexposed = isStrategyOverexposed;
+exports.checkAlertChannelsExist = checkAlertChannelsExist;
 exports.healthFactorThreshold = healthFactorThreshold;
 
