@@ -4,8 +4,8 @@ pragma solidity 0.8.21;
 
 import { Script } from "forge-std/Script.sol";
 
-import { DeployHelper } from "../DeployHelper.s.sol";
-import { LoopStrategy } from "../../../src/LoopStrategy.sol";
+import { DeployHelper } from "./DeployHelper.s.sol";
+import { LoopStrategy } from "../../src/LoopStrategy.sol";
 
 contract DeployLoopStrategyImplementation is Script, DeployHelper {
     function run() public {
