@@ -101,7 +101,7 @@ library RebalanceLogic {
             rebalanceDownToDebt($, state, 0);
 
             state = LoanLogic.getLoanState($.lendingPool);
-            shareEquityUSD = state.collateralUSD - state.debtUSD;
+            (, shareEquityUSD) = LoanLogic.shareDebtAndEquity(state, shares, totalShares);
         }
         //check if withdrawal would lead to a collateral below minimum acceptable level
         // if yes, rebalance until share debt is repaid, and decrease remaining share equity
