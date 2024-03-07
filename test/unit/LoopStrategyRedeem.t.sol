@@ -36,6 +36,8 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
+import "forge-std/console.sol";
+
 /// @notice Unit tests for the LoopStrategy redeem flow
 contract LoopStrategyRedeemTest is LoopStrategyTest {
     using USDWadRayMath for uint256;
@@ -758,19 +760,18 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // bob repays the whole debt on behalf of the strategy, then redeems all his shares
         vm.startPrank(bob);
-            USDbC.approve(address(pool), totalDebt);
-            pool.repay(
-                address(USDbC), totalDebt, 2, address(strategy)
-            );
-            uint256 equityBeforeRedeem = strategy.equity();
-            uint256 totalAssetsReceived = strategy.redeem(bobShares, bob, bob);
+        USDbC.approve(address(pool), totalDebt);
+        pool.repay(address(USDbC), totalDebt, 2, address(strategy));
+        assertEq(strategy.debt(), 0);
+        uint256 equityBeforeRedeem = strategy.equity();
+        uint256 totalAssetsReceived = strategy.redeem(bobShares, bob, bob);
         vm.stopPrank();
 
         // should get half of the equity because alice and bob have equal amount of shares
         assertEq(totalAssetsReceived, equityBeforeRedeem / 2);
     }
 
-    /// @dev tests that user receives the correct amount of assets when he has 
+    /// @dev tests that user receives the correct amount of assets when he has
     /// almost all strategy shares and debtUSD = 0
     function test_redeem_userHasAlmostAllStrategyShares() public {
         uint256 targetCollateralUSD = 100000095;
@@ -782,7 +783,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         deal(address(strategy), alice, aliceShares, true);
         deal(address(strategy), bob, 1, true);
 
-        uint256 collateralAssets = (targetCollateralUSD * 1e18) / priceOracle.getAssetPrice(address(CbETH));
+        uint256 collateralAssets = (targetCollateralUSD * 1e18)
+            / priceOracle.getAssetPrice(address(CbETH));
 
         IPool pool = strategy.getLendingPool().pool;
 
@@ -790,9 +792,9 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
 
         // setup the strategy with target collateral and debt
         vm.startPrank(address(strategy));
-            CbETH.approve(address(pool), collateralAssets);
-            pool.supply(address(CbETH), collateralAssets, address(strategy), 0);
-            pool.borrow(address(USDbC), targetDebtUSD, 2, 0, address(strategy));
+        CbETH.approve(address(pool), collateralAssets);
+        pool.supply(address(CbETH), collateralAssets, address(strategy), 0);
+        pool.borrow(address(USDbC), targetDebtUSD, 2, 0, address(strategy));
         vm.stopPrank();
 
         uint256 equityBeforeRedeem = strategy.equity();
