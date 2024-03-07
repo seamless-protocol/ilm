@@ -28,7 +28,7 @@ The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlesspr
 
 | Contract                     | Proxy address                                | Implementation address                       |
 | ---------------------------- | -------------------------------------------- | -------------------------------------------- |
-| wstETH/ETH 3x Loop Strategy  | `0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e` | `0xb94799306c30c091779f4801cc4cd293f7f993b7` |
+| wstETH/ETH 3x Loop Strategy  | `0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e` | `0xA70C94Ee51FB4dDFAFA5dC9c30580c25878Ca97B` |
 | Seamless ILM Reserved wstETH |                                              | `0xc9ae3B5673341859D3aC55941D27C8Be4698C9e4` |
 | Swapper                      | `0xE314ae9D279919a00d4773cCe37946A98fADDaBc` | `0x04550e50f4753352f233aba53f094fc3cd62c54e` |
 | WrappedTokenAdapter          |                                              | `0xc3e17CDac7C6ED317f0D9845d47df1a281B5f79E` |
