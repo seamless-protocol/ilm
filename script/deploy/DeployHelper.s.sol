@@ -315,6 +315,13 @@ contract DeployHelper is BaseMainnetConstants {
         _logAddress("Strategy", address(strategy));
     }
 
+    /// @dev deploys a new LoopStrategy contract implementation
+    function _deployLoopStrategyImplementation() internal {
+        LoopStrategy strategyImplementation = new LoopStrategy();
+
+        _logAddress("Strategy Implementation", address(strategyImplementation));
+    }
+
     /// @dev set deposit permissions to the LoopStrategy and WrappedTokenAdapter contracts
     /// @dev requires caller to have MANAGER_ROLE on the WrappedToken contract
     /// @param wrappedToken address of the WrappedTokenContract
