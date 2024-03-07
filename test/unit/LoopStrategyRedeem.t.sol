@@ -36,8 +36,6 @@ import { RebalanceLogic } from "../../src/libraries/RebalanceLogic.sol";
 import { stdStorage, StdStorage } from "forge-std/StdStorage.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Unit tests for the LoopStrategy redeem flow
 contract LoopStrategyRedeemTest is LoopStrategyTest {
     using USDWadRayMath for uint256;
