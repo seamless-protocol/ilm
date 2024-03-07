@@ -731,4 +731,85 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         vm.prank(alice);
         strategy.redeem(redeemAmount, alice, alice);
     }
+
+    /// @dev tests that user receives the correct amount of assets on redeem when debtUSD = 0
+    /// @dev this can happen if user repays debt on behalf of the strategy, and borrow cap is reached
+    function test_redeem_repayTotalDebtAttackWhileBorrowCapReached() public {
+        // set dex fees to 0 for easier calculations
+        SwapperMock(address(swapper)).setRealOffsets(0, 0);
+        SwapperMock(address(swapper)).setOffsets(0, 0);
+
+        // alice and bob both deposit the same amount to the strategy
+        uint256 depositAmount = 1 ether;
+        uint256 aliceShares = _depositFor(alice, depositAmount);
+        uint256 bobShares = _depositFor(bob, depositAmount);
+
+        (,, address debtUSDbCaddress) =
+            poolDataProvider.getReserveTokensAddresses(address(USDbC));
+        IERC20 dUSDbC = IERC20(debtUSDbCaddress);
+
+        uint256 totalDebt = dUSDbC.balanceOf(address(strategy));
+        deal(address(USDbC), bob, totalDebt);
+
+        IPool pool = strategy.getLendingPool().pool;
+
+        // assume that borrow cap is reached so we can't rebalance anymore before redeem
+        _changeBorrowCap(USDbC, 0);
+
+        // bob repays the whole debt on behalf of the strategy, then redeems all his shares
+        vm.startPrank(bob);
+        USDbC.approve(address(pool), totalDebt);
+        pool.repay(address(USDbC), totalDebt, 2, address(strategy));
+        assertEq(strategy.debt(), 0);
+        uint256 equityBeforeRedeem = strategy.equity();
+        uint256 totalAssetsReceived = strategy.redeem(bobShares, bob, bob);
+        vm.stopPrank();
+
+        // should get half of the equity because alice and bob have equal amount of shares
+        assertEq(totalAssetsReceived, equityBeforeRedeem / 2);
+    }
+
+    /// @dev tests that user receives the correct amount of assets when he has
+    /// almost all strategy shares and debtUSD = 0
+    function test_redeem_userHasAlmostAllStrategyShares() public {
+        uint256 targetCollateralUSD = 100000095;
+        uint256 targetDebtUSD = 95;
+
+        uint256 aliceShares = 9999;
+
+        // bob has 1 share, and alice has all the rest
+        deal(address(strategy), alice, aliceShares, true);
+        deal(address(strategy), bob, 1, true);
+
+        uint256 collateralAssets = (targetCollateralUSD * 1e18)
+            / priceOracle.getAssetPrice(address(CbETH));
+
+        IPool pool = strategy.getLendingPool().pool;
+
+        deal(address(CbETH), address(strategy), collateralAssets);
+
+        // setup the strategy with target collateral and debt
+        vm.startPrank(address(strategy));
+        CbETH.approve(address(pool), collateralAssets);
+        pool.supply(address(CbETH), collateralAssets, address(strategy), 0);
+        pool.borrow(address(USDbC), targetDebtUSD, 2, 0, address(strategy));
+        vm.stopPrank();
+
+        uint256 equityBeforeRedeem = strategy.equity();
+
+        // assume that borrow cap is reached so we can't rebalance anymore before redeem
+        _changeBorrowCap(USDbC, 0);
+
+        // set dex fees to 0 for easier calculations
+        SwapperMock(address(swapper)).setRealOffsets(0, 0);
+        SwapperMock(address(swapper)).setOffsets(0, 0);
+
+        // alice redeems all her shares
+        vm.prank(alice);
+        uint256 receivedAssets = strategy.redeem(aliceShares, alice, alice);
+
+        // alice shouldn't get the whole equity
+        assertLt(receivedAssets, equityBeforeRedeem);
+        assertGt(strategy.collateral(), 0);
+    }
 }
