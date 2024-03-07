@@ -93,20 +93,7 @@ library RebalanceLogic {
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
             LoanLogic.shareDebtAndEquity(state, shares, totalShares);
 
-        // if all shares are being withdrawn, then their debt is the strategy debt
-        // so in that case the redeemer incurs the full cost of paying back the debt
-        // and is left with the remaining equity
-        if (state.debtUSD == shareDebtUSD) {
-            // pay back the debt corresponding to the shares
-            rebalanceDownToDebt($, state, 0);
-
-            state = LoanLogic.getLoanState($.lendingPool);
-            shareEquityUSD = state.collateralUSD - state.debtUSD;
-        }
-        //check if withdrawal would lead to a collateral below minimum acceptable level
-        // if yes, rebalance until share debt is repaid, and decrease remaining share equity
-        // by equity cost of rebalance
-        else if (
+        if (
             RebalanceMath.collateralRatioUSD(
                 state.collateralUSD - shareEquityUSD, state.debtUSD
             ) < $.collateralRatioTargets.minForWithdrawRebalance
@@ -130,13 +117,13 @@ library RebalanceLogic {
 
             uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
 
-            // pay back the adjusted debt corresponding to the shares
+            // pay back the debt corresponding to the shares
             rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
 
             state = LoanLogic.getLoanState($.lendingPool);
 
             // shares lose equity equal to the amount of equity lost for
-            // the rebalance to pay the adjusted debt
+            // the rebalance to pay the share debt
             if (initialEquityUSD > (state.collateralUSD - state.debtUSD)) {
                 shareEquityUSD -=
                     initialEquityUSD - (state.collateralUSD - state.debtUSD);
