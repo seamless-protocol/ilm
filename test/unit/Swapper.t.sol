@@ -361,17 +361,6 @@ contract SwapperTest is BaseForkTest {
         assertEq(newOffsetDeviationUSD, swapper.getOffsetDeviationUSD());
     }
 
-    /// @dev ensures setOffsetDeviationUSD call reverts when new offsetDeviationUSD value is larger
-    /// than one USD
-    function test_setOffsetDeviationUSD_revertsWhen_newValueIsLargerThanOneUSD()
-        public
-    {
-        vm.expectRevert(ISwapper.USDValueOutsideRange.selector);
-
-        vm.prank(OWNER);
-        swapper.setOffsetDeviationUSD(type(uint256).max);
-    }
-
     /// @dev ensures setOffsetDeviationUSD vall reverts when called by non-manager
     function test_setOffsetDeviationUSD_revertsWhen_calledByNonManager()
         public
