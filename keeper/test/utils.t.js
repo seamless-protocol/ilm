@@ -1,8 +1,8 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { isStrategyOverexposed, isStrategyAtRisk, checkAlertChannelsExist, healthFactorThreshold } = require('../actions/checkState');
+const { isStrategyOverexposed, isStrategyAtRisk, checkAlertChannelsExist } = require('../actions/utils');
 
-describe('checkState', () => {
+describe('utils', () => {
     let strategyStub;
     
     beforeEach(() => {
@@ -55,11 +55,13 @@ describe('checkState', () => {
     });
     
     describe('isStrategyAtRisk', () => {    
+        const healthFactorThreshold = 10 ** 8;
+
         it('returns false and healthFactor value when healthFactor is above healthFactorThreshold', async () => {
             strategyStub.debt.resolves(10**8);
             strategyStub.collateral.resolves(healthFactorThreshold + 1);
     
-            const result = await isStrategyAtRisk(strategyStub);
+            const result = await isStrategyAtRisk(strategyStub, healthFactorThreshold);
             
             expect(result.isAtRisk).to.eq(false);
             expect(result.healthFactor).to.eq(healthFactorThreshold + 1);
@@ -69,7 +71,7 @@ describe('checkState', () => {
             strategyStub.debt.resolves(10**8);
             strategyStub.collateral.resolves(healthFactorThreshold - 1);
     
-            const result = await isStrategyAtRisk(strategyStub);
+            const result = await isStrategyAtRisk(strategyStub, healthFactorThreshold);
     
             expect(result.isAtRisk).to.eq(true);
             expect(result.healthFactor).to.eq(healthFactorThreshold - 1);
@@ -79,7 +81,7 @@ describe('checkState', () => {
             strategyStub.debt.rejects(new Error('error thrown'));
             const consoleErrorStub = sinon.stub(console, 'error');
     
-            await isStrategyAtRisk(strategyStub);
+            await isStrategyAtRisk(strategyStub, healthFactorThreshold);
     
             sinon.assert.calledOnce(consoleErrorStub);
             expect(consoleErrorStub.firstCall.args[0]).to.include('An error has occurred during health factor check: ');
