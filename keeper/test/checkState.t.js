@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { isStrategyOverexposed, isStrategyAtRisk, checkAlertChannelsExist, healthFactorThreshold } = require('../alerts/checkState');
+const { isStrategyOverexposed, isStrategyAtRisk, checkAlertChannelsExist, healthFactorThreshold } = require('../actions/checkState');
 
 describe('checkState', () => {
     let strategyStub;
