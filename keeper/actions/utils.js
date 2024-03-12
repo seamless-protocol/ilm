@@ -47,8 +47,38 @@ async function checkAlertChannelsExist(client) {
         console.error('No alert notification channels exist.');
     }
 }
+
+async function sendNotifications(notificationClient, strategy, healthFactorThreshold) {
+    const { isAtRisk, healthFactor } = isStrategyAtRisk(strategy, healthFactorThreshold);
+    const { isOverExposed, currentCR, minForRebalance } = isStrategyOverexposed(strategy);
+
+    if (isAtRisk) {
+        try {
+            notificationClient.send({
+                channelAlias: 'seamless-alerts',
+                subject: 'HEALTH FACTOR THRESHOLD BREACHED',
+                message: `Current strategy health factor threshold is: ${healthFactorThreshold} and healthFactor is ${healthFactor} `,
+            });
+        } catch (error) {
+            console.error('Failed to send notification', error);
+        }
+    }
+
+    if (isOverExposed) {
+        try {
+            notificationClient.send({
+                channelAlias: 'seamless-alerts',
+                subject: 'STRATEGY IS OVEREXPOSED',
+                message: `Current collateral ratio is ${currentCR} and minForRebalance ratio is ${minForRebalance} `,
+            });
+        } catch (error) {
+            console.error('Failed to send notification', error);
+        }
+    }
+}
      
 exports.isStrategyAtRisk = isStrategyAtRisk;
 exports.isStrategyOverexposed = isStrategyOverexposed;
 exports.checkAlertChannelsExist = checkAlertChannelsExist;
+exports.sendNotifications = sendNotifications;
 
