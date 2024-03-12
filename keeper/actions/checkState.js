@@ -15,7 +15,7 @@ exports.handler = async function (credentials, context) {
     const client = new Defender(credentials);
     const { notificationClient } = context;
     const provider = client.relaySigner.getProvider();
-
+    
     const strategy = new ethers.Contract(strategyAddress, strategyABI, provider);
 
     const { isAtRisk, healthFactor } = isStrategyAtRisk(strategy, healthFactorThreshold);
