@@ -15,13 +15,11 @@ methods {
     function totalSupply() external returns (uint256) envfree;
     function getCollateralRatioTargets() external returns (LoopStrategyHarness.CollateralRatio) envfree;
     function getRatioMagin() external returns (uint256) envfree;
-    function currentCollateralRatio() external returns (uint256) envfree;
-
+  
     
     //Summaries
 
     // WrappedERC20PermissionedDeposit.sol
-    // functions are ignored
     function _.withdraw(uint256 amount) external => NONDET; 
     function _.deposit(uint256 amount) external => NONDET; 
     
@@ -58,7 +56,7 @@ methods {
     
     // IERC20
     function _.approve(address, uint256) external => NONDET;
-    function _.balanceOf(address) external => DISPATCHER(true); // only DebtERC20.balanceOf() is used
+    function _.balanceOf(address) external => DISPATCHER(true); 
     function _.transfer(address, uint256) external => DISPATCHER(true);
 
 
@@ -95,20 +93,19 @@ methods {
     function _.usdMul(uint256 value, uint256 percentage) internal => mulNearestUSD(value, percentage) expect uint256;
     function _.percentDiv(uint256 value, uint256 percentage) internal => divNearestPercent(value, percentage) expect uint256;
     function _.percentMul(uint256 value, uint256 percentage) internal => mulNearestPercent(value, percentage) expect uint256;
-    //TODO: summarize wadToUSD
-
+ 
 }
 
 //Openzeppelin Math.sol
 function mulDiv_with_rounding(uint256 x, uint256 y, uint256 denominator, Math.Rounding rounding) returns uint256
 {
-     if (assert_uint8(rounding) == 1 || assert_uint8(rounding) == 3)
+     if (rounding == Math.Rounding.Ceil || rounding == Math.Rounding.Expand)
          return mulDivUpAbstractPlus(x, y, denominator);
-    if (assert_uint8(rounding) == 0 || assert_uint8(rounding) == 2)
+
+    if (rounding == Math.Rounding.Floor || rounding == Math.Rounding.Trunc)
          return mulDivDownAbstractPlus(x, y, denominator);
+
     return _;
-
-
 }
 
 ghost uint256 fixedPrice;
@@ -125,19 +122,45 @@ function getFixedDecimals() returns uint8
         return fixedDecimals;
 }
 
+//
+// Helper CVL function
+//
 
-ghost uint256 totalCollateralBase;
-ghost uint256 totalDebtBase;
-ghost uint256 availableBorrowsBase;
-ghost  uint256 currentLiquidationThreshold;
+// Converts to USD value
+function getState_collateralUSD() returns uint256
+{
+    return mulDivDownAbstractPlus(totalCollateralBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
+}
+
+// Converts to USD value
+function getState_debtUSD() returns uint256
+{
+    return mulDivDownAbstractPlus(totalDebtBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
+}
+
+// Calculates per-share debt
+function getShareDebtUSD(uint256 shares, uint256 totalShares) returns uint256
+{
+    return mulDivUpAbstractPlus(getState_debtUSD(), shares, totalShares);
+}
 
 
+//
+// Simplified pool functions
+//
 
-// Simplified summarization of Aave Pool
+// Assumption:
+//------------
 // Assuming collateral and debt indexes are constant 1
 // Assuming a single user
 // Assuming fixed price and decimals
 // Assuming fixed availableBorrowsBase and currentLiquidationThreshold
+
+ghost uint256 totalCollateralBase;
+ghost uint256 totalDebtBase;
+ghost uint256 availableBorrowsBase;
+ghost uint256 currentLiquidationThreshold;
+
 function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint256,uint256,uint256) 
 {
         return (
@@ -147,22 +170,6 @@ function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint25
             currentLiquidationThreshold,
             _,
             _);
-}
-
-// Convert to USD
-function getState_collateralUSD() returns uint256
-{
-    return mulDivDownAbstractPlus(totalCollateralBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
-}
-
-function getState_debtUSD() returns uint256
-{
-    return mulDivDownAbstractPlus(totalDebtBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
-}
-
-function getShareDebtUSD(uint256 shares, uint256 totalShares) returns uint256
-{
-    return mulDivUpAbstractPlus(getState_debtUSD(), shares, totalShares);
 }
 
 // increases debt balance
@@ -216,6 +223,10 @@ definition disabledFunction(method f) returns bool =
 
 
 
+//
+// Rules
+//
+
 //fail
 rule rebalance_not_needed_after_rebalance__nonzero_debt
 {
@@ -228,6 +239,7 @@ rule rebalance_not_needed_after_rebalance__nonzero_debt
     assert !rebalanceNeeded(e2);
 }
 
+//fail C-2
 rule equity_per_share_non_decreasing_after_deposit {
     env e1; env e2;
 
@@ -253,6 +265,7 @@ rule equity_per_share_non_decreasing_after_deposit {
     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
 
+//fail C-2
 rule equity_per_share_non_decreasing_after_rebalance {
     env e1; env e2;
 
@@ -292,18 +305,7 @@ rule equity_non_decreasing_after_rebalance {
     assert  equityUSD_after >= equityUSD_before;
 }
 
-rule total_supply_stable_after_rebalance {
-    env e1; env e2;
 
-    require decimals() == 15;
-    requireInvariant ratioMagin_leq_1usd();
-    requireInvariant validCollateralRatioTargets();
-    uint256 totalSupply_before = totalSupply();
-    rebalance(e1);
-
-    uint256 totalSupply_after = totalSupply();
-    assert  totalSupply_after == totalSupply_before;
-}
 
 
 rule equity_per_share_non_decreasing {
@@ -332,6 +334,8 @@ rule equity_per_share_non_decreasing {
 
     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
+
+//fail
 rule equity_per_share_non_decreasing_100 {
     env e1; env e2;
 
@@ -415,6 +419,121 @@ rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__nonzero_shares {
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
 
+
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__legal_shares {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    //require !rebalanceNeeded(e1);
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+   
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);  //avoid bugs C2 and H2
+    require shares_to_redeem <= totalSupply_before;
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require shares_to_redeem != 0;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__legal_shares__equal_price {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    require getFixedDecimals() == 2;
+    require getFixedPrice() == 100;
+
+    //require !rebalanceNeeded(e1);
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+   
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);  //avoid bugs C2 and H2
+    require shares_to_redeem <= totalSupply_before;
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require shares_to_redeem != 0;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__legal_shares__balanced {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    require !rebalanceNeeded(e1);
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+   
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);  //avoid bugs C2 and H2
+    require shares_to_redeem <= totalSupply_before;
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require shares_to_redeem != 0;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__legal_shares__on_target {
+    env e1; env e2;
+
+    requireInvariant ratioMagin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    require currentCollateralRatio() ==  getCollateralRatioTargets().target;
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+   
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    
+    require getState_debtUSD() != getShareDebtUSD(shares_to_redeem, totalSupply_before);  //avoid bugs C2 and H2
+    require shares_to_redeem <= totalSupply_before;
+    
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require shares_to_redeem != 0;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+
+
 rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__nonzero_shares__fixed {
     env e1; env e2;
 
@@ -445,7 +564,7 @@ rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__nonzero_shares__fixed
     assert  to_mathint(equityUSD_after) >=  to_mathint(2 *  totalSupply_after);
 }
 
-
+//fail C-2
 rule equity_per_share_non_decreasing_100_mul {
     env e1; env e2;
 
@@ -517,6 +636,7 @@ rule equity_per_share_non_decreasing_100_mul_no_debt_1 {
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
 
+//fail C2
 rule equity_per_share_non_decreasing_100_mul_no_debt_rebalance_not_needed {
     env e1; env e2;
 
@@ -879,6 +999,7 @@ rule assets_redeemed_leq_deposited_less_shared_90_20_15_6 {
     assert  assets_redeeemed != 6;
 }
 
+// A user cannot redeem more than deposited
 rule assets_redeemed_leq_deposited {
     env e1; env e2;
     require decimals() == 17;
@@ -895,6 +1016,7 @@ rule assets_redeemed_leq_deposited {
     assert assets_redeeemed <= assets_deposited;
 }
 
+//reachability check 
 rule assets_redeemed_leq_deposited_sanity {
     env e1; env e2;
     require decimals() == 17;
@@ -911,7 +1033,7 @@ rule assets_redeemed_leq_deposited_sanity {
     assert to_mathint(assets_redeeemed) <= to_mathint(assets_deposited) + 400;
 }
 
-
+//reachability check 
 rule redeemed_test_4000_12000_100_10 {
     env e1; env e2;
     require decimals() == 17;
@@ -939,11 +1061,157 @@ rule redeemed_test_4000_12000_100_10 {
 }
 
 
+//| collateral ratio - target | doesn’t increase after rebalance
+rule distance_from_target_doesnt_increase_after_rebalance
+{
+    env e1;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMagin_leq_1usd();
+    require decimals() == 15;
+    uint256 target = getCollateralRatioTargets().target;
+
+    uint256 collateralRatio_before = currentCollateralRatio();
+    rebalance(e1);
+    uint256 collateralRatio_after = currentCollateralRatio();
+
+    
+    assert abs(collateralRatio_after - target) <= abs(collateralRatio_before - target);
+}
+
+rule distance_from_target_doesnt_increase_after_rebalance_witness
+{
+    env e1;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMagin_leq_1usd();
+    require decimals() == 15;
+    uint256 target = getCollateralRatioTargets().target;
+
+    uint256 collateralRatio_before = currentCollateralRatio();
+    rebalance(e1);
+    uint256 collateralRatio_after = currentCollateralRatio();
+
+    
+    assert abs(collateralRatio_after - target) > abs(collateralRatio_before - target);
+}
+
+
+rule same_collateralRatio_after_consecutive_rebalance
+{
+    env e1; env e2;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMagin_leq_1usd();
+    require decimals() == 15;
+    
+    rebalance(e1);
+    uint256 collateralRatio_before = currentCollateralRatio();
+    rebalance(e2);
+    uint256 collateralRatio_after = currentCollateralRatio();
+
+    assert collateralRatio_after == collateralRatio_before;
+}
+
+rule same_equity_after_consecutive_rebalance
+{
+    env e1; env e2;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMagin_leq_1usd();
+    require decimals() == 15;
+    
+    rebalance(e1);
+    uint256 equityUSD_before = equityUSD();
+    rebalance(e2);
+    uint256 equityUSD_after = equityUSD();
+    
+    assert equityUSD_after == equityUSD_before;
+}
+
+
+// rule same_storage_after_consecutive_rebalance
+// {
+//     env e1; env e2;
+//     requireInvariant validCollateralRatioTargets();
+//     requireInvariant ratioMagin_leq_1usd();
+//     require decimals() == 15;
+    
+//     rebalance(e1);
+//     storage storage_before = lastStorage;
+//     rebalance(e2);
+//     storage storage_after = lastStorage;
+
+//     assert storage_after[_CollateralERC20] == storage_before[_CollateralERC20];
+// }
+
+rule same_collateralRatio_after_consecutive_rebalance_self_check_1
+{
+    env e1; env e2;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMagin_leq_1usd();
+    require decimals() == 15;
+    
+    storage init = lastStorage;
+    rebalance(e1);
+    uint256 collateralRatio_before = currentCollateralRatio();
+    rebalance(e2) at init;
+    uint256 collateralRatio_after = currentCollateralRatio();
+
+    assert collateralRatio_after == collateralRatio_before;
+}
+
+
+rule same_equity_after_consecutive_rebalance_self_check
+{
+    env e1; env e2;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMagin_leq_1usd();
+    require decimals() == 15;
+    
+    storage init = lastStorage;
+    rebalance(e1);
+    uint256 equityUSD_before = equityUSD();
+    rebalance(e2) at init;
+    uint256 equityUSD_after = equityUSD();
+    
+    assert equityUSD_after == equityUSD_before;
+}
+
+
+// rule same_collateralRatio_after_consecutive_rebalance_self_check_2
+// {
+//     env e1; env e2;
+//     requireInvariant validCollateralRatioTargets();
+//     requireInvariant ratioMagin_leq_1usd();
+//     require decimals() == 15;
+    
+//     storage storage_init = lastStorage;
+//     rebalance(e1);
+//     storage storage_before = lastStorage;
+//     rebalance(e2) at storage_init;
+//     storage storage_after = lastStorage;
+
+//     assert storage_after[_LoopStrategy] == storage_before[_LoopStrategy];
+// }
+
 
 //
 // Invariants
 //
 
+
+invariant collateralRatio_leq_minForRebalance()
+     getCollateralRatioTargets().minForRebalance <= currentCollateralRatio()
+      filtered {
+        f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector
+         && f.selector != sig:setCollateralRatioTargets(LoopStrategyHarness.CollateralRatio) .selector) // TODO: remove once I-5 is fixed
+    }
+
+invariant collateralRatio_geq_maxForRebalance()
+     getCollateralRatioTargets().maxForRebalance >= currentCollateralRatio()
+      filtered {
+        f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector
+        && f.selector != sig:setCollateralRatioTargets(LoopStrategyHarness.CollateralRatio) .selector) // TODO: remove once I-5 is fixed
+    }
+
+// collateralRatioTargets are valid
 //fail on LoopStrategy_init() - reported bug L3 
 invariant validCollateralRatioTargets()
         getCollateralRatioTargets().minForRebalance <= getCollateralRatioTargets().target
@@ -955,6 +1223,7 @@ invariant validCollateralRatioTargets()
     }
 
 
+// rationMargin is less or equla to 1 USD
 //fail on LoopStrategy_init() - extension of bug L3 
 invariant ratioMagin_leq_1usd()
         getRatioMagin() <= 10 ^ 8

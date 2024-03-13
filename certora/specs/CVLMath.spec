@@ -89,6 +89,10 @@ function mulDivDownAbstract(uint256 x, uint256 y, uint256 z) returns uint256 {
 }
 
 function mulDivDownAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
+    
+    if (y == z)
+        return x;
+
     uint256 res;
     require z != 0;
     uint256 xy = require_uint256(x * y);
@@ -101,6 +105,10 @@ function mulDivDownAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256
 
 //round to the nearest integer
 function mulDivNearestAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
+
+    if (y == z)
+        return x;
+
     uint256 res;
     require z != 0;
     uint256 xy = require_uint256(x * y);
@@ -124,6 +132,10 @@ function mulDivNearestAbstractPlus_assertions(uint256 x, uint256 y, uint256 z, u
 }
 
 function mulDivUpAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
+
+    if (y == z)
+        return x;
+
     uint256 res;
     require z != 0;
     uint256 xy = require_uint256(x * y);
