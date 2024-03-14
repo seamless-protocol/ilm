@@ -1,0 +1,46 @@
+{
+    "files": [
+        "certora/harness/LoopStrategyHarness.sol",
+        //"src/swap/Swapper.sol",
+       //"certora/harness/DummyERC20Impl.sol",
+       //"lib/aave-v3-core/contracts/protocol/pool/Pool.sol",
+
+    ],
+    "packages" : [
+        "@aave=lib/aave-v3-core",
+        "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
+        "@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts",
+    ],
+    "optimistic_loop": true,
+    "loop_iter":"1",
+    "solc": "solc8.21",
+    //"solc_map" : {
+    //    "LoopStrategyHarness":"solc8.21",
+    //    "Swapper":"solc8.21",
+    //    "DummyERC20Impl":"solc8.21",
+    //    "AerodromeAdapter":"solc8.21",
+    //    "PoolAddressesProvider":"solc8.10",
+    //    "Pool":"solc8.10",
+    //    "PriceOracle":"solc8.10",
+    //    "VariableDebtToken":"solc8.10",
+    //    "ACLManager":"solc8.10",
+    //},
+//  "rule_sanity" : "advanced",
+    "msg": "LoopStrategy properties",
+    "smt_timeout": "3600",
+    "prover_args": [
+    //"-splitParallel true -coverageInfoForTimeouts true -splitParallelTimelimit 1200 -totalUnsatCoresTimeout 120 -unsatCoresTimeout 30",
+    //    "--optimistic_fallback",
+    //  "-cache none",
+    // "-calltraceFreeOpt true",
+    "-enableEqualityReasoning true", 
+    "-summaryResolutionMode tiered", 
+    ],
+    "optimistic_fallback" : true,
+    "disable_auto_cache_key_gen" : true,
+    "verify": "LoopStrategyHarness:certora/specs/LoopStrategy.spec",
+    // "wait_for_results": "all",
+    "server": "production",
+    "prover_version": "master",
+    //"prover_version": "eyalf/calltrace-error-handling-refactor"
+}

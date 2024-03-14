@@ -1,0 +1,745 @@
+diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol
+--- lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-03-07 15:42:04
++++ lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-03-07 11:50:05
+@@ -132,10 +132,15 @@
+ 
+     if (isolationModeActive) {
+       uint256 nextIsolationModeTotalDebt = reservesData[isolationModeCollateralAddress]
+-        .isolationModeTotalDebt += (params.amount /
++        .isolationModeTotalDebt += (mulDivDown(params.amount, 
+         10 **
+           (reserveCache.reserveConfiguration.getDecimals() -
+-            ReserveConfiguration.DEBT_CEILING_DECIMALS)).toUint128();
++            ReserveConfiguration.DEBT_CEILING_DECIMALS), 1)).toUint128();
++      // uint256 nextIsolationModeTotalDebt = reservesData[isolationModeCollateralAddress]
++      //   .isolationModeTotalDebt += (params.amount /                      // Munged by Certora
++      //   10 **
++      //     (reserveCache.reserveConfiguration.getDecimals() -
++      //       ReserveConfiguration.DEBT_CEILING_DECIMALS)).toUint128();
+       emit IsolationModeTotalDebtUpdated(
+         isolationModeCollateralAddress,
+         nextIsolationModeTotalDebt
+@@ -350,4 +355,8 @@
+ 
+     emit SwapBorrowRateMode(asset, msg.sender, interestRateMode);
+   }
++
++  function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
++    }
+ }
+diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol
+--- lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-03-07 15:42:04
++++ lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-03-07 11:50:05
+@@ -135,15 +135,19 @@
+ 
+         if (vars.ltv != 0) {
+           vars.avgLtv +=
+-            vars.userBalanceInBaseCurrency *
+-            (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
++            mulDivDown(vars.userBalanceInBaseCurrency, 
++            (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv), 1);
++            //vars.userBalanceInBaseCurrency * // Munged by Certora
++            //(vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
+         } else {
+           vars.hasZeroLtvCollateral = true;
+         }
+ 
+         vars.avgLiquidationThreshold +=
+-          vars.userBalanceInBaseCurrency *
+-          (vars.isInEModeCategory ? vars.eModeLiqThreshold : vars.liquidationThreshold);
++          mulDivDown(vars.userBalanceInBaseCurrency,
++          (vars.isInEModeCategory ? vars.eModeLiqThreshold : vars.liquidationThreshold), 1);
++          //vars.userBalanceInBaseCurrency * //Munged by Certora
++          //(vars.isInEModeCategory ? vars.eModeLiqThreshold : vars.liquidationThreshold);
+       }
+ 
+       if (params.userConfig.isBorrowing(vars.i)) {
+@@ -162,10 +166,12 @@
+ 
+     unchecked {
+       vars.avgLtv = vars.totalCollateralInBaseCurrency != 0
+-        ? vars.avgLtv / vars.totalCollateralInBaseCurrency
++        ? mulDivDown(vars.avgLtv, 1, vars.totalCollateralInBaseCurrency)
++        //? vars.avgLtv / vars.totalCollateralInBaseCurrency // Munged by Certora
+         : 0;
+       vars.avgLiquidationThreshold = vars.totalCollateralInBaseCurrency != 0
+-        ? vars.avgLiquidationThreshold / vars.totalCollateralInBaseCurrency
++        ? mulDivDown(vars.avgLiquidationThreshold, 1, vars.totalCollateralInBaseCurrency)
++        //? vars.avgLiquidationThreshold / vars.totalCollateralInBaseCurrency  // Munged by Certora
+         : 0;
+     }
+ 
+@@ -234,10 +240,12 @@
+ 
+     userTotalDebt = userTotalDebt + IERC20(reserve.stableDebtTokenAddress).balanceOf(user);
+ 
+-    userTotalDebt = assetPrice * userTotalDebt;
++    userTotalDebt = mulDivDown(assetPrice, userTotalDebt, 1);
++    userTotalDebt = assetPrice * userTotalDebt; // Munged by Certora
+ 
+     unchecked {
+-      return userTotalDebt / assetUnit;
++      return mulDivDown(userTotalDebt, 1, assetUnit);
++      //return userTotalDebt / assetUnit; // Munged by Certora
+     }
+   }
+ 
+@@ -258,12 +266,20 @@
+     uint256 assetUnit
+   ) private view returns (uint256) {
+     uint256 normalizedIncome = reserve.getNormalizedIncome();
+-    uint256 balance = (
++    uint256 balance = mulDivDown((
+       IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)
+-    ) * assetPrice;
++    ), assetPrice, 1);
++    //uint256 balance = (
++    //  IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)
++    //) * assetPrice; // Munged by Certora
+ 
+     unchecked {
+-      return balance / assetUnit;
++      return mulDivDown(balance, 1, assetUnit);
++      //return balance / assetUnit; //Munged by Certora
+     }
+   }
++
++  function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
++    }
+ }
+diff -ruN src/interfaces/IAerodromeAdapter.sol src/interfaces/IAerodromeAdapter.sol
+--- src/interfaces/IAerodromeAdapter.sol	2024-03-07 15:42:04
++++ src/interfaces/IAerodromeAdapter.sol	2024-03-07 11:50:05
+@@ -33,6 +33,18 @@
+     /// @param routes array of routes for swap
+     event RoutesSet(IERC20 from, IERC20 to, IRouter.Route[] routes);
+ 
++    /// @notice initializing function of adapter
++    /// @param owner address of adapter owner
++    /// @param router address of Aerodrome router
++    /// @param factory address of Aerodrome pair factory
++    /// @param swapper address of swapper
++    function AerodromeAdapter__Init(
++        address owner,
++        address router,
++        address factory,
++        address swapper
++    ) external;
++
+     /// @notice sets the `isPoolStable` boolean for a given pair
+     /// @param from address of first token
+     /// @param to address of second token
+@@ -58,6 +70,23 @@
+     /// @param from address of token route ends with
+     /// @param to address of token route starts with
+     function removeRoutes(IERC20 from, IERC20 to) external;
++
++    /// @notice fetches the 'stable' status of a pool
++    /// @param from address of `from` token
++    /// @param to address of `to` token
++    /// @return status 'stable' status of pool
++    function getIsPoolStable(IERC20 from, IERC20 to)
++        external
++        view
++        returns (bool status);
++
++    /// @notice fetches the Aerodrome PoolFactory address
++    /// @return factory address of Aerodrome PoolFactory contract
++    function getPoolFactory() external view returns (address factory);
++
++    /// @notice fetches the Aerodrome Router address
++    /// @return router address of Aerodrome Router contract
++    function getRouter() external view returns (address router);
+ 
+     /// @notice fetches the swap routes for a given token swap
+     /// @param from address of `from` token
+diff -ruN src/interfaces/IPriceOracleGetter.sol src/interfaces/IPriceOracleGetter.sol
+--- src/interfaces/IPriceOracleGetter.sol	2024-03-07 15:42:04
++++ src/interfaces/IPriceOracleGetter.sol	2024-03-07 11:50:05
+@@ -7,6 +7,7 @@
+  * @author Aave
+  * @notice Interface for the Aave price oracle.
+  */
++
+ interface IPriceOracleGetter {
+     /**
+      * @notice Returns the base currency address
+diff -ruN src/interfaces/ISwapAdapter.sol src/interfaces/ISwapAdapter.sol
+--- src/interfaces/ISwapAdapter.sol	2024-03-07 15:42:04
++++ src/interfaces/ISwapAdapter.sol	2024-03-07 11:50:05
+@@ -33,4 +33,10 @@
+     /// @dev this is a function that _must_ be implemented by a swap adapter
+     /// @param swapper address of Swapper contract
+     function setSwapper(address swapper) external;
++
++    /// @notice returns the address of Swapper contract
++    /// @dev this is a function that _must_ be implemented by a swap adapter - permissions
++    /// for calling swaps are granted to this address
++    /// @return swapper address of Swapper contract
++    function getSwapper() external view returns (address swapper);
+ }
+diff -ruN src/interfaces/IWrappedTokenAdapter.sol src/interfaces/IWrappedTokenAdapter.sol
+--- src/interfaces/IWrappedTokenAdapter.sol	2024-03-07 15:42:04
++++ src/interfaces/IWrappedTokenAdapter.sol	2024-03-07 11:50:05
+@@ -10,6 +10,12 @@
+ /// @title IWrappedTokenAdapter
+ /// @notice interface for WrappedTokenAdapter functionality
+ interface IWrappedTokenAdapter {
++    /// @notice initializing function of adapter
++    /// @param owner address of adapter owner
++    /// @param swapper address of swapper
++    function WrappedTokenAdapter__Init(address owner, address swapper)
++        external;
++
+     /// @notice sets the wrapper contract for a given token pair
+     /// @param from token to wrap/unwrap
+     /// @param to token received after wrapping/unwrapping
+@@ -24,4 +30,13 @@
+     /// @param from token to wrap/unwrap
+     /// @param to token received after wrapping/unwrapping
+     function removeWrapper(IERC20 from, IERC20 to) external;
++
++    /// @notice returns wrapper contract for a given from/to token pair
++    /// @param from token to wrap/unwrap
++    /// @param to token received after wrapping/unwrapping
++    /// @return wrapper WrappedERC20PermissionedDeposit contract pertaining to from/to tokens
++    function getWrapper(IERC20 from, IERC20 to)
++        external
++        view
++        returns (IWrappedERC20PermissionedDeposit wrapper);
+ }
+diff -ruN src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
+--- src/libraries/LoanLogic.sol	2024-03-07 15:42:04
++++ src/libraries/LoanLogic.sol	2024-03-07 11:50:05
+@@ -184,9 +184,12 @@
+         uint256 totalBorrow = _getTotalBorrow(reserveData);
+         uint256 borrowCap = reserveData.configuration.getBorrowCap();
+         uint256 assetUnit = 10 ** reserveData.configuration.getDecimals();
+-        uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow)
+-            ? borrowCap * assetUnit - totalBorrow
++        uint256 avilableUntilBorrowCap = (mulDivDown(borrowCap, assetUnit, 1) > totalBorrow)
++            ? mulDivDown(borrowCap, assetUnit, 1) - totalBorrow
+             : 0;
++        //uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow) // Munged by Certora
++        //    ? borrowCap * assetUnit - totalBorrow // Munged by Certora
++        //    : 0;
+ 
+         uint256 availableLiquidityBase =
+             asset.balanceOf(reserveData.aTokenAddress);
+@@ -226,7 +229,8 @@
+             getAvailableAssetSupply(lendingPool, debtAsset);
+         uint256 assetDecimals = IERC20Metadata(address(debtAsset)).decimals();
+         uint256 availableAssetSupplyUSD =
+-            availableAssetSupply * debtAssetPrice / (10 ** assetDecimals);
++            mulDivDown(availableAssetSupply, debtAssetPrice, (10 ** assetDecimals));
++            //availableAssetSupply * debtAssetPrice / (10 ** assetDecimals); // Munged by Certora
+ 
+         (,, uint256 availableBorrowsUSD,,,) =
+             lendingPool.pool.getUserAccountData(address(this));
+@@ -234,5 +238,9 @@
+         maxBorrowUSD =
+             PercentageMath.percentMul(maxBorrowUSD, MAX_AMOUNT_PERCENT);
+         return maxBorrowUSD;
++    }
++
++    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
+     }
+ }
+diff -ruN src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.sol
+--- src/libraries/RebalanceLogic.sol	2024-03-07 15:42:04
++++ src/libraries/RebalanceLogic.sol	2024-03-07 11:50:05
+@@ -405,7 +405,8 @@
+         uint256 offsetFactor =
+             $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
+ 
+-        uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
++        uint256 margin = mulDivDown(_targetCR, $.ratioMargin, ONE_USD);
++        //uint256 margin = _targetCR * $.ratioMargin / ONE_USD; // Munged by Certora
+         uint256 count;
+ 
+         do {
+@@ -505,7 +506,8 @@
+         uint256 offsetFactor =
+             $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+ 
+-        uint256 margin = targetCR * $.ratioMargin / ONE_USD;
++        uint256 margin = mulDivDown(targetCR, $.ratioMargin, ONE_USD);
++        //uint256 margin = targetCR * $.ratioMargin / ONE_USD; // Munged by Certora
+         uint256 count;
+ 
+         do {
+@@ -574,7 +576,8 @@
+             uint256 collateralAmountAsset = RebalanceMath
+                 .calculateCollateralAsset(
+                 state,
+-                remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor),
++                mulDivDown(remainingDebtUSD, ONE_USD, (ONE_USD - offsetFactor)),
++                //remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor), // Munged by Certora
+                 collateralPriceUSD,
+                 collateralDecimals
+             );
+@@ -642,4 +645,9 @@
+                 || collateralRatio > collateraRatioTargets.maxForRebalance
+         );
+     }
++
++    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
++    }
++
+ }
+diff -ruN src/libraries/math/RebalanceMath.sol src/libraries/math/RebalanceMath.sol
+--- src/libraries/math/RebalanceMath.sol	2024-03-07 15:42:04
++++ src/libraries/math/RebalanceMath.sol	2024-03-07 11:50:05
+@@ -33,11 +33,16 @@
+         returns (uint256 amount)
+     {
+         // prevent overflows
+-        if (a <= type(uint256).max / (ONE_USD - offsetUSD)) {
+-            amount = (a * (ONE_USD - offsetUSD)) / ONE_USD;
++        if (a <= mulDivDown(type(uint256).max, 1,  (ONE_USD - offsetUSD))) {
++            amount = mulDivDown(a, (ONE_USD - offsetUSD), ONE_USD);
+         } else {
+-            amount = (a / ONE_USD) * (ONE_USD - offsetUSD);
++            amount =  mulDivDown(mulDivDown(a, 1, ONE_USD), (ONE_USD - offsetUSD), 1);
+         }
++        //if (a <= type(uint256).max / (ONE_USD - offsetUSD)) { // Munged by Certora
++        //    amount = (a * (ONE_USD - offsetUSD)) / ONE_USD; // Munged by Certora
++        //} else {
++        //    amount = (a / ONE_USD) * (ONE_USD - offsetUSD); // Munged by Certora
++        //}
+     }
+ 
+     /// @notice calculates the total required borrow amount in order to reach a target collateral ratio value
+@@ -108,5 +113,9 @@
+             collateralDecimals,
+             Math.Rounding.Ceil
+         );
++    }
++    
++    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
+     }
+ }
+diff -ruN src/storage/AerodromeAdapterStorage.sol src/storage/AerodromeAdapterStorage.sol
+--- src/storage/AerodromeAdapterStorage.sol	1970-01-01 02:00:00
++++ src/storage/AerodromeAdapterStorage.sol	2024-03-07 11:50:05
+@@ -0,0 +1,31 @@
++// SPDX-License-Identifier: BUSL-1.1
++
++pragma solidity ^0.8.21;
++
++import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
++
++import { IRouter } from "../vendor/aerodrome/IRouter.sol";
++
++library AerodromeAdapterStorage {
++    /// @dev struct containing all state for the AerodromeAdapter contract
++    /// @custom:storage-location erc7201:seamless.contracts.storage.AerodromeAdapter
++    struct Layout {
++        mapping(IERC20 from => mapping(IERC20 to => IRouter.Route[] routes))
++            swapRoutes;
++        mapping(IERC20 from => mapping(IERC20 to => bool isStable)) isPoolStable;
++        mapping(address pair => address factory) pairFactory;
++        address router;
++        address poolFactory;
++    }
++
++    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.AerodromeAdapter")) - 1)) & ~bytes32(uint256(0xff));
++    bytes32 internal constant STORAGE_SLOT =
++        0xe20fadfe51c05810cf8049153a6d3327f8bd31f8cadde6b0efd76ce5573f2600;
++
++    function layout() internal pure returns (Layout storage l) {
++        bytes32 slot = STORAGE_SLOT;
++        assembly {
++            l.slot := slot
++        }
++    }
++}
+diff -ruN src/storage/SwapAdapterBaseStorage.sol src/storage/SwapAdapterBaseStorage.sol
+--- src/storage/SwapAdapterBaseStorage.sol	1970-01-01 02:00:00
++++ src/storage/SwapAdapterBaseStorage.sol	2024-03-07 11:50:05
+@@ -0,0 +1,22 @@
++// SPDX-License-Identifier: BUSL-1.1
++
++pragma solidity ^0.8.21;
++
++library SwapAdapterBaseStorage {
++    /// @dev struct containing all state for the SwapAdapterBase contract
++    /// @custom:storage-location erc7201:seamless.contracts.storage.SwapAdapterBase
++    struct Layout {
++        address swapper;
++    }
++
++    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.SwapAdapterBase")) - 1)) & ~bytes32(uint256(0xff));
++    bytes32 internal constant STORAGE_SLOT =
++        0xebbcbb6f4bc0510bac5105d82440cb1f3fa3634785f911c43618c35177456000;
++
++    function layout() internal pure returns (Layout storage l) {
++        bytes32 slot = STORAGE_SLOT;
++        assembly {
++            l.slot := slot
++        }
++    }
++}
+diff -ruN src/storage/WrappedTokenAdapterStorage.sol src/storage/WrappedTokenAdapterStorage.sol
+--- src/storage/WrappedTokenAdapterStorage.sol	1970-01-01 02:00:00
++++ src/storage/WrappedTokenAdapterStorage.sol	2024-03-07 11:50:05
+@@ -0,0 +1,32 @@
++// SPDX-License-Identifier: BUSL-1.1
++
++pragma solidity ^0.8.21;
++
++import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
++
++import { IWrappedERC20PermissionedDeposit } from
++    "../interfaces/IWrappedERC20PermissionedDeposit.sol";
++
++library WrappedTokenAdapterStorage {
++    /// @dev struct containing all state for the WrappedTokenAdapter contract
++    /// @custom:storage-location erc7201:seamless.contracts.storage.WrappedTokenAdapter
++    struct Layout {
++        mapping(
++            IERC20 from
++                => mapping(
++                    IERC20 to => IWrappedERC20PermissionedDeposit wrapper
++                )
++            ) wrappers;
++    }
++
++    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.WrappedTokenAdapter")) - 1)) & ~bytes32(uint256(0xff));
++    bytes32 internal constant STORAGE_SLOT =
++        0x25b70c849dde52d8ddadc20d855caa6e4102bdc5328ba5593a0d5c3e9ab8af00;
++
++    function layout() internal pure returns (Layout storage l) {
++        bytes32 slot = STORAGE_SLOT;
++        assembly {
++            l.slot := slot
++        }
++    }
++}
+diff -ruN src/swap/adapter/AerodromeAdapter.sol src/swap/adapter/AerodromeAdapter.sol
+--- src/swap/adapter/AerodromeAdapter.sol	2024-03-07 15:42:04
++++ src/swap/adapter/AerodromeAdapter.sol	2024-03-07 11:50:05
+@@ -2,35 +2,35 @@
+ 
+ pragma solidity ^0.8.21;
+ 
+-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+ 
+ import { SwapAdapterBase } from "./SwapAdapterBase.sol";
+ import { IAerodromeAdapter } from "../../interfaces/IAerodromeAdapter.sol";
+ import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
++import { AerodromeAdapterStorage as Storage } from
++    "../../storage/AerodromeAdapterStorage.sol";
++import { SwapAdapterBaseStorage as BaseStorage } from
++    "../../storage/SwapAdapterBaseStorage.sol";
+ import { IPoolFactory } from "../../vendor/aerodrome/IPoolFactory.sol";
+ import { IRouter } from "../../vendor/aerodrome/IRouter.sol";
+ 
+ /// @title AerodromeAdapter
+ /// @notice Adapter contract for executing swaps on aerodrome
+ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
+-    mapping(IERC20 from => mapping(IERC20 to => IRouter.Route[] routes)) public
+-        swapRoutes;
+-    mapping(IERC20 from => mapping(IERC20 to => bool isStable)) public
+-        isPoolStable;
+-    mapping(address pair => address factory) public pairFactory;
+-    address public router;
+-    address public poolFactory;
++    /// @inheritdoc IAerodromeAdapter
++    function AerodromeAdapter__Init(
++        address owner,
++        address router,
++        address factory,
++        address swapper
++    ) external initializer {
++        __Ownable_init(owner);
+ 
+-    constructor(
+-        address _owner,
+-        address _router,
+-        address _factory,
+-        address _swapper
+-    ) Ownable(_owner) {
+-        router = _router;
+-        poolFactory = _factory;
+-        _setSwapper(_swapper);
++        Storage.Layout storage $ = Storage.layout();
++        $.router = router;
++        $.poolFactory = factory;
++
++        BaseStorage.layout().swapper = swapper;
+     }
+ 
+     /// @inheritdoc ISwapAdapter
+@@ -48,23 +48,23 @@
+         external
+         onlyOwner
+     {
+-        isPoolStable[from][to] = status;
++        Storage.layout().isPoolStable[from][to] = status;
+ 
+         emit IsPoolStableSet(from, to, status);
+     }
+ 
+     /// @inheritdoc IAerodromeAdapter
+     function setPoolFactory(address factory) external onlyOwner {
+-        poolFactory = factory;
++        Storage.layout().poolFactory = factory;
+ 
+         emit PoolFactorySet(factory);
+     }
+ 
+     /// @inheritdoc IAerodromeAdapter
+-    function setRouter(address _router) external onlyOwner {
+-        router = _router;
++    function setRouter(address router) external onlyOwner {
++        Storage.layout().router = router;
+ 
+-        emit RouterSet(_router);
++        emit RouterSet(router);
+     }
+ 
+     /// @inheritdoc IAerodromeAdapter
+@@ -72,12 +72,14 @@
+         external
+         onlyOwner
+     {
+-        if (swapRoutes[from][to].length != 0) {
++        Storage.Layout storage $ = Storage.layout();
++
++        if ($.swapRoutes[from][to].length != 0) {
+             _removeRoutes(from, to);
+         }
+ 
+         for (uint256 i; i < routes.length; ++i) {
+-            swapRoutes[from][to].push(routes[i]);
++            $.swapRoutes[from][to].push(routes[i]);
+         }
+ 
+         emit RoutesSet(from, to, routes);
+@@ -93,20 +95,44 @@
+         _setSwapper(swapper);
+     }
+ 
++    /// @inheritdoc ISwapAdapter
++    function getSwapper() external view returns (address swapper) {
++        return _getSwapper();
++    }
++
+     /// @inheritdoc IAerodromeAdapter
++    function getIsPoolStable(IERC20 from, IERC20 to)
++        external
++        view
++        returns (bool status)
++    {
++        return Storage.layout().isPoolStable[from][to];
++    }
++
++    /// @inheritdoc IAerodromeAdapter
++    function getPoolFactory() external view returns (address factory) {
++        return Storage.layout().poolFactory;
++    }
++
++    //// @inheritdoc IAerodromeAdapter
++    function getRouter() external view returns (address router) {
++        return Storage.layout().router;
++    }
++
++    //// @inheritdoc IAerodromeAdapter
+     function getSwapRoutes(IERC20 from, IERC20 to)
+         external
+         view
+         returns (IRouter.Route[] memory routes)
+     {
+-        return swapRoutes[from][to];
++        return Storage.layout().swapRoutes[from][to];
+     }
+ 
+     /// @notice deletes existing routes for a given swap
+     /// @param from address of token route ends with
+     /// @param to address of token route starts with
+     function _removeRoutes(IERC20 from, IERC20 to) internal {
+-        delete swapRoutes[from][to];
++        delete Storage.layout().swapRoutes[from][to];
+ 
+         emit RoutesRemoved(from, to);
+     }
+@@ -124,14 +150,16 @@
+         uint256 fromAmount,
+         address payable beneficiary
+     ) internal override returns (uint256 toAmount) {
++        Storage.Layout storage $ = Storage.layout();
++
+         from.transferFrom(msg.sender, address(this), fromAmount);
+ 
+-        from.approve(router, fromAmount);
++        from.approve($.router, fromAmount);
+ 
+-        uint256[] memory toAmounts = IRouter(router).swapExactTokensForTokens(
++        uint256[] memory toAmounts = IRouter($.router).swapExactTokensForTokens(
+             fromAmount,
+             0,
+-            swapRoutes[from][to],
++            $.swapRoutes[from][to],
+             beneficiary,
+             block.timestamp + 10
+         );
+diff -ruN src/swap/adapter/SwapAdapterBase.sol src/swap/adapter/SwapAdapterBase.sol
+--- src/swap/adapter/SwapAdapterBase.sol	2024-03-07 15:42:04
++++ src/swap/adapter/SwapAdapterBase.sol	2024-03-07 11:50:05
+@@ -2,19 +2,22 @@
+ 
+ pragma solidity ^0.8.21;
+ 
+-import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
++import {
++    Ownable2StepUpgradeable,
++    OwnableUpgradeable
++} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+ 
+ import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
++import { SwapAdapterBaseStorage as Storage } from
++    "../../storage/SwapAdapterBaseStorage.sol";
+ 
+ /// @title SwapAdapterBase
+ /// @notice Base adapter contract for all swap adapters
+ /// @dev should be inherited and overridden by all SwapAdapter implementations
+-abstract contract SwapAdapterBase is Ownable2Step, ISwapAdapter {
+-    address public swapper;
+-
++abstract contract SwapAdapterBase is Ownable2StepUpgradeable, ISwapAdapter {
+     modifier onlySwapper() {
+-        if (swapper != msg.sender) {
++        if (Storage.layout().swapper != msg.sender) {
+             revert NotSwapper();
+         }
+         _;
+@@ -35,11 +38,17 @@
+         // override with adapter specific swap logic
+     }
+ 
++    /// @notice returns the address of Swapper contract
++    /// @return swapper address of Swapper contract
++    function _getSwapper() internal view virtual returns (address swapper) {
++        return Storage.layout().swapper;
++    }
++
+     /// @notice sets the address of the Swapper contract
+-    /// @param _swapper address of Swapper contract
+-    function _setSwapper(address _swapper) internal virtual {
+-        swapper = _swapper;
++    /// @param swapper address of Swapper contract
++    function _setSwapper(address swapper) internal virtual {
++        Storage.layout().swapper = swapper;
+ 
+-        emit SwapperSet(_swapper);
++        emit SwapperSet(swapper);
+     }
+ }
+diff -ruN src/swap/adapter/WrappedTokenAdapter.sol src/swap/adapter/WrappedTokenAdapter.sol
+--- src/swap/adapter/WrappedTokenAdapter.sol	2024-03-07 15:42:04
++++ src/swap/adapter/WrappedTokenAdapter.sol	2024-03-07 11:50:05
+@@ -2,11 +2,14 @@
+ 
+ pragma solidity ^0.8.21;
+ 
+-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+ 
+ import { SwapAdapterBase } from "./SwapAdapterBase.sol";
+ import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
++import { WrappedTokenAdapterStorage as Storage } from
++    "../../storage/WrappedTokenAdapterStorage.sol";
++import { SwapAdapterBaseStorage as BaseStorage } from
++    "../../storage/SwapAdapterBaseStorage.sol";
+ import { IWrappedERC20PermissionedDeposit } from
+     "../../interfaces/IWrappedERC20PermissionedDeposit.sol";
+ import { IWrappedTokenAdapter } from "../../interfaces/IWrappedTokenAdapter.sol";
+@@ -27,13 +30,13 @@
+     /// @param to token which will be received after wrapping/unwrapping
+     event WrapperRemoved(IERC20 from, IERC20 to);
+ 
+-    mapping(
+-        IERC20 from
+-            => mapping(IERC20 to => IWrappedERC20PermissionedDeposit wrapper)
+-    ) public wrappers;
+-
+-    constructor(address owner, address swapper) Ownable(owner) {
+-        _setSwapper(swapper);
++    /// @inheritdoc IWrappedTokenAdapter
++    function WrappedTokenAdapter__Init(address owner, address swapper)
++        external
++        initializer
++    {
++        __Ownable_init(owner);
++        BaseStorage.layout().swapper = swapper;
+     }
+ 
+     /// @inheritdoc ISwapAdapter
+@@ -43,9 +46,11 @@
+         uint256 fromAmount,
+         address payable beneficiary
+     ) external onlySwapper returns (uint256 toAmount) {
++        Storage.Layout storage $ = Storage.layout();
++
+         from.transferFrom(msg.sender, address(this), fromAmount);
+ 
+-        IWrappedERC20PermissionedDeposit wrapper = wrappers[from][to];
++        IWrappedERC20PermissionedDeposit wrapper = $.wrappers[from][to];
+ 
+         from.approve(address(wrapper), fromAmount);
+ 
+@@ -72,12 +77,14 @@
+         IERC20 to,
+         IWrappedERC20PermissionedDeposit wrapper
+     ) external onlyOwner {
+-        if (address(wrappers[from][to]) != address(0)) {
++        Storage.Layout storage $ = Storage.layout();
++
++        if (address($.wrappers[from][to]) != address(0)) {
+             _removeWrapper(from, to);
+         }
+ 
+-        wrappers[from][to] = wrapper;
+-        wrappers[to][from] = wrapper;
++        $.wrappers[from][to] = wrapper;
++        $.wrappers[to][from] = wrapper;
+ 
+         emit WrapperSet(from, to, wrapper);
+         emit WrapperSet(to, from, wrapper);
+@@ -88,12 +95,26 @@
+         _removeWrapper(from, to);
+     }
+ 
++    /// @inheritdoc IWrappedTokenAdapter
++    function getWrapper(IERC20 from, IERC20 to)
++        external
++        view
++        returns (IWrappedERC20PermissionedDeposit wrapper)
++    {
++        return Storage.layout().wrappers[from][to];
++    }
++
++    /// @inheritdoc ISwapAdapter
++    function getSwapper() external view returns (address swapper) {
++        return _getSwapper();
++    }
++
+     /// @notice removes a previously set wrapper for a given from/to token pair
+     /// @param from token to wrap/unwrap
+     /// @param to token received after wrapping/unwrapping
+     function _removeWrapper(IERC20 from, IERC20 to) internal {
+-        delete wrappers[from][to];
+-        delete wrappers[to][from];
++        delete Storage.layout().wrappers[from][to];
++        delete Storage.layout().wrappers[to][from];
+ 
+         emit WrapperRemoved(from, to);
+         emit WrapperRemoved(to, from);
