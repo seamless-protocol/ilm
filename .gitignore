@@ -30,6 +30,3 @@ pnpm-lock.yaml
 
 # simulation output
 test/integration/output
-
-#Certora files
-certora/munged
