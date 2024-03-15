@@ -197,7 +197,7 @@ interface ILoopStrategy is IERC4626 {
 
     /// @notice returns value of ratioMargin
     /// @return marginUSD ratioMargin value
-    function getRatioMagin() external view returns (uint256 marginUSD);
+    function getRatioMargin() external view returns (uint256 marginUSD);
 
     /// @notice returns value of maxIterations
     /// @return iterations maxIterations value

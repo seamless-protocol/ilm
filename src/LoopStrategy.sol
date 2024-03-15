@@ -473,7 +473,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function getRatioMagin() external view returns (uint256 marginUSD) {
+    function getRatioMargin() external view returns (uint256 marginUSD) {
         return Storage.layout().ratioMargin;
     }
 

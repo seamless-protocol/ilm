@@ -308,7 +308,7 @@ contract LoopStrategySetupTest is LoopStrategyTest {
 
         strategy.setRatioMargin(marginUSD);
 
-        assertEq(strategy.getRatioMagin(), marginUSD);
+        assertEq(strategy.getRatioMargin(), marginUSD);
     }
 
     /// @dev ensures setRatioMargin call is reverted when called by non-manager
