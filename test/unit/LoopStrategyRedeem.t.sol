@@ -364,7 +364,10 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // calculate amount of collateral needed to bring the collateral ratio
         // to target, on the strategy wide rebalance
         uint256 neededCollateralUSD = RebalanceMath.requiredCollateralUSD(
-            targets.target, strategy.collateralUSD(), strategy.debtUSD(), swapOffset
+            targets.target,
+            strategy.collateralUSD(),
+            strategy.debtUSD(),
+            swapOffset
         );
 
         // calculate new debt and collateral values after collateral has been exchanged
@@ -426,7 +429,8 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         // collateral withdrawn from redeem must be equal to initialShareEquityUSD
         // as no rebalance cost burdened redeemer
         assertEq(
-            expectedCollateralUSD - strategy.collateralUSD(), initialShareEquityUSD
+            expectedCollateralUSD - strategy.collateralUSD(),
+            initialShareEquityUSD
         );
         assertApproxEqRel(
             expectedCollateralUSD - expectedDebtUSD - strategy.equityUSD(),

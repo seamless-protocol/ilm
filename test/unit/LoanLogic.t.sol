@@ -422,7 +422,9 @@ contract LoanLogicTest is BaseForkTest {
 
         MockAaveOracle(address(priceOracle)).setAssetPrice(address(WETH), 0);
         uint256 usdbcPrice = 1 * 1e8;
-        MockAaveOracle(address(priceOracle)).setAssetPrice(address(USDbC), usdbcPrice);
+        MockAaveOracle(address(priceOracle)).setAssetPrice(
+            address(USDbC), usdbcPrice
+        );
 
         LoanState memory loanState = LoanLogic.getLoanState(lendingPool);
         assertEq(loanState.collateralUSD, 0);

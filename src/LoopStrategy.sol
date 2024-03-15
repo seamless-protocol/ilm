@@ -140,7 +140,10 @@ contract LoopStrategy is
 
     /// @dev validates collateral ratio targets values
     /// @param targets collateral ratio targets to validate
-    function _validateCollateralRatioTargets(CollateralRatio memory targets) internal pure {
+    function _validateCollateralRatioTargets(CollateralRatio memory targets)
+        internal
+        pure
+    {
         if (
             targets.minForWithdrawRebalance > targets.target
                 || targets.maxForDepositRebalance < targets.target
