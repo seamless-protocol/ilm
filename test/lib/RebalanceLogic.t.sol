@@ -244,6 +244,16 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(ratio, targetCR, margin);
+
+        state = LoanLogic.getLoanState($.lendingPool);
+        uint256 debtRepayment = 100 * USDWadRayMath.USD;
+        uint256 targetDebtUSD = state.debtUSD - debtRepayment;
+
+        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        assertLe(state.debtUSD, targetDebtUSD);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
@@ -322,6 +332,19 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
         assertApproxEqAbs(ratio, targetCR, margin);
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        // ensure repaymentUSD is not more than the equity and more than a dollar
+        repaymentUSD = bound(repaymentUSD, 1e8, state.debtUSD);
+        uint256 targetDebtUSD = state.debtUSD - repaymentUSD;
+
+        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+
+        state = LoanLogic.getLoanState($.lendingPool);
+
+        // because of max iterations set to 15 we allow small offset; 100 is 0.000001 USD
+        assertLe(state.debtUSD, targetDebtUSD + 100);
     }
 
     /// @dev ensures that rebalanceTo reverts when calling rebalanceUp if slippage is too high
