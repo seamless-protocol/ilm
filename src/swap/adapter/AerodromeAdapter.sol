@@ -129,11 +129,7 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
         from.approve(router, fromAmount);
 
         uint256[] memory toAmounts = IRouter(router).swapExactTokensForTokens(
-            fromAmount,
-            0,
-            swapRoutes[from][to],
-            beneficiary,
-            block.timestamp
+            fromAmount, 0, swapRoutes[from][to], beneficiary, block.timestamp
         );
 
         toAmount = toAmounts[toAmounts.length - 1];
