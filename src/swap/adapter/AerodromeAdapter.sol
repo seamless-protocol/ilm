@@ -133,7 +133,7 @@ contract AerodromeAdapter is SwapAdapterBase, IAerodromeAdapter {
             0,
             swapRoutes[from][to],
             beneficiary,
-            block.timestamp + 10
+            block.timestamp
         );
 
         toAmount = toAmounts[toAmounts.length - 1];
