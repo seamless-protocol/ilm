@@ -164,6 +164,10 @@ contract LoopStrategy is
         Storage.layout().collateralRatioTargets = targets;
 
         emit CollateralRatioTargetsSet(targets);
+
+        if (rebalanceNeeded()) {
+            rebalance();
+        }
     }
 
     /// @inheritdoc ILoopStrategy
@@ -214,7 +218,7 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function rebalance()
-        external
+        public
         override
         whenNotPaused
         returns (uint256 ratio)
