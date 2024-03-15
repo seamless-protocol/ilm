@@ -406,17 +406,6 @@ contract LoopStrategy is
         emit AssetsCapSet(assetsCap);
     }
 
-    /// @inheritdoc ILoopStrategy
-    function setUSDMargin(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
-        if (marginUSD > USDWadRayMath.USD) {
-            revert MarginOutsideRange();
-        }
-
-        Storage.layout().usdMargin = marginUSD;
-
-        emit USDMarginSet(marginUSD);
-    }
-
     /// @dev validates the marginUSD vlue
     /// @param marginUSD value to validate
     function _validateRatioMargin(uint256 marginUSD) internal pure {
@@ -481,11 +470,6 @@ contract LoopStrategy is
     /// @inheritdoc ILoopStrategy
     function getSwapper() external view returns (address swapper) {
         return address(Storage.layout().swapper);
-    }
-
-    /// @inheritdoc ILoopStrategy
-    function getUSDMargin() external view returns (uint256 marginUSD) {
-        return Storage.layout().usdMargin;
     }
 
     /// @inheritdoc ILoopStrategy

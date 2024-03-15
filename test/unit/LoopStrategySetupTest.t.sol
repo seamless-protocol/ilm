@@ -298,43 +298,6 @@ contract LoopStrategySetupTest is LoopStrategyTest {
         vm.stopPrank();
     }
 
-    /// @dev ensures a new value for usdMargin is set and the appropriate event is emitted
-    function test_setUSDMargin_setsNewValueforusdMaring_and_emitsUsdMarginSetEvent(
-    ) public {
-        uint256 marginUSD = 10;
-
-        vm.expectEmit();
-        emit USDMarginSet(marginUSD);
-
-        strategy.setUSDMargin(marginUSD);
-
-        assertEq(strategy.getUSDMargin(), marginUSD);
-    }
-
-    /// @dev ensures setUSDMargin call is reverted when called by non-manager
-    function test_setUSDMargin_revertsWhen_callerIsNotManager() public {
-        uint256 marginUSD = 10;
-        vm.startPrank(NO_ROLE);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                NO_ROLE,
-                strategy.MANAGER_ROLE()
-            )
-        );
-        strategy.setUSDMargin(marginUSD);
-    }
-
-    /// @dev ensures setUSDMargin reverts when new value is outside range
-    function test_setUSDMargin_revertsWhen_valueExceeds_1e8() public {
-        uint256 marginUSD = 1e8 + 1;
-
-        vm.expectRevert(ILoopStrategy.MarginOutsideRange.selector);
-
-        strategy.setUSDMargin(marginUSD);
-    }
-
     /// @dev ensures a new value for ratioMargin is set and the appropriate event is emitted
     function test_setRatioMargin_setNewValueForRatioMargin_and_emitsRatioMarginSetEvent(
     ) public {

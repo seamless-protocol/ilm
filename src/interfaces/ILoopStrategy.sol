@@ -160,10 +160,6 @@ interface ILoopStrategy is IERC4626 {
     /// @param assetsCap new value of assets cap
     function setAssetsCap(uint256 assetsCap) external;
 
-    /// @notice sets the usdMarginUSD value
-    /// @param marginUSD new value of usdMarginUSD
-    function setUSDMargin(uint256 marginUSD) external;
-
     /// @notice sets the ratioMarginUSD value
     /// @param marginUSD new value of ratioMarginUSD
     function setRatioMargin(uint256 marginUSD) external;
@@ -198,10 +194,6 @@ interface ILoopStrategy is IERC4626 {
     /// @notice returns address of swapper contract
     /// @return swapper address of swapper contract
     function getSwapper() external view returns (address swapper);
-
-    /// @notice returns value of usdMargin
-    /// @return marginUSD usdMargin value
-    function getUSDMargin() external view returns (uint256 marginUSD);
 
     /// @notice returns value of ratioMargin
     /// @return marginUSD ratioMargin value
