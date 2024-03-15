@@ -45,7 +45,7 @@ contract LoopStrategyOnBehalfOfTests is LoopStrategyTest {
         uint256 depositAmount = 5 ether;
         _depositFor(alice, depositAmount);
 
-        uint256 collateralStart = strategy.collateral();
+        uint256 collateralStart = strategy.collateralUSD();
 
         vm.startPrank(bob);
         uint256 supplyAmount = 5000 * 1e8;
@@ -56,7 +56,7 @@ contract LoopStrategyOnBehalfOfTests is LoopStrategyTest {
         );
         vm.stopPrank();
 
-        uint256 collateralEnd = strategy.collateral();
+        uint256 collateralEnd = strategy.collateralUSD();
 
         assertEq(collateralStart, collateralEnd);
     }

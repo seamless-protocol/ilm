@@ -193,12 +193,12 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function debt() external view override returns (uint256 amount) {
+    function debtUSD() external view override returns (uint256 amount) {
         return LoanLogic.getLoanState(Storage.layout().lendingPool).debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
-    function collateral() external view override returns (uint256 amount) {
+    function collateralUSD() external view override returns (uint256 amount) {
         return
             LoanLogic.getLoanState(Storage.layout().lendingPool).collateralUSD;
     }

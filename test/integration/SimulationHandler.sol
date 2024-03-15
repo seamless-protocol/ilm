@@ -161,8 +161,8 @@ contract SimulationHandler is Test {
         returns (StrategyData memory)
     {
         return StrategyData({
-            collateral: strategy.collateral(),
-            debt: strategy.debt(),
+            collateral: strategy.collateralUSD(),
+            debt: strategy.debtUSD(),
             collateralRatio: strategy.currentCollateralRatio(),
             equity: strategy.equity(),
             equityUSD: strategy.equityUSD(),

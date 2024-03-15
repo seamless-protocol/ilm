@@ -86,12 +86,12 @@ interface ILoopStrategy is IERC4626 {
     /// @notice returns the amount of debt belonging to the strategy
     /// in underlying value (USD)
     /// @return amount debt amount
-    function debt() external view returns (uint256 amount);
+    function debtUSD() external view returns (uint256 amount);
 
     /// @notice returns the amount of collateral belonging to the strategy
     /// in underlying value (USD)
     /// @return amount collateral amount
-    function collateral() external view returns (uint256 amount);
+    function collateralUSD() external view returns (uint256 amount);
 
     /// @notice pauses deposits and withdrawals from the contract
     function pause() external;
