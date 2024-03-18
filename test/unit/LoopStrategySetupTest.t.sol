@@ -247,30 +247,6 @@ contract LoopStrategySetupTest is LoopStrategyTest {
 
         vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
         strategy.setCollateralRatioTargets(newCollateralRatioTargets);
-
-        //minForRebalance = 0
-        newCollateralRatioTargets = CollateralRatio({
-            target: USDWadRayMath.usdDiv(200, 200),
-            minForRebalance: 0,
-            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
-            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
-            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
-        });
-
-        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
-        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
-
-        //maxForRebalance = type(uint256).max
-        newCollateralRatioTargets = CollateralRatio({
-            target: USDWadRayMath.usdDiv(200, 200),
-            minForRebalance: USDWadRayMath.usdDiv(180, 200),
-            maxForRebalance: type(uint256).max,
-            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
-            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
-        });
-
-        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
-        strategy.setCollateralRatioTargets(newCollateralRatioTargets);
     }
 
     /// @dev ensures setCollateralRaioTargets reverts if caller is not manager
@@ -440,12 +416,12 @@ contract LoopStrategySetupTest is LoopStrategyTest {
     function test_initialization_revertsOnInvalidParameters() public {
         LoopStrategy strategyImplementation = new LoopStrategy();
 
-        // minForRebalance = 0
-        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+        // maxForDepositRebalance < target
+        CollateralRatio memory newCollateralRatioTargets  = CollateralRatio({
             target: USDWadRayMath.usdDiv(200, 200),
-            minForRebalance: 0,
+            minForRebalance: USDWadRayMath.usdDiv(200, 200),
             maxForRebalance: USDWadRayMath.usdDiv(220, 200),
-            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(199, 200),
             minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
         });
 

@@ -149,8 +149,6 @@ contract LoopStrategy is
                 || targets.maxForDepositRebalance < targets.target
                 || targets.minForRebalance > targets.minForWithdrawRebalance
                 || targets.maxForRebalance < targets.maxForDepositRebalance
-                || targets.minForRebalance == 0
-                || targets.maxForRebalance == type(uint256).max
         ) {
             revert InvalidCollateralRatioTargets();
         }
