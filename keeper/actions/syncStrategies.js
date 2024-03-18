@@ -1,6 +1,6 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
-const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert } = require("./utils");
+const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert } = require("./utils");
 const { performRebalance } = require("./rebalance");
 
 // 0xa669E5272E60f78299F4824495cE01a3923f4380: wstETH-ETH
@@ -22,7 +22,8 @@ const strategyABI = [
 ];
 
 const oracleABI = [
-    "function latestRoundData() external view returns (uint80,int256,uint256,uint256,uint80)"
+    "function latestRoundData() external view returns (uint80,int256,uint256,uint256,uint80)",
+    "function latestAnswer() external view returns (uint256)"
 ];
 
 exports.handler = async function (credentials, context, payload) {
@@ -55,6 +56,7 @@ exports.handler = async function (credentials, context, payload) {
             }
 
             await sendOracleOutageAlert(notificationClient, store, oracle);
+            await sendSequencerOutageAlert(notificationClient, oracle);
         }
 
         if (evt.metadata.notificationType == 'withdrawal') {

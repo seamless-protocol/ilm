@@ -101,6 +101,20 @@ async function sendEPSAlert(notificationClient, store, strategy) {
     updateEPS(store, strategy, currentEPS);
 }
 
+async function sendSequencerOutageAlert(notificationClient, oracle) {
+    if(await oracle.latestAnswer() == 1) {
+        try {
+            notificationClient.send({
+                channelAlias: 'seamless-alerts',
+                subject: 'SEQUENCER OUTAGE',
+                message: `Latest answer of sequencer oracle is 1.`,
+            });
+        } catch (error) {
+            console.error('Failed to send notification', error);
+        }
+    }
+}
+
 async function sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold) {
     const { isAtRisk, healthFactor } = isStrategyAtRisk(strategy, healthFactorThreshold);
 
@@ -146,4 +160,5 @@ exports.sendExposureAlert = sendExposureAlert;
 exports.sendHealthFactorAlert = sendHealthFactorAlert;
 exports.sendEPSAlert = sendEPSAlert;
 exports.sendOracleOutageAlert = sendOracleOutageAlert;
+exports.sendSequencerOutageAlert = sendSequencerOutageAlert;
 
