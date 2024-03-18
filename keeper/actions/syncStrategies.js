@@ -1,6 +1,6 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
-const { sendNotifications } = require("./utils");
+const { sendNotifications, sendHealthFactorAlert, sendEPSAlert } = require("./utils");
 const { performRebalance } = require("./rebalance");
 
 // 0xa669E5272E60f78299F4824495cE01a3923f4380: wstETH-ETH
@@ -39,16 +39,26 @@ exports.handler = async function (credentials, context, payload) {
 
             for(let affectedStrategy of affectedStrategies) {
                 strategy = new ethers.Contract(affectedStrategy, strategyABI, signer);
-
+                
                 await performRebalance(strategy);
-                await sendNotifications(notificationClient, strategy, healthFactorThreshold);
+
+                // update equityPerShare because price fluctuations may alter it organically
+                updateEPS(strategy);
+                await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
+                await sendExposureAlert(notificationClient, strategy);
+                
             }
         }
 
         if(evt.metadata.notificationType == 'withdrawal') {
-            strategy = new ethers.Contract(evt.metadata.strategy, strategyABI, signer);
-
-            await sendNotifications(notificationClient, strategy, healthFactorThreshold);
+            strategy = new ethers.Contract(evt.metadata.strategy, strategyABI, provider);
+            
+            const store = new KeyValueStoreClient(context);
+            
+            // no udpate to equity per share because withdrawals should never decrease it
+            await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
+            await sendExposureAlert(notificationClient, strategy);
+            await sendEPSAlert(notificationClient, store, strategy);
         }
     }
 }
