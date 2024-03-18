@@ -417,7 +417,7 @@ contract LoopStrategySetupTest is LoopStrategyTest {
         LoopStrategy strategyImplementation = new LoopStrategy();
 
         // maxForDepositRebalance < target
-        CollateralRatio memory newCollateralRatioTargets  = CollateralRatio({
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
             target: USDWadRayMath.usdDiv(200, 200),
             minForRebalance: USDWadRayMath.usdDiv(200, 200),
             maxForRebalance: USDWadRayMath.usdDiv(220, 200),

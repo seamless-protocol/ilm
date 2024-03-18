@@ -252,7 +252,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
 
         state = LoanLogic.getLoanState($.lendingPool);
-        
+
         assertApproxEqAbs(state.debtUSD, state.debtUSD, 100);
     }
 
