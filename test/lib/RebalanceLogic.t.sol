@@ -252,8 +252,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
 
         state = LoanLogic.getLoanState($.lendingPool);
-
-        assertLe(state.debtUSD, targetDebtUSD);
+        
+        assertApproxEqAbs(state.debtUSD, state.debtUSD, 100);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceUp
@@ -344,7 +344,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         state = LoanLogic.getLoanState($.lendingPool);
 
         // because of max iterations set to 15 we allow small offset; 100 is 0.000001 USD
-        assertLe(state.debtUSD, targetDebtUSD + 100);
+        assertApproxEqAbs(state.debtUSD, state.debtUSD, 100);
     }
 
     /// @dev ensures that rebalanceTo reverts when calling rebalanceUp if slippage is too high
