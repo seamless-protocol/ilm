@@ -1,6 +1,6 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
-const { sendNotifications, sendHealthFactorAlert, sendEPSAlert } = require("./utils");
+const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert } = require("./utils");
 const { performRebalance } = require("./rebalance");
 
 // 0xa669E5272E60f78299F4824495cE01a3923f4380: wstETH-ETH
@@ -13,7 +13,7 @@ const oracleToStrategies = {
 const healthFactorThreshold = 10 ** 8; //value used for testing
 
 const strategyABI = [
-    "function rebalanceNeeded() external view returns (bool)", 
+    "function rebalanceNeeded() external view returns (bool)",
     "function rebalance() external returns (uint256)",
     "function debt() external view returns (uint256)",
     "function collateral() external view returns (uint256)",
@@ -21,8 +21,13 @@ const strategyABI = [
     "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))"
 ];
 
+const oracleABI = [
+    "function latestRoundData() external view returns (uint80,int256,uint256,uint256,uint80)"
+];
+
 exports.handler = async function (credentials, context, payload) {
     const client = new Defender(credentials);
+    const store = new KeyValueStoreClient(context);
 
     const provider = client.relaySigner.getProvider();
     const signer = client.relaySigner.getSigner(provider, { speed: 'fast' });
@@ -30,31 +35,31 @@ exports.handler = async function (credentials, context, payload) {
     const { notificationClient } = context;
 
     const events = payload.request.body.events;
-    
-    let strategy; 
 
-    for(let evt of events) {
-        if(evt.metadata.notificationType == 'priceUpdate') {
+    let strategy;
+    const oracle = new ethers.Oracle(evt.metadata.oracle, oracleABI, provider));
+
+    for (let evt of events) {
+        if (evt.metadata.notificationType == 'priceUpdate') {
             let affectedStrategies = oracleToStrategies[evt.metadata.oracle];
 
-            for(let affectedStrategy of affectedStrategies) {
+            for (let affectedStrategy of affectedStrategies) {
                 strategy = new ethers.Contract(affectedStrategy, strategyABI, signer);
-                
+
                 await performRebalance(strategy);
 
                 // update equityPerShare because price fluctuations may alter it organically
                 updateEPS(strategy);
                 await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
                 await sendExposureAlert(notificationClient, strategy);
-                
             }
+
+            await sendOracleOutageAlert(notificationClient, store, oracle);
         }
 
-        if(evt.metadata.notificationType == 'withdrawal') {
+        if (evt.metadata.notificationType == 'withdrawal') {
             strategy = new ethers.Contract(evt.metadata.strategy, strategyABI, provider);
-            
-            const store = new KeyValueStoreClient(context);
-            
+
             // no udpate to equity per share because withdrawals should never decrease it
             await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
             await sendExposureAlert(notificationClient, strategy);

@@ -61,6 +61,26 @@ async function checkAlertChannelsExist(client) {
     }
 }
 
+async function sendOracleOutageAlert(notificationClient, store, oracle) {
+    const secondSinceLastUpdate = await store.get(oracle) - Math.floor(Date.now() / 1000);
+    
+    // check if the different of timestamp updates is more than 1 day and 1 minute
+    // as oracles update at least once per day
+    if (secondSinceLastUpdate > (24 * 60 * 60 + 60)) {
+        try {
+            notificationClient.send({
+                channelAlias: 'seamless-alerts',
+                subject: 'ORACLE OUTAGE',
+                message: `Seconds elapsed since last update are ${secondSinceLastUpdate} which are more than ${24 * 60 * 60 + 60} seconds`,
+            });
+        } catch (error) {
+            console.error('Failed to send notification', error);
+        }
+    }
+
+    await store.put(oracle, await oracle.latestRoundDatate()[3]);
+}
+
 async function sendEPSAlert(notificationClient, store, strategy) {
     const prevEPS = await store.get(strategy);
 
@@ -125,4 +145,5 @@ exports.updateEPS = updateEPS;
 exports.sendExposureAlert = sendExposureAlert;
 exports.sendHealthFactorAlert = sendHealthFactorAlert;
 exports.sendEPSAlert = sendEPSAlert;
+exports.sendOracleOutageAlert = sendOracleOutageAlert;
 
