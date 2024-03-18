@@ -37,6 +37,19 @@ async function isStrategyOverexposed(strategy) {
     }
 }
 
+// get current equity per share
+async function equityPerShare(strategy) {
+    try {
+        const equityBN = ethers.BigNumber.from((await strategy.equity()).toString());
+        const sharesBN = ethers.BigNumber.from((await strategy.totalSupply()).toString());
+
+        return equityBN.div(sharesBN);
+
+    } catch (err) {
+        console.error('An error has occured during equityPerShare calculation: ', err);
+    }
+}
+
 // checks that alert channels matching 'seamless-alerts' alias exist and returns them
 async function checkAlertChannelsExist(client) {
     const notificationChannels = await client.monitor.listNotificationChannels();
@@ -48,9 +61,28 @@ async function checkAlertChannelsExist(client) {
     }
 }
 
-async function sendNotifications(notificationClient, strategy, healthFactorThreshold) {
+async function sendEPSAlert(notificationClient, store, strategy) {
+    const prevEPS = await store.get(strategy);
+
+    const currentEPS = equityPerShare(strategy);
+
+    if (prevEPS > currentEPS) {
+        try {
+            notificationClient.send({
+                channelAlias: 'seamless-alerts',
+                subject: 'STRATEGY EQUITY_PER_SHARE DECREASED FROM WITHDRAWAL',
+                message: `Current strategy EPS is ${currentEPS} and previous EPS was ${prevEPS} `,
+            });
+        } catch (error) {
+            console.error('Failed to send notification', error);
+        }
+    }
+
+    updateEPS(store, strategy, currentEPS);
+}
+
+async function sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold) {
     const { isAtRisk, healthFactor } = isStrategyAtRisk(strategy, healthFactorThreshold);
-    const { isOverExposed, currentCR, minForRebalance } = isStrategyOverexposed(strategy);
 
     if (isAtRisk) {
         try {
@@ -63,6 +95,10 @@ async function sendNotifications(notificationClient, strategy, healthFactorThres
             console.error('Failed to send notification', error);
         }
     }
+}
+
+async function sendExposureAlert(notificationClient, strategy) {
+    const { isOverExposed, currentCR, minForRebalance } = isStrategyOverexposed(strategy);
 
     if (isOverExposed) {
         try {
@@ -76,9 +112,17 @@ async function sendNotifications(notificationClient, strategy, healthFactorThres
         }
     }
 }
+
+async function updateEPS(store, strategy, currentEPS) {
+    store.put(strategy, currentEPS);
+}
      
 exports.isStrategyAtRisk = isStrategyAtRisk;
 exports.isStrategyOverexposed = isStrategyOverexposed;
+exports.equityPerShare = equityPerShare;
 exports.checkAlertChannelsExist = checkAlertChannelsExist;
-exports.sendNotifications = sendNotifications;
+exports.updateEPS = updateEPS;
+exports.sendExposureAlert = sendExposureAlert;
+exports.sendHealthFactorAlert = sendHealthFactorAlert;
+exports.sendEPSAlert = sendEPSAlert;
 
