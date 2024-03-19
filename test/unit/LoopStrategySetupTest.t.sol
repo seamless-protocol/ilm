@@ -200,24 +200,24 @@ contract LoopStrategySetupTest is LoopStrategyTest {
     /// consistent
     function test_setCollateralRatioTargets_revertsWhen_newCollateralRatioTargetsAreInvalid(
     ) public {
-        // minForRebalance > target
+        // minForWithdrawRebalance > target
         CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
             target: USDWadRayMath.usdDiv(200, 200),
-            minForRebalance: USDWadRayMath.usdDiv(220, 200),
+            minForRebalance: USDWadRayMath.usdDiv(180, 200),
             maxForRebalance: USDWadRayMath.usdDiv(220, 200),
             maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
-            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(201, 200)
         });
 
         vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
         strategy.setCollateralRatioTargets(newCollateralRatioTargets);
 
-        //maxForRebalance < target
+        //maxForDepositRebalance < target
         newCollateralRatioTargets = CollateralRatio({
             target: USDWadRayMath.usdDiv(200, 200),
             minForRebalance: USDWadRayMath.usdDiv(200, 200),
-            maxForRebalance: USDWadRayMath.usdDiv(180, 200),
-            maxForDepositRebalance: USDWadRayMath.usdDiv(203, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(199, 200),
             minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
         });
 
@@ -274,43 +274,6 @@ contract LoopStrategySetupTest is LoopStrategyTest {
         vm.stopPrank();
     }
 
-    /// @dev ensures a new value for usdMargin is set and the appropriate event is emitted
-    function test_setUSDMargin_setsNewValueforusdMaring_and_emitsUsdMarginSetEvent(
-    ) public {
-        uint256 marginUSD = 10;
-
-        vm.expectEmit();
-        emit USDMarginSet(marginUSD);
-
-        strategy.setUSDMargin(marginUSD);
-
-        assertEq(strategy.getUSDMargin(), marginUSD);
-    }
-
-    /// @dev ensures setUSDMargin call is reverted when called by non-manager
-    function test_setUSDMargin_revertsWhen_callerIsNotManager() public {
-        uint256 marginUSD = 10;
-        vm.startPrank(NO_ROLE);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                NO_ROLE,
-                strategy.MANAGER_ROLE()
-            )
-        );
-        strategy.setUSDMargin(marginUSD);
-    }
-
-    /// @dev ensures setUSDMargin reverts when new value is outside range
-    function test_setUSDMargin_revertsWhen_valueExceeds_1e8() public {
-        uint256 marginUSD = 1e8 + 1;
-
-        vm.expectRevert(ILoopStrategy.MarginOutsideRange.selector);
-
-        strategy.setUSDMargin(marginUSD);
-    }
-
     /// @dev ensures a new value for ratioMargin is set and the appropriate event is emitted
     function test_setRatioMargin_setNewValueForRatioMargin_and_emitsRatioMarginSetEvent(
     ) public {
@@ -321,7 +284,7 @@ contract LoopStrategySetupTest is LoopStrategyTest {
 
         strategy.setRatioMargin(marginUSD);
 
-        assertEq(strategy.getRatioMagin(), marginUSD);
+        assertEq(strategy.getRatioMargin(), marginUSD);
     }
 
     /// @dev ensures setRatioMargin call is reverted when called by non-manager
@@ -447,5 +410,58 @@ contract LoopStrategySetupTest is LoopStrategyTest {
     function test_changePrice() public {
         _changePrice(CbETH, 1234 * 1e8);
         assertEq(priceOracle.getAssetPrice(address(CbETH)), 1234 * 1e8);
+    }
+
+    /// @dev test confirms that initialization function validates parameters
+    function test_initialization_revertsOnInvalidParameters() public {
+        LoopStrategy strategyImplementation = new LoopStrategy();
+
+        // maxForDepositRebalance < target
+        CollateralRatio memory newCollateralRatioTargets = CollateralRatio({
+            target: USDWadRayMath.usdDiv(200, 200),
+            minForRebalance: USDWadRayMath.usdDiv(200, 200),
+            maxForRebalance: USDWadRayMath.usdDiv(220, 200),
+            maxForDepositRebalance: USDWadRayMath.usdDiv(199, 200),
+            minForWithdrawRebalance: USDWadRayMath.usdDiv(197, 200)
+        });
+
+        vm.expectRevert(ILoopStrategy.InvalidCollateralRatioTargets.selector);
+        new ERC1967Proxy(
+            address(strategyImplementation),
+            abi.encodeWithSelector(
+                LoopStrategy.LoopStrategy_init.selector,
+                "ILM_NAME",
+                "ILM_SYMBOL",
+                address(this),
+                strategyAssets,
+                newCollateralRatioTargets,
+                poolAddressProvider,
+                priceOracle,
+                swapper,
+                10 ** 4,
+                10
+            )
+        );
+
+        // marginUSD > 1e8
+        uint256 newMarginUSD = 1e8 + 1;
+
+        vm.expectRevert(ILoopStrategy.MarginOutsideRange.selector);
+        new ERC1967Proxy(
+            address(strategyImplementation),
+            abi.encodeWithSelector(
+                LoopStrategy.LoopStrategy_init.selector,
+                "ILM_NAME",
+                "ILM_SYMBOL",
+                address(this),
+                strategyAssets,
+                collateralRatioTargets,
+                poolAddressProvider,
+                priceOracle,
+                swapper,
+                newMarginUSD,
+                10
+            )
+        );
     }
 }

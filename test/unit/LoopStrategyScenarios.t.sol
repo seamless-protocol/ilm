@@ -105,8 +105,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
     function test_scenario_1_depositWhenPoolAtTarget() public {
         _setupScenario(1 ether, 300, 300, 1000 ether);
 
-        assertEq(strategy.collateral(), 1798_87843722);
-        assertEq(strategy.debt(), 1199_25229100);
+        assertEq(strategy.collateralUSD(), 1798_87843722);
+        assertEq(strategy.debtUSD(), 1199_25229100);
         assertEq(strategy.currentCollateralRatio(), 1_50000000);
         assertEq(strategy.totalAssets(), 333333333600166261);
         assertEq(strategy.totalSupply(), 1000 ether);
@@ -114,8 +114,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _depositFor(alice, 0.1 ether);
 
         // we are doing approximate equals because there is different losing of precision between gsheets model and solidity calculations
-        assertApproxEqAbs(strategy.collateral(), 2289_48164700, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 1526_32109800, USD_DELTA);
+        assertApproxEqAbs(strategy.collateralUSD(), 2289_48164700, USD_DELTA);
+        assertApproxEqAbs(strategy.debtUSD(), 1526_32109800, USD_DELTA);
         assertApproxEqAbs(
             strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
@@ -129,16 +129,16 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
     function test_scenario_2_depositWhenPoolBelowMinForRebalance() public {
         _setupScenario(1 ether, 400, 350, 1000 ether);
 
-        assertEq(strategy.collateral(), 1798_87843722);
-        assertEq(strategy.debt(), 1349_15882700);
+        assertEq(strategy.collateralUSD(), 1798_87843722);
+        assertEq(strategy.debtUSD(), 1349_15882700);
         assertEq(strategy.currentCollateralRatio(), 1_33333333);
         assertEq(strategy.totalAssets(), 250000000508650268);
         assertEq(strategy.totalSupply(), 1000 ether);
 
         _depositFor(alice, 0.01 ether);
 
-        assertApproxEqAbs(strategy.collateral(), 1582_28620500, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 1130_20443200, USD_DELTA);
+        assertApproxEqAbs(strategy.collateralUSD(), 1582_28620500, USD_DELTA);
+        assertApproxEqAbs(strategy.debtUSD(), 1130_20443200, USD_DELTA);
         assertApproxEqAbs(
             strategy.currentCollateralRatio(), 1_40000000, USD_DELTA
         );
@@ -153,8 +153,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _setupScenario(100 ether, 300, 300, 1000 ether);
         deal(address(strategy), alice, 30 ether, false);
 
-        assertEq(strategy.collateral(), 179887_84372200);
-        assertEq(strategy.debt(), 119925_22914800);
+        assertEq(strategy.collateralUSD(), 179887_84372200);
+        assertEq(strategy.debtUSD(), 119925_22914800);
         assertEq(strategy.currentCollateralRatio(), 1_50000000);
         assertEq(strategy.totalAssets(), 33333333333333333333);
         assertEq(strategy.totalSupply(), 1000 ether);
@@ -166,8 +166,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         vm.stopPrank();
         uint256 withdrawnAmount = CbETH.balanceOf(alice) - balanceBefore;
 
-        assertApproxEqAbs(strategy.collateral(), 174491_20841034, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 116327_47227356, USD_DELTA);
+        assertApproxEqAbs(strategy.collateralUSD(), 174491_20841034, USD_DELTA);
+        assertApproxEqAbs(strategy.debtUSD(), 116327_47227356, USD_DELTA);
         assertApproxEqAbs(
             strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
@@ -183,8 +183,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         _setupScenario(100 ether, 400, 300, 1000 ether);
         deal(address(strategy), alice, 30 ether, false);
 
-        assertEq(strategy.collateral(), 179887_84372200);
-        assertEq(strategy.debt(), 134915_88279100);
+        assertEq(strategy.collateralUSD(), 179887_84372200);
+        assertEq(strategy.debtUSD(), 134915_88279100);
         assertEq(strategy.currentCollateralRatio(), 1_33333333);
         assertEq(strategy.totalAssets(), 25000000000277950966);
         assertEq(strategy.totalSupply(), 1000 ether);
@@ -196,8 +196,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         vm.stopPrank();
         uint256 withdrawnAmount = CbETH.balanceOf(alice) - balanceBefore;
 
-        assertApproxEqAbs(strategy.collateral(), 123170_26476024, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 82113_50984016, USD_DELTA);
+        assertApproxEqAbs(strategy.collateralUSD(), 123170_26476024, USD_DELTA);
+        assertApproxEqAbs(strategy.debtUSD(), 82113_50984016, USD_DELTA);
         assertApproxEqAbs(
             strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
@@ -243,16 +243,16 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         deal(address(strategy), alice, 700 ether, false);
         deal(address(strategy), bob, 300 ether, false);
 
-        assertEq(strategy.collateral(), 179887_84372200);
-        assertEq(strategy.debt(), 119925_22914800);
+        assertEq(strategy.collateralUSD(), 179887_84372200);
+        assertEq(strategy.debtUSD(), 119925_22914800);
         assertEq(strategy.currentCollateralRatio(), 1_50000000);
 
         vm.startPrank(alice);
         strategy.redeem(700 ether, alice, alice);
         vm.stopPrank();
 
-        assertApproxEqAbs(strategy.collateral(), 53966_35311660, USD_DELTA);
-        assertApproxEqAbs(strategy.debt(), 35977_56874100, USD_DELTA);
+        assertApproxEqAbs(strategy.collateralUSD(), 53966_35311660, USD_DELTA);
+        assertApproxEqAbs(strategy.debtUSD(), 35977_56874100, USD_DELTA);
         assertApproxEqAbs(
             strategy.currentCollateralRatio(), 1_50000000, USD_DELTA
         );
@@ -261,8 +261,8 @@ contract LoopStrategyScenariosTest is LoopStrategyTest {
         strategy.redeem(300 ether, bob, bob);
         vm.stopPrank();
 
-        assertEq(strategy.collateral(), 0);
-        assertEq(strategy.debt(), 0);
+        assertEq(strategy.collateralUSD(), 0);
+        assertEq(strategy.debtUSD(), 0);
         assertEq(strategy.currentCollateralRatio(), type(uint256).max);
     }
 }

@@ -24,6 +24,7 @@ import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { BaseForkTest } from "../BaseForkTest.t.sol";
 import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LendingPool, LoanState } from "../../src/types/DataTypes.sol";
+import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
@@ -402,6 +403,30 @@ contract LoanLogicTest is BaseForkTest {
             lendingPool.pool.getUserAccountData(address(this));
 
         assertEq(loanState.collateralUSD, totalCollateralUSD);
+    }
+
+    /// @dev test confirming debtUSD is calculated correctly when collateralUSD = 0
+    function test_getLoanState_collateralEqualsZero() public {
+        uint256 supplyAmount = 10 ether;
+        uint256 borrowAmount = 1000 * ONE_USDbC;
+        LoanLogic.supply(lendingPool, WETH, supplyAmount);
+        LoanLogic.borrow(lendingPool, USDbC, borrowAmount);
+
+        // deploy MockAaveOracle to the address of already existing priceOracle
+        MockAaveOracle mockOracle = new MockAaveOracle();
+        bytes memory mockOracleCode = address(mockOracle).code;
+        vm.etch(poolAddressProvider.getPriceOracle(), mockOracleCode);
+        priceOracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
+
+        MockAaveOracle(address(priceOracle)).setAssetPrice(address(WETH), 0);
+        uint256 usdbcPrice = 1 * 1e8;
+        MockAaveOracle(address(priceOracle)).setAssetPrice(
+            address(USDbC), usdbcPrice
+        );
+
+        LoanState memory loanState = LoanLogic.getLoanState(lendingPool);
+        assertEq(loanState.collateralUSD, 0);
+        assertEq(loanState.debtUSD, (borrowAmount * usdbcPrice) / ONE_USDbC);
     }
 
     /// @dev changes the borrow cap parameter for the given asset

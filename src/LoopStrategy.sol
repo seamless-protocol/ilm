@@ -81,6 +81,9 @@ contract LoopStrategy is
 
         _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
+        _validateCollateralRatioTargets(_collateralRatioTargets);
+        _validateRatioMargin(_ratioMargin);
+
         Storage.Layout storage $ = Storage.layout();
         $.assets = _strategyAssets;
         $.collateralRatioTargets = _collateralRatioTargets;
@@ -135,24 +138,37 @@ contract LoopStrategy is
         Storage.layout().lendingPool.interestRateMode = _interestRateMode;
     }
 
+    /// @dev validates collateral ratio targets values
+    /// @param targets collateral ratio targets to validate
+    function _validateCollateralRatioTargets(CollateralRatio memory targets)
+        internal
+        pure
+    {
+        if (
+            targets.minForWithdrawRebalance > targets.target
+                || targets.maxForDepositRebalance < targets.target
+                || targets.minForRebalance > targets.minForWithdrawRebalance
+                || targets.maxForRebalance < targets.maxForDepositRebalance
+        ) {
+            revert InvalidCollateralRatioTargets();
+        }
+    }
+
     /// @inheritdoc ILoopStrategy
     function setCollateralRatioTargets(CollateralRatio memory targets)
         external
         override
         onlyRole(MANAGER_ROLE)
     {
-        if (
-            targets.minForRebalance > targets.target
-                || targets.maxForRebalance < targets.target
-                || targets.minForRebalance > targets.minForWithdrawRebalance
-                || targets.maxForRebalance < targets.maxForDepositRebalance
-        ) {
-            revert InvalidCollateralRatioTargets();
-        }
+        _validateCollateralRatioTargets(targets);
 
         Storage.layout().collateralRatioTargets = targets;
 
         emit CollateralRatioTargetsSet(targets);
+
+        if (rebalanceNeeded()) {
+            rebalance();
+        }
     }
 
     /// @inheritdoc ILoopStrategy
@@ -178,12 +194,12 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function debt() external view override returns (uint256 amount) {
+    function debtUSD() external view override returns (uint256 amount) {
         return LoanLogic.getLoanState(Storage.layout().lendingPool).debtUSD;
     }
 
     /// @inheritdoc ILoopStrategy
-    function collateral() external view override returns (uint256 amount) {
+    function collateralUSD() external view override returns (uint256 amount) {
         return
             LoanLogic.getLoanState(Storage.layout().lendingPool).collateralUSD;
     }
@@ -203,7 +219,7 @@ contract LoopStrategy is
 
     /// @inheritdoc ILoopStrategy
     function rebalance()
-        external
+        public
         override
         whenNotPaused
         returns (uint256 ratio)
@@ -395,15 +411,12 @@ contract LoopStrategy is
         emit AssetsCapSet(assetsCap);
     }
 
-    /// @inheritdoc ILoopStrategy
-    function setUSDMargin(uint256 marginUSD) external onlyRole(MANAGER_ROLE) {
+    /// @dev validates the marginUSD vlue
+    /// @param marginUSD value to validate
+    function _validateRatioMargin(uint256 marginUSD) internal pure {
         if (marginUSD > USDWadRayMath.USD) {
             revert MarginOutsideRange();
         }
-
-        Storage.layout().usdMargin = marginUSD;
-
-        emit USDMarginSet(marginUSD);
     }
 
     /// @inheritdoc ILoopStrategy
@@ -411,9 +424,7 @@ contract LoopStrategy is
         external
         onlyRole(MANAGER_ROLE)
     {
-        if (marginUSD > USDWadRayMath.USD) {
-            revert MarginOutsideRange();
-        }
+        _validateRatioMargin(marginUSD);
 
         Storage.layout().ratioMargin = marginUSD;
 
@@ -467,12 +478,7 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function getUSDMargin() external view returns (uint256 marginUSD) {
-        return Storage.layout().usdMargin;
-    }
-
-    /// @inheritdoc ILoopStrategy
-    function getRatioMagin() external view returns (uint256 marginUSD) {
+    function getRatioMargin() external view returns (uint256 marginUSD) {
         return Storage.layout().ratioMargin;
     }
 

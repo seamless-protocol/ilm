@@ -172,7 +172,7 @@ library LoanLogic {
         if (collateralUSD == 0) {
             return LoanState({
                 collateralUSD: 0,
-                debtUSD: 0,
+                debtUSD: totalDebtUSD,
                 maxWithdrawAmount: 0
             });
         }

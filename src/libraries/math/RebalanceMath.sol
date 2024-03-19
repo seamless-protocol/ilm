@@ -14,7 +14,7 @@ library RebalanceMath {
 
     /// @notice helper function to calculate collateral ratio
     /// @param collateralUSD collateral value in USD
-    /// @param debtUSD debt valut in USD
+    /// @param debtUSD debt vault in USD
     /// @return ratio collateral ratio value
     function collateralRatioUSD(uint256 collateralUSD, uint256 debtUSD)
         internal
