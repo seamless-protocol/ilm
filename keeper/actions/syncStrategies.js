@@ -1,5 +1,6 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
+const { KeyValueStoreClient } = require('defender-kvstore-client');
 const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert } = require("./utils");
 const { performRebalance } = require("./rebalance");
 
@@ -28,7 +29,7 @@ const oracleABI = [
 
 exports.handler = async function (credentials, context, payload) {
     const client = new Defender(credentials);
-    const store = new KeyValueStoreClient(context);
+    const store = new KeyValueStoreClient(credentials);
 
     const provider = client.relaySigner.getProvider();
     const signer = client.relaySigner.getSigner(provider, { speed: 'fast' });
@@ -38,7 +39,7 @@ exports.handler = async function (credentials, context, payload) {
     const events = payload.request.body.events;
 
     let strategy;
-    const oracle = new ethers.Oracle(evt.metadata.oracle, oracleABI, provider));
+    const oracle = new ethers.Oracle(evt.metadata.oracle, oracleABI, provider);
 
     for (let evt of events) {
         if (evt.metadata.notificationType == 'priceUpdate') {
