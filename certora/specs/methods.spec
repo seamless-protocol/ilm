@@ -11,15 +11,16 @@ methods {
     function totalSupply() external returns (uint256) envfree;
     function getCollateralRatioTargets() external returns (LoopStrategyHarness.CollateralRatio) envfree;
     function getRatioMargin() external returns (uint256) envfree;
-    function currentCollateralRatio() external returns (uint256) envfree;
     function getERC4626Asset() external returns (address) envfree;
     
     //WrappedERC20PermissionedDeposit
     function _.withdraw(uint256 amount) external => NONDET; 
     
     // Swapper
-    function _.swap(address, address, uint256, address payable) external => CONSTANT; 
-    function _.offsetFactor(address, address) external => NONDET; //6000000 expect uint256; // TODO: relax
+    function _.swap(address, address, uint256, address payable) external => DISPATCHER(true);//M//
+    //function _.swap(address, address, uint256, address payable) external => NONDET;
+    function _.offsetFactor(address, address) external => CONSTANT; //  NONDET;
+    
 
     //ERC4626Upgradeable
     // function _._withdraw(address, address,address, uint256 ,uint256) internal => NONDET;
@@ -52,6 +53,7 @@ methods {
     function _.approve(address, uint256) external => NONDET;
     function _.balanceOf(address) external => DISPATCHER(true); // only DebtERC20.balanceOf() is used
     function _.transfer(address, uint256) external => DISPATCHER(true);
+    function _.transferFrom(address, address, uint256) external => NONDET; //called from Swapper.swap()//M//
 
 
     // PriceOracle
@@ -64,7 +66,8 @@ methods {
     function _.isPoolAdmin(address) external => DISPATCHER(true);
 
     // ISwapAdapter
-    function _.executeSwap(address, address, uint256, address payable) external => DISPATCHER(true);
+    function _.executeSwap(address from, address to, uint256 fromAmount, address beneficiary) external => 
+                                                executeSwapLimitedSlippage(from, to, fromAmount, beneficiary) expect uint256;
 
 
     // LoopStrategyHarness - required for self sanity checks only
@@ -93,53 +96,63 @@ methods {
 //Openzeppelin Math.sol
 function mulDiv_with_rounding(uint256 x, uint256 y, uint256 denominator, Math.Rounding rounding) returns uint256
 {
-     if (assert_uint8(rounding) == 1 || assert_uint8(rounding) == 3)
+     if (rounding == Math.Rounding.Ceil || rounding == Math.Rounding.Expand)
          return mulDivUpAbstractPlus(x, y, denominator);
-    //if (assert_uint8(rounding) == 0 || assert_uint8(rounding) == 2)
+
+    if (rounding == Math.Rounding.Floor || rounding == Math.Rounding.Trunc)
          return mulDivDownAbstractPlus(x, y, denominator);
-    //return _;
+
+    return _;
+}
+
+ghost maxSlippagePercent() returns uint256;
+
+function executeSwapLimitedSlippage(address from, address to, uint256 fromAmount, address beneficiary) returns uint256 {
+    require maxSlippagePercent() <= 10;
+    uint256 toAmount;
+    //uint256 fromAmountUSD = mulDivDownAbstractPlus(fromAmount, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
+    require toAmount * 100 <= fromAmount * (100 + maxSlippagePercent());
+    require toAmount * 100 >= fromAmount * (100 - maxSlippagePercent());
+
+    return toAmount;
+}
 
 
- }
 
 ghost uint256 fixedPrice;
 function getFixedPrice() returns uint256
 {
-//        require fixedPrice == 3262642740619902120717781402938;
-        return fixedPrice;
+    //    return fixedPrice;
+        return 1000;
 }
 
 ghost uint8 fixedDecimals;
 function getFixedDecimals() returns uint8
 {
-//        require fixedDecimals == 31;
-        require fixedDecimals > 1;
-        require fixedDecimals < 25;
-        return fixedDecimals;
+        // require fixedDecimals > 1;
+        // require fixedDecimals < 25;
+        // return fixedDecimals;
+        return 3;
 }
+//
+// Simplified pool functions
+//
 
+// Assumption:
+//------------
+// Assuming collateral and debt indexes are constant 1
+// Assuming a single user
+// Assuming fixed price and decimals
+// Assuming fixed availableBorrowsBase and currentLiquidationThreshold
 
 ghost uint256 totalCollateralBase;
 ghost uint256 totalDebtBase;
 ghost uint256 availableBorrowsBase;
-ghost  uint256 currentLiquidationThreshold;
-ghost uint256 collateralIndex; //TODO: used scaled values. TODO: allow monotonic non-decreasing 
-ghost uint256 debtIndex1; //TODO: allow monotonic non-decreasing 
-
-function getState_collateralUSD() returns uint256
-{
-    return mulDivDownAbstractPlus(totalCollateralBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
-}
-
-function getState_debtUSD() returns uint256
-{
-    return mulDivDownAbstractPlus(totalDebtBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
-}
+ghost uint256 currentLiquidationThreshold;
 
 function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint256,uint256,uint256) 
 {
         require totalCollateralBase >= totalDebtBase;
-        require getState_collateralUSD() >= getState_debtUSD();
 
         return (
             getState_collateralUSD(),
@@ -153,19 +166,13 @@ function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint25
 // increases debt balance
 function simplified_borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     totalDebtBase = require_uint256(totalDebtBase + amount);
     require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
-    
 }
 
 //reduces debt
 function simplified_repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) returns uint256
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     if (amount == max_uint256)
         {
             uint256 prev_debt = totalDebtBase;
@@ -174,28 +181,18 @@ function simplified_repay(address asset, uint256 amount, uint256 interestRateMod
         }
 
     totalDebtBase = require_uint256(totalDebtBase - amount);
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
-    
     return amount;
 }
 
 // increases collaterl balance
 function simplified_supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode)
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     totalCollateralBase = require_uint256(totalCollateralBase + amount);
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
-    
 }
 
 // reduces collaterl balance
 function simplified_withdraw(address asset, uint256 amount, address to) returns uint256
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     if (amount == max_uint256)
         {
             uint256 prev_collateral = totalCollateralBase;
@@ -204,6 +201,28 @@ function simplified_withdraw(address asset, uint256 amount, address to) returns 
         }
     totalCollateralBase = require_uint256(totalCollateralBase - amount);
     require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     return amount;
 }
+
+//
+// Helper CVL function
+//
+
+// Converts to USD value
+function getState_collateralUSD() returns uint256
+{
+    return mulDivDownAbstractPlus(totalCollateralBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
+}
+
+// Converts to USD value
+function getState_debtUSD() returns uint256
+{
+    return mulDivDownAbstractPlus(totalDebtBase, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
+}
+
+// Calculates per-share debt
+function getShareDebtUSD(uint256 shares, uint256 totalShares) returns uint256
+{
+    return mulDivUpAbstractPlus(getState_debtUSD(), shares, totalShares);
+}
+
