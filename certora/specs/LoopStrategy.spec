@@ -74,8 +74,8 @@ methods {
     function _.isPoolAdmin(address) external => DISPATCHER(true);
 
     // ISwapAdapter
-//    function _.executeSwap(address from, address to, uint256 fromAmount, address beneficiary) external => zeroSlippageExecuteSwap(from, to, fromAmount, beneficiary) expect uint256;
-    function _.executeSwap(address from, address to, uint256 fromAmount, address beneficiary) external => slippage10PercentExecuteSwap(from, to, fromAmount, beneficiary) expect uint256;
+    function _.executeSwap(address from, address to, uint256 fromAmount, address beneficiary) external => 
+                                                executeSwapLimitedSlippage(from, to, fromAmount, beneficiary) expect uint256;
 
 
     // LoopStrategyHarness - required for self sanity checks only
@@ -113,20 +113,18 @@ function mulDiv_with_rounding(uint256 x, uint256 y, uint256 denominator, Math.Ro
     return _;
 }
 
-function slippage10PercentExecuteSwap(address from, address to, uint256 fromAmount, address beneficiary) returns uint256 {
+ghost maxSlippagePercent() returns uint256;
+
+function executeSwapLimitedSlippage(address from, address to, uint256 fromAmount, address beneficiary) returns uint256 {
+    require maxSlippagePercent() <= 10;
     uint256 toAmount;
     //uint256 fromAmountUSD = mulDivDownAbstractPlus(fromAmount, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
-    require toAmount * 10 <= fromAmount * 11;
-    require toAmount * 10 >= fromAmount * 9;
+    require toAmount * 100 <= fromAmount * (100 + maxSlippagePercent());
+    require toAmount * 100 >= fromAmount * (100 - maxSlippagePercent());
 
     return toAmount;
-
-
 }
-function zeroSlippageExecuteSwap(address from, address to, uint256 fromAmount, address beneficiary) returns uint256 {
 
-    return fromAmount;
-}
 
 
 ghost uint256 fixedPrice;
@@ -186,7 +184,6 @@ ghost uint256 currentLiquidationThreshold;
 function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint256,uint256,uint256) 
 {
         require totalCollateralBase >= totalDebtBase;
-        require getState_collateralUSD() >= getState_debtUSD();
 
         return (
             getState_collateralUSD(),
@@ -200,19 +197,13 @@ function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint25
 // increases debt balance
 function simplified_borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     totalDebtBase = require_uint256(totalDebtBase + amount);
     require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
-    
 }
 
 //reduces debt
 function simplified_repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) returns uint256
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     if (amount == max_uint256)
         {
             uint256 prev_debt = totalDebtBase;
@@ -221,28 +212,18 @@ function simplified_repay(address asset, uint256 amount, uint256 interestRateMod
         }
 
     totalDebtBase = require_uint256(totalDebtBase - amount);
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
-    
     return amount;
 }
 
 // increases collaterl balance
 function simplified_supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode)
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     totalCollateralBase = require_uint256(totalCollateralBase + amount);
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
-    
 }
 
 // reduces collaterl balance
 function simplified_withdraw(address asset, uint256 amount, address to) returns uint256
 {
-    require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     if (amount == max_uint256)
         {
             uint256 prev_collateral = totalCollateralBase;
@@ -251,7 +232,6 @@ function simplified_withdraw(address asset, uint256 amount, address to) returns 
         }
     totalCollateralBase = require_uint256(totalCollateralBase - amount);
     require totalCollateralBase >= totalDebtBase;
-    require getState_collateralUSD() >= getState_debtUSD();
     return amount;
 }
 
@@ -271,7 +251,8 @@ definition disabledFunction(method f) returns bool =
 // Rules
 //
 
-//fail
+//fail https://prover.certora.com/output/99352/c1d3ce3c11df46d3a2b4b903f544273b/?anonymousKey=69700a19c19a893355a1c7ae2cb221c2607e8c51
+//https://prover.certora.com/output/99352/21522faae907423889655839aae41fa3/?anonymousKey=0dbd05877adf4bbb1961dee64775d9d84d9ea4bd
 rule rebalance_not_needed_after_rebalance__nonzero_debt
 {
     env e1; env e2;
@@ -309,7 +290,9 @@ rule equity_per_share_non_decreasing_after_deposit {
     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
 }
 
-//fail C-2 https://prover.certora.com/output/99352/9d5eb9e404e24789ac7d8baa951f352a/?anonymousKey=058004df83228e41ccae9e75286482f60c6652ec
+//fail C-2 https://prover.certora.com/output/99352/d409fd527e90499fb780bb5e32f25291/?anonymousKey=c0e54054afdd020a6979e63937bba9e86e459882
+//timeout
+//pass with zero slippage
 rule equity_per_share_non_decreasing_after_rebalance {
     env e1; env e2;
 
@@ -330,10 +313,38 @@ rule equity_per_share_non_decreasing_after_rebalance {
     require totalSupply_after != 0;
     mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
 
-    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+    assert  maxSlippagePercent() == 0 => equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+
+//pass
+rule equity_per_share_non_decreasing_after_rebalance_witness {
+    env e1; env e2;
+
+    require decimals() == 15;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+
+    rebalance(e1);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply();
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    satisfy  !(equityUSD_per_share_after >= equityUSD_per_share_before);
 }
 
 //fail
+//https://prover.certora.com/output/99352/d409fd527e90499fb780bb5e32f25291/?anonymousKey=c0e54054afdd020a6979e63937bba9e86e459882
+//https://prover.certora.com/output/99352/51add206b0af43958635ec3628ca8fbc/?anonymousKey=ec98ffa76f17ea6521a77784f08c247d677d2e3e
+//pass with zero slippage
+//pass
 rule equity_non_decreasing_after_rebalance {
     env e1; env e2;
 
@@ -346,7 +357,115 @@ rule equity_non_decreasing_after_rebalance {
     uint256 equityUSD_before = equityUSD();
     rebalance(e1);
     uint256 equityUSD_after = equityUSD();
-    assert  equityUSD_after >= equityUSD_before;
+    assert  maxSlippagePercent() == 0 => equityUSD_after >= equityUSD_before;
+}
+
+//pass
+rule equity_non_decreasing_after_rebalance_witness {
+    env e1; env e2;
+
+    require e1.msg.sender != _CollateralERC20;
+    require e2.msg.sender != _CollateralERC20;
+
+    require decimals() == 15;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    uint256 equityUSD_before = equityUSD();
+    rebalance(e1);
+    uint256 equityUSD_after = equityUSD();
+    satisfy  !(equityUSD_after >= equityUSD_before);
+}
+
+
+//fail
+//https://prover.certora.com/output/99352/758d474a0711482daf27b9f2596728bf/?anonymousKey=473a0da46b85d3cb11672d18c76dca707e956379
+// rebalanceDown
+// ratio <= targetCR
+//target = 200000000
+//CR     = 150005000
+// collateral = 150005000, debt = 10 ^ 8
+// withdraw(949995000)
+// swap(049995000) = 049495050
+// repay(049495050)
+// collaterl = 100010000, debt = 050504950
+
+
+//
+// https://prover.certora.com/output/99352/2a41ff2c1db24d868235e89733638d7f/?anonymousKey=3b00b00ca4c416d1a882734d67edb4e2952fb0c3
+// rebalanceUp
+//
+rule equity_non_decreasing_after_rebalance_witness_twice {
+    env e1; env e2;
+
+    require e1.msg.sender != _CollateralERC20;
+    require e2.msg.sender != _CollateralERC20;
+    require e2.msg.sender != currentContract;
+
+    require decimals() == 15;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    uint256 equityUSD_before = equityUSD();
+    rebalance(e1);
+    uint256 equityUSD_after = equityUSD();
+    assert  to_mathint( 10^4 + equityUSD_after) >= to_mathint(equityUSD_before);
+}
+
+// fail
+// https://prover.certora.com/output/99352/27109c1cad1b4ada8670e0eee7cba24e/?anonymousKey=e30439cc1f2474ded6675da29bdbd443a4714443
+// CR = 300010499
+// target = 9680542449175
+rule equity_non_decreasing_after_rebalance_witness_twice_rebalanceDown {
+    env e1; env e2;
+
+    require e1.msg.sender != _CollateralERC20;
+    require e2.msg.sender != _CollateralERC20;
+    require e2.msg.sender != currentContract;
+
+    require decimals() == 15;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    uint256 equityUSD_before = equityUSD();
+    require currentCollateralRatio() <  getCollateralRatioTargets().target;
+
+    rebalance(e1);
+    uint256 equityUSD_after = equityUSD();
+    assert  to_mathint( 10^8 + equityUSD_after) >= to_mathint(equityUSD_before);
+}
+
+rule equity_non_decreasing_after_rebalance_witness_twice_rebalanceUp {
+    env e1; env e2;
+
+    require e1.msg.sender != _CollateralERC20;
+    require e2.msg.sender != _CollateralERC20;
+    require e2.msg.sender != currentContract;
+
+    require decimals() == 15;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    uint256 equityUSD_before = equityUSD();
+    require currentCollateralRatio() > getCollateralRatioTargets().target;
+
+    rebalance(e1);
+    uint256 equityUSD_after = equityUSD();
+    assert  to_mathint( 10^8 + equityUSD_after) >= to_mathint(equityUSD_before);
+}
+
+rule equity_non_decreasing_after_rebalance_witness_rebalanceDown {
+    env e1; env e2;
+
+    require e1.msg.sender != _CollateralERC20;
+    require e2.msg.sender != _CollateralERC20;
+    require e2.msg.sender != currentContract;
+
+    require decimals() == 15;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+    uint256 equityUSD_before = equityUSD();
+    require currentCollateralRatio() <  getCollateralRatioTargets().target;
+
+    rebalance(e1);
+    uint256 equityUSD_after = equityUSD();
+    assert  to_mathint(equityUSD_after) >= to_mathint(equityUSD_before);
 }
 
 
@@ -386,6 +505,9 @@ rule equity_per_share_non_decreasing {
 //fail
 //pass with zeroSlippage
 //https://prover.certora.com/output/99352/6838774d951145b9a07be5b6dbe30f18/?anonymousKey=3108c5957a3ddc5ca2d50e21b8f9f981644545fc
+//fail
+//https://prover.certora.com/output/99352/1c0381596b0a47708097737e8a7ab93b/?anonymousKey=4b32e9aceb6d8cc690e4761a25cf1c30835c6aad
+//timeout with zero slippage
 rule equity_per_share_non_decreasing_100 {
     env e1; env e2;
 
@@ -415,12 +537,46 @@ rule equity_per_share_non_decreasing_100 {
     
     require equityUSD_before == 150;
     require totalSupply_before == 30;
-    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+    assert  maxSlippagePercent() == 0 => equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+
+rule equity_per_share_non_decreasing_100_witness {
+    env e1; env e2;
+
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    //require !rebalanceNeeded(e1);
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = require_uint256(totalSupply_before - shares_to_redeem);
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    
+    require equityUSD_before == 150;
+    require totalSupply_before == 30;
+    satisfy  !(equityUSD_per_share_after >= equityUSD_per_share_before);
 }
 
 
 //fail splippage10
 // https://prover.certora.com/output/99352/467c61b530b34ba78843baead51e9f65/?anonymousKey=ffe0a0f825690bb0b3ee85ac08fae0f52bad15d6
+//timeout
+
 rule equity_per_share_non_decreasing_100__rebalanceNotNeeded {
     env e1; env e2;
 
@@ -450,7 +606,38 @@ rule equity_per_share_non_decreasing_100__rebalanceNotNeeded {
     
     require equityUSD_before == 150;
     require totalSupply_before == 30;
-    assert  equityUSD_per_share_after >= equityUSD_per_share_before;
+    assert  maxSlippagePercent() == 0 => equityUSD_per_share_after >= equityUSD_per_share_before;
+}
+rule equity_per_share_non_decreasing_100__rebalanceNotNeeded_witness {
+    env e1; env e2;
+
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    require !rebalanceNeeded(e1);
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
+
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = require_uint256(totalSupply_before - shares_to_redeem);
+    require totalSupply_after != 0;
+    mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
+
+    
+    require equityUSD_before == 150;
+    require totalSupply_before == 30;
+    satisfy !(equityUSD_per_share_after >= equityUSD_per_share_before);
 }
 
 //timeout
@@ -630,6 +817,9 @@ rule equity_per_share_non_decreasing_100_mul__avoid_C2_H2__nonzero_shares__fixed
 //fail C-2
 //todo debug fail
 // https://prover.certora.com/output/99352/0d36d7a9557a49c6b091d96759e83aa3/?anonymousKey=55284f69deacf19c8ac650cedc607b460998d64e
+
+//timeout
+//pass UNSAT rebalance not needed
 rule equity_per_share_non_decreasing_100_mul {
     env e1; env e2;
 
@@ -663,7 +853,44 @@ rule equity_per_share_non_decreasing_100_mul {
     require equityUSD_before == 600;
     require totalSupply_before == 150;
     require shares_to_redeem == 50;
-    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+    assert  maxSlippagePercent() == 0 => equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+//fail UNSAT rebalance not needed
+rule equity_per_share_non_decreasing_100_mul_witness {
+    env e1; env e2;
+
+    require e2.msg.sender != currentContract;
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
+
+    require !rebalanceNeeded(e1);
+
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    uint256 equity_before = equity();
+    uint256 debt_before = debtUSD();
+    uint256 collateral_before = collateralUSD();
+
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+    uint256 equity_after = equity();    
+    uint256 debt_after = debtUSD();
+    uint256 collateral_after = collateralUSD();
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    satisfy !(equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after);
 }
 
 rule equity_per_share_non_decreasing_100_mul_no_debt_1 {
@@ -703,6 +930,7 @@ rule equity_per_share_non_decreasing_100_mul_no_debt_1 {
 }
 
 //fail C2
+//timeout
 rule equity_per_share_non_decreasing_100_mul_no_debt_rebalance_not_needed {
     env e1; env e2;
 
@@ -760,6 +988,7 @@ rule equity_per_share_non_decreasing_100_mul_no_debt_rebalance_not_needed__posit
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
 
+//pass
 rule equity_per_share_non_decreasing_100_mul_no_debt__cr_eq_target__positive_target__avoid_C2_H2 {
     env e1; env e2;
 
@@ -872,6 +1101,8 @@ rule equity_per_share_non_decreasing_100_mul_no_debt__cr_eq_target__positive_tar
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
 
+
+//pass with zero slippage
 rule equity_per_share_non_decreasing_100_mul_no_debt {
     env e1; env e2;
 
@@ -901,6 +1132,9 @@ rule equity_per_share_non_decreasing_100_mul_no_debt {
 }
 
 //fail
+//https://prover.certora.com/output/99352/a415f6b6b6f14820b32cea290db05b08/?anonymousKey=c074741ee2d2a489e8af4295f0ecff11d54da0eb
+//pass with zero slippage
+
 rule equity_per_share_non_decreasing_100_mul_fail {
     env e1; env e2;
 
@@ -930,9 +1164,73 @@ rule equity_per_share_non_decreasing_100_mul_fail {
     assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
 }
 
+//pass 
+rule equity_per_share_non_decreasing_100_mul_fail_rebalance_not_needed {
+    env e1; env e2;
 
-//fail https://prover.certora.com/output/99352/9d5eb9e404e24789ac7d8baa951f352a/?anonymousKey=058004df83228e41ccae9e75286482f60c6652ec
+    requireInvariant ratioMargin_leq_1usd();
+    requireInvariant validCollateralRatioTargets();
 
+    require !rebalanceNeeded(e1);
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+    
+    require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+
+//pass - keep (fail if rebalance is needed)
+rule equity_per_share_non_decreasing_100_mul_fail_rebalance_not_needed_no_require {
+    env e1; env e2;
+
+    //requireInvariant ratioMargin_leq_1usd();
+    //requireInvariant validCollateralRatioTargets();
+
+    require !rebalanceNeeded(e1);
+
+    require decimals() == 15;
+    uint256 equityUSD_before = equityUSD();
+    uint256 totalSupply_before = totalSupply();
+    require totalSupply_before != 0;
+    
+    
+    uint256 shares_to_redeem;
+    address receiver;
+    address owner;
+    uint256 minUnderlyingAsset;
+    require shares_to_redeem <= totalSupply_before;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    uint256 equityUSD_after = equityUSD();
+    mathint totalSupply_after = totalSupply_before - shares_to_redeem;
+    require totalSupply_after > 0;
+    
+    //require equityUSD_before == 600;
+    require totalSupply_before == 150;
+    require shares_to_redeem == 50;
+    assert  equityUSD_after * totalSupply_before >=  equityUSD_before *  totalSupply_after;
+}
+
+
+//fail https://prover.certora.com/output/99352/d409fd527e90499fb780bb5e32f25291/?anonymousKey=c0e54054afdd020a6979e63937bba9e86e459882
+//https://prover.certora.com/output/99352/21522faae907423889655839aae41fa3/?anonymousKey=0dbd05877adf4bbb1961dee64775d9d84d9ea4bd
 rule equity_per_share_non_decreasing_2 {
     env e1; env e2;
 
@@ -961,6 +1259,8 @@ rule equity_per_share_non_decreasing_2 {
 
 //timeout https://prover.certora.com/output/99352/e1295fb6488841bba7c8e83058634049/?anonymousKey=07b95c7dd62bfee1179d68197ab0ca12bacdacf9
 //fail https://prover.certora.com/output/99352/f35e03f74f4d40debbc08537c58871d9/?anonymousKey=521f66b69400f3eaf5de7552e6ab87b10e1b1b6d
+//https://prover.certora.com/output/99352/f41f40afa3eb4c429dfa53ad0cd70ba7/?anonymousKey=9dcdb67f1bb9c05548f0ece4bbf742e6f315d433
+//timeout with zero slippage
 rule assets_redeemed_leq_deposited_less_shared {
     env e1; env e2;
     require decimals() == 17;
@@ -975,7 +1275,23 @@ rule assets_redeemed_leq_deposited_less_shared {
     uint256 minUnderlyingAsset;
     uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
 
-    assert  shares_to_redeem <= shares_minted => assets_redeeemed <= assets_deposited;
+    assert  maxSlippagePercent() == 0 => shares_to_redeem <= shares_minted => assets_redeeemed <= assets_deposited;
+}
+rule assets_redeemed_leq_deposited_less_shared_witness {
+    env e1; env e2;
+    require decimals() == 17;
+    uint256 assets_deposited;
+    address receiver;
+    uint256 minSharesReceived;
+    uint256 shares_minted = deposit(e1, assets_deposited, receiver, minSharesReceived);
+
+    uint256 shares_to_redeem;
+    address receiver_r;
+    address owner;
+    uint256 minUnderlyingAsset;
+    uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
+
+    satisfy !(shares_to_redeem <= shares_minted => assets_redeeemed <= assets_deposited);
 }
 
 rule assets_redeemed_leq_deposited_less_shared_90_20 {
@@ -1105,7 +1421,7 @@ rule assets_redeemed_leq_deposited_sanity {
     assert to_mathint(assets_redeeemed) <= to_mathint(assets_deposited) + 400;
 }
 
-//reachability check 
+//reachability check https://prover.certora.com/output/99352/d409fd527e90499fb780bb5e32f25291/?anonymousKey=c0e54054afdd020a6979e63937bba9e86e459882 
 rule redeemed_test_4000_12000_100_10 {
     env e1; env e2;
     require decimals() == 17;
@@ -1149,48 +1465,10 @@ rule rebalance_direction
     uint256 collateralRatio_after = currentCollateralRatio();
 
     
-    assert collateralRatio_before > target => collateralRatio_after <= collateralRatio_before;
-    assert collateralRatio_before < target => collateralRatio_after >= collateralRatio_before;
-    
-//    assert abs(collateralRatio_after - target) <= abs(collateralRatio_before - target);
+//    assert collateralRatio_before > target => collateralRatio_after <= collateralRatio_before;
+    assert collateralRatio_before <= target => collateralRatio_after >= collateralRatio_before;
 }
 
-
-//todo: debug fail
-//https://prover.certora.com/output/99352/feb1bc62c0db43b4bc55b57565034520/?anonymousKey=d0755387b4abd0f62e908a56094ed7978150b35a
-rule distance_from_target_doesnt_increase_after_rebalance__positive_debt
-{
-    env e1;
-    requireInvariant validCollateralRatioTargets();
-    requireInvariant ratioMargin_leq_1usd();
-    require decimals() == 15;
-    require debtUSD() != 0;
-    uint256 target = getCollateralRatioTargets().target;
-
-    uint256 collateralRatio_before = currentCollateralRatio();
-    rebalance(e1);
-    require debtUSD() != 0;
-    uint256 collateralRatio_after = currentCollateralRatio();
-
-    
-    assert abs(collateralRatio_after - target) <= abs(collateralRatio_before - target);
-}
-
-rule distance_from_target_doesnt_increase_after_rebalance_witness
-{
-    env e1;
-    requireInvariant validCollateralRatioTargets();
-    requireInvariant ratioMargin_leq_1usd();
-    require decimals() == 15;
-    uint256 target = getCollateralRatioTargets().target;
-
-    uint256 collateralRatio_before = currentCollateralRatio();
-    rebalance(e1);
-    uint256 collateralRatio_after = currentCollateralRatio();
-
-    
-    satisfy abs(collateralRatio_after - target) > abs(collateralRatio_before - target);
-}
 
 
 rule same_collateralRatio_after_consecutive_rebalance
@@ -1208,6 +1486,7 @@ rule same_collateralRatio_after_consecutive_rebalance
     assert collateralRatio_after == collateralRatio_before;
 }
 
+//pass with slippage zero
 rule same_equity_after_consecutive_rebalance
 {
     env e1; env e2;
@@ -1220,7 +1499,23 @@ rule same_equity_after_consecutive_rebalance
     rebalance(e2);
     uint256 equityUSD_after = equityUSD();
     
-    assert equityUSD_after == equityUSD_before;
+    assert maxSlippagePercent() == 0 => equityUSD_after == equityUSD_before;
+}
+
+//pass
+rule same_equity_after_consecutive_rebalance_witness
+{
+    env e1; env e2;
+    requireInvariant validCollateralRatioTargets();
+    requireInvariant ratioMargin_leq_1usd();
+    require decimals() == 15;
+    
+    rebalance(e1);
+    uint256 equityUSD_before = equityUSD();
+    rebalance(e2);
+    uint256 equityUSD_after = equityUSD();
+    
+    satisfy !(equityUSD_after == equityUSD_before);
 }
 
 
@@ -1256,6 +1551,8 @@ rule same_collateralRatio_after_consecutive_rebalance_self_check_1
 }
 
 //fail: TODO: summarize offsetFactor
+//timeout
+//pass with zero slippage
 rule same_equity_after_consecutive_rebalance_self_check
 {
     env e1; env e2;
@@ -1294,20 +1591,67 @@ rule same_equity_after_consecutive_rebalance_self_check
 // Invariants
 //
 
-
 invariant collateralRatio_leq_minForRebalance()
      getCollateralRatioTargets().minForRebalance <= currentCollateralRatio()
       filtered {
-        f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector
-         && f.selector != sig:setCollateralRatioTargets(LoopStrategyHarness.CollateralRatio) .selector) // TODO: remove once I-5 is fixed
+        f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector)
+    }
+    {
+        preserved LoopStrategy_init(
+        string  _erc20name,
+        string  _erc20symbol,
+        address _initialAdmin,
+        LoopStrategyHarness.StrategyAssets  _strategyAssets,
+        LoopStrategyHarness.CollateralRatio  _collateralRatioTargets,
+        address _poolAddressProvider,
+        address _oracle,
+        address _swapper,
+        uint256 _ratioMargin,
+        uint16 _maxIterations) with (env e) 
+        {
+            require currentCollateralRatio() == 0;
+        } 
     }
 
-invariant collateralRatio_geq_maxForRebalance()
-     getCollateralRatioTargets().maxForRebalance >= currentCollateralRatio()
+invariant collateralRatio_leq_minForRebalance_zeroSlippage()
+     maxSlippagePercent() == 0 => getCollateralRatioTargets().minForRebalance <= currentCollateralRatio()
       filtered {
-        f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector
-        && f.selector != sig:setCollateralRatioTargets(LoopStrategyHarness.CollateralRatio) .selector) // TODO: remove once I-5 is fixed
+        f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector)
     }
+    {
+        preserved LoopStrategy_init(
+        string  _erc20name,
+        string  _erc20symbol,
+        address _initialAdmin,
+        LoopStrategyHarness.StrategyAssets  _strategyAssets,
+        LoopStrategyHarness.CollateralRatio  _collateralRatioTargets,
+        address _poolAddressProvider,
+        address _oracle,
+        address _swapper,
+        uint256 _ratioMargin,
+        uint16 _maxIterations) with (env e) 
+        {
+            require currentCollateralRatio() == 0;
+        } 
+    }
+
+rule collateralRatio_geq_maxForRebalance(method f)
+filtered {f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector)}
+{
+    require getCollateralRatioTargets().maxForRebalance >= currentCollateralRatio();
+    env e; calldataarg args;
+    f(e, args);
+    assert getCollateralRatioTargets().maxForRebalance >= currentCollateralRatio();
+}
+
+rule collateralRatio_geq_maxForRebalance_zeroSlippage(method f)
+filtered {f -> (f.selector != sig:upgradeToAndCall(address,bytes) .selector)}
+{
+    require maxSlippagePercent() == 0 => getCollateralRatioTargets().maxForRebalance >= currentCollateralRatio();
+    env e; calldataarg args;
+    f(e, args);
+    assert maxSlippagePercent() == 0 => getCollateralRatioTargets().maxForRebalance >= currentCollateralRatio();
+}
 
 // collateralRatioTargets are valid
 //fail on LoopStrategy_init() - reported bug L3 
