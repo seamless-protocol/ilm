@@ -8,8 +8,8 @@ methods {
 
 }
 
-// redeem(shares) reduces blanceof() by shares
-// https://prover.certora.com/output/11775/6e5f254b9ae84660b9c5d763d722e020?anonymousKey=e06af2b697e25002e07fc9afa33f0fa82a650cc3 - beta
+
+// Redeem function reduces the share balance of owner by the share amount specified while calling the function
 rule redeemReducesBalanceByShares(env e){
     uint256 shares;
     address receiver;

@@ -5,11 +5,10 @@ methods {
     //Summaries
     function LoopStrategy._convertToShares(uint256, uint256) internal returns (uint256) => NONDET;
     function _.updateState(LoopStrategyStorage.Layout) external => NONDET;
-
 }
 
-// shares=deposit() increases blanceOf() by shares
-// https://prover.certora.com/output/11775/fbb034de2c224040a31c14bfb3be88e2?anonymousKey=3c16920f4defde62c6307421d4c99d3be936586e - beta
+// Deposit function increases the receiver’s balance by the shares amount it returns 
+//  if the total supply is greater than or equal to the receiver’s balance.
 rule depositIncreasesBalanceCorrectly(env e){
     uint256 assets;
     address receiver;
