@@ -35,3 +35,6 @@ pnpm-lock.yaml
 
 # simulation output
 test/integration/output
+
+# Certora Prover
+certora/munged
