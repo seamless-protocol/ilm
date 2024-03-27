@@ -1,7 +1,8 @@
 import "CVLMath.spec";
 
 methods {
-        // envfree
+    
+    // envfree
     function balanceOf(address) external returns (uint256) envfree;
     function equity() external returns (uint256) envfree;
     function equityUSD() external returns (uint256) envfree;
@@ -17,18 +18,11 @@ methods {
     function _.withdraw(uint256 amount) external => NONDET; 
     
     // Swapper
-    function _.swap(address, address, uint256, address payable) external => DISPATCHER(true);//M//
-    //function _.swap(address, address, uint256, address payable) external => NONDET;
+    function _.swap(address, address, uint256, address payable) external => DISPATCHER(true);
     function _.offsetFactor(address, address) external => CONSTANT; //  NONDET;
     
 
-    //ERC4626Upgradeable
-    // function _._withdraw(address, address,address, uint256 ,uint256) internal => NONDET;
-
-    //ERC20Upgradeable
-    // function _._mint(address, uint256) internal => NONDET;
-
-    // Pool:
+    // Aave Pool:
     function _.getUserAccountData(address user) external   => simplified_getUserAccountData() expect (uint256,uint256,uint256,uint256,uint256,uint256);
     function _.supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external
             => simplified_supply(asset, amount, onBehalfOf, referralCode) expect void;
@@ -59,9 +53,6 @@ methods {
     // PriceOracle
     function _.getAssetPrice(address a)  external => getFixedPrice() expect uint256; //10 ^ 11 expect uint256; //todo: allow any price
 
-    // IVariableDebtToken
-    //function _.scaledTotalSupply() external => DISPATCHER(true);
-
     // IACLManager
     function _.isPoolAdmin(address) external => DISPATCHER(true);
 
@@ -75,9 +66,11 @@ methods {
     function usdMulMock(uint256 a, uint256 b) external returns (uint256) envfree;
 
 
+    //
     // Math Summarizations - Formal-friendly summarries of multiple and divide
-    
-    ///Openzeppelin Math.sol
+    //
+
+    // From Openzeppelin Math.sol
     function _.mulDiv(uint256 x, uint256 y, uint256 denominator) internal => mulDivDownAbstractPlus(x, y, denominator) expect uint256 ALL; 
     function _.mulDiv(uint256 x, uint256 y, uint256 denominator, Math.Rounding rounding) internal  => mulDiv_with_rounding(x, y, denominator, rounding) expect uint256 ALL;
 
@@ -110,7 +103,6 @@ ghost maxSlippagePercent() returns uint256;
 function executeSwapLimitedSlippage(address from, address to, uint256 fromAmount, address beneficiary) returns uint256 {
     require maxSlippagePercent() <= 10;
     uint256 toAmount;
-    //uint256 fromAmountUSD = mulDivDownAbstractPlus(fromAmount, getFixedPrice(), require_uint256(10 ^ getFixedDecimals()));
     require toAmount * 100 <= fromAmount * (100 + maxSlippagePercent());
     require toAmount * 100 >= fromAmount * (100 - maxSlippagePercent());
 
@@ -134,8 +126,10 @@ function getFixedDecimals() returns uint8
         // return fixedDecimals;
         return 3;
 }
+
+
 //
-// Simplified pool functions
+// Simplified CVL summaries of Aave Pool functions
 //
 
 // Assumption:
@@ -163,14 +157,14 @@ function simplified_getUserAccountData() returns (uint256,uint256,uint256,uint25
             _);
 }
 
-// increases debt balance
+// borrow() increases the debt balance
 function simplified_borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)
 {
     totalDebtBase = require_uint256(totalDebtBase + amount);
     require totalCollateralBase >= totalDebtBase;
 }
 
-//reduces debt
+// repay() reduces the debt
 function simplified_repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) returns uint256
 {
     if (amount == max_uint256)
@@ -184,13 +178,13 @@ function simplified_repay(address asset, uint256 amount, uint256 interestRateMod
     return amount;
 }
 
-// increases collaterl balance
+// supply() increases the collateral balance
 function simplified_supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode)
 {
     totalCollateralBase = require_uint256(totalCollateralBase + amount);
 }
 
-// reduces collaterl balance
+// withdraw() reduces the collateral balance
 function simplified_withdraw(address asset, uint256 amount, address to) returns uint256
 {
     if (amount == max_uint256)
@@ -205,7 +199,7 @@ function simplified_withdraw(address asset, uint256 amount, address to) returns 
 }
 
 //
-// Helper CVL function
+// Helper CVL functions
 //
 
 // Converts to USD value
@@ -225,4 +219,5 @@ function getShareDebtUSD(uint256 shares, uint256 totalShares) returns uint256
 {
     return mulDivUpAbstractPlus(getState_debtUSD(), shares, totalShares);
 }
+
 
