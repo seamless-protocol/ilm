@@ -11,8 +11,7 @@ const strategyABI = [
   "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))"
 ];
 
-// REPLACE WITH STRATEGY ADDRESS OF INTEREST
-const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
+const healthFactorThreshold = 10 ** 8; //value used for testing
 
 // execute rebalance operation if its necessary
 async function performRebalance(strategy) {
@@ -30,21 +29,32 @@ async function performRebalance(strategy) {
 }
 
 // Entrypoint for the action
-exports.handler = async function (credentials) {
-  const client = new Defender(credentials);
+exports.handler = async function (payload, context) {
+  const client = new Defender(payload);
+  const store = new KeyValueStoreClient(payload);
+  const { notificationClient } = context;
 
   const provider = client.relaySigner.getProvider();
   const signer = client.relaySigner.getSigner(provider, { speed: 'fast' });
 
-  const strategy = new ethers.Contract(strategyAddress, strategyABI, signer);
+  const events = payload.request.body.events;
 
-  await performRebalance(strategy);
+  for (let evt of events) {
+    if ('type' in evt.metadata && evt.metadata.type == "priceUpdate") {
+      for (let strategyToRebalance of evt.metadata.strategiesToRebalance) {
+        const strategy = new ethers.Contract(strategyToRebalance, strategyABI, signer);
 
-  // update equityPerShare because price fluctuations may alter it organically
-  updateEPS(store, strategy, equityPerShare(strategy));
+        await performRebalance(strategy);
+      
+        // update equityPerShare because performRebalance may affect it
+        updateEPS(store, strategy, equityPerShare(strategy));
+      
+        await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
+        await sendExposureAlert(notificationClient, strategy);
+      }
+    }
+  }
 
-  await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
-  await sendExposureAlert(notificationClient, strategy);
 }
 
 // unit testing

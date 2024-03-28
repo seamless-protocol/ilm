@@ -1,7 +1,7 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
 const { KeyValueStoreClient } = require('defender-kvstore-client');
-const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert } = require("./utils");
+const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert, equityPerShare } = require("./utils");
 const { performRebalance } = require("./rebalance");
 
 // 0xa669E5272E60f78299F4824495cE01a3923f4380: wstETH-ETH
@@ -39,9 +39,10 @@ exports.handler = async function (credentials, context, payload) {
     const events = payload.request.body.events;
 
     let strategy;
-    const oracle = new ethers.Contract(evt.metadata.oracle, oracleABI, provider);
 
     for (let evt of events) {
+        const oracle = new ethers.Contract(evt.metadata.oracle, oracleABI, provider);
+
         if (evt.metadata.notificationType == 'priceUpdate') {
             let affectedStrategies = oracleToStrategies[evt.metadata.oracle];
 
@@ -51,7 +52,7 @@ exports.handler = async function (credentials, context, payload) {
                 await performRebalance(strategy);
 
                 // update equityPerShare because price fluctuations may alter it organically
-                updateEPS(strategy);
+                updateEPS(store, strategy, equityPerShare(strategy));
                 await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
                 await sendExposureAlert(notificationClient, strategy);
             }
