@@ -39,7 +39,7 @@ exports.handler = async function (credentials, context, payload) {
     const events = payload.request.body.events;
 
     let strategy;
-    const oracle = new ethers.Oracle(evt.metadata.oracle, oracleABI, provider);
+    const oracle = new ethers.Contract(evt.metadata.oracle, oracleABI, provider);
 
     for (let evt of events) {
         if (evt.metadata.notificationType == 'priceUpdate') {
