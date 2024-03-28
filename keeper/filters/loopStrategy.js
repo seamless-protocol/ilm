@@ -1,9 +1,7 @@
 
 const { ethers } = require("ethers");
-const { Defender } = require('@openzeppelin/defender-sdk');
 const { KeyValueStoreClient } = require('defender-kvstore-client');
 const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert } = require("./utils");
-const { performRebalance } = require("./rebalance");
 
 const withdrawSig = 'Withdraw(address,address,address,uint256,uint256)';
 const priceUpdateSig = 'AnswerUpdated(int256,uint256,uint256)';
@@ -49,7 +47,7 @@ exports.handler = async function (payload, context) {
     const store = new KeyValueStoreClient(payload);
 
     let strategy;
-    let affectedStrategies = [];
+    let strategiesToRebalance = [];
 
     for (let evt of events) {
         for (let reason of evt.matchReasons) {
@@ -64,12 +62,23 @@ exports.handler = async function (payload, context) {
 
             if (reason.signature == priceUpdateSig) {
                 let oracle = new ethers.Contract(ethers.utils.getAddress(reason.address), oracleABI, provider);
-                
+
+                for (let affectedStrategy of oracleToStrategies[reason.address]) {
+                    strategy = new ethers.Contract(affectedStrategy, strategyABI, provider);
+                    
+                    // update equityPerShare because price fluctuations may alter it organically
+                    updateEPS(store, strategy, equityPerShare(strategy));
+
+                    if (await strategy.rebalanceNeeded()) {
+                        strategiesToRebalance.push(affectedStrategy);
+                    }
+                }
+
                 matches.push({
                     hash: evt.hash,
                     metadata: {
                      "type": "priceUpdate",
-                     "affectedStrategies": affectedStrategies.push[oracleToStrategies[ethers.utils.getAddress(reason.address)]]
+                     "strategiesToRebalance": strategiesToRebalance
                     }
                  });
 
