@@ -90,6 +90,8 @@ function mulDivDownAbstract(uint256 x, uint256 y, uint256 z) returns uint256 {
 
 function mulDivDownAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
     
+    require z != 0;
+
     if (y == z)
         return x;
 
@@ -97,7 +99,6 @@ function mulDivDownAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256
         return y;
 
     uint256 res;
-    require z != 0;
     uint256 xy = require_uint256(x * y);
     uint256 fz = require_uint256(res * z);
 
@@ -109,6 +110,8 @@ function mulDivDownAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256
 //round to the nearest integer
 function mulDivNearestAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
 
+    require z != 0;
+
     if (y == z)
         return x;
 
@@ -116,7 +119,6 @@ function mulDivNearestAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint
         return y;
 
     uint256 res;
-    require z != 0;
     uint256 xy = require_uint256(x * y);
     uint256 fz = require_uint256(res * z);
     uint256 halfZ = require_uint256(z / 2);
@@ -129,13 +131,14 @@ function mulDivNearestAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint
 // converts all assumptions in mulDivNearestAbstractPlus() to assertion
 function mulDivNearestAbstractPlus_assertions(uint256 x, uint256 y, uint256 z, uint256 res) {
     
+    assert z != 0;
+
     if (y == z)
         return;
 
     if (x == z)
         return;
 
-    assert z != 0;
     uint256 xy = assert_uint256(x * y);
     uint256 fz = assert_uint256(res * z);
     uint256 halfZ = assert_uint256(z / 2);
@@ -146,6 +149,8 @@ function mulDivNearestAbstractPlus_assertions(uint256 x, uint256 y, uint256 z, u
 
 function mulDivUpAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
 
+    require z != 0;
+
     if (y == z)
         return x;
 
@@ -154,7 +159,6 @@ function mulDivUpAbstractPlus(uint256 x, uint256 y, uint256 z) returns uint256 {
 
 
     uint256 res;
-    require z != 0;
     uint256 xy = require_uint256(x * y);
     uint256 fz = require_uint256(res * z);
     require xy >= fz;
