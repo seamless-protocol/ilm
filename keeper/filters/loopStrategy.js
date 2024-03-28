@@ -63,6 +63,8 @@ exports.handler = async function (payload, context) {
             }
 
             if (reason.signature == priceUpdateSig) {
+                let oracle = new ethers.Contract(ethers.utils.getAddress(reason.address), oracleABI, provider);
+                
                 matches.push({
                     hash: evt.hash,
                     metadata: {
