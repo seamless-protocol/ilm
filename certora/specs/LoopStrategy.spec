@@ -85,34 +85,6 @@ rule equity_decreasing_after_rebalance_witness_rebalanceUp {
     satisfy to_mathint( 10^8 + equityUSD_after) < to_mathint(equityUSD_before);
 }
 
-// rule equity_per_share_non_decreasing_0 {
-//     env e1; env e2;
-
-//     require e2.msg.sender != currentContract;
-
-//     require decimals() == 15;
-//     requireInvariant ratioMargin_leq_1usd();
-//     requireInvariant validCollateralRatioTargets();
-
-//     uint256 equityUSD_before = equityUSD();
-//     uint256 totalSupply_before = totalSupply();
-//     require totalSupply_before != 0;
-//     mathint equityUSD_per_share_before = to_mathint(equityUSD_before) / to_mathint(totalSupply_before);
-
-//     uint256 shares_to_redeem;
-//     address receiver;
-//     address owner;
-//     uint256 minUnderlyingAsset;
-//     require shares_to_redeem <= totalSupply_before;
-//     uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
-
-//     uint256 equityUSD_after = equityUSD();
-//     mathint totalSupply_after = totalSupply_before - shares_to_redeem;
-//     require totalSupply_after != 0;
-//     mathint equityUSD_per_share_after = to_mathint(equityUSD_after) / to_mathint(totalSupply_after);
-
-//     assert  equityUSD_per_share_after >= equityUSD_per_share_before;
-// }
 
 rule equity_per_share_non_decreasing {
     env e1; env e2;
@@ -159,57 +131,6 @@ rule equity_per_share_non_decreasing_witness {
 }
 
 
-//pass
-// rule assets_redeemed_leq_deposited_less_shared {
-//     env e1; env e2;
-//     require decimals() == 17;
-
-
-//     uint256 totalSupply_before = totalSupply();
-//     uint256 assets_deposited;
-//     address receiver;
-//     uint256 minSharesReceived;
-//     uint256 shares_minted = deposit(e1, assets_deposited, receiver, minSharesReceived);
-
-//     require to_mathint(totalSupply()) >= to_mathint(shares_minted + totalSupply_before);
-//     uint256 shares_to_redeem;
-//     address receiver_r;
-//     address owner;
-//     uint256 minUnderlyingAsset;
-//     uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
-
-//     assert  maxSlippagePercent() == 0 => shares_to_redeem <= shares_minted => assets_redeeemed <= assets_deposited;
-// }
-
-// rule assets_redeemed_leq_deposited_less_shared_witness {
-//     env e1; env e2;
-//     require decimals() == 17;
-//      uint256 totalSupply_before = totalSupply();
-//     uint256 assets_deposited;
-//     address receiver;
-//     uint256 minSharesReceived;
-//     uint256 shares_minted = deposit(e1, assets_deposited, receiver, minSharesReceived);
-
-//     require to_mathint(totalSupply()) >= to_mathint(shares_minted + totalSupply_before);
-//     uint256 shares_to_redeem;
-//     address receiver_r;
-//     address owner;
-//     uint256 minUnderlyingAsset;
-//     uint256 assets_redeeemed = redeem(e2, shares_to_redeem, receiver, owner, minUnderlyingAsset);
-
-//     assert !(shares_to_redeem <= shares_minted => assets_redeeemed <= assets_deposited);
-// }
-
-
-
-
-
-
-
-
-
-//| collateral ratio - target | doesn’t increase after rebalance
-//timeout
 rule rebalance_direction
 {
     env e1;
@@ -280,7 +201,6 @@ rule same_collateralRatio_after_consecutive_rebalance_zero_slippage
 
 
 // collateralRatioTargets are valid
-//fail on LoopStrategy_init() - reported bug L3 
 invariant validCollateralRatioTargets()
         getCollateralRatioTargets().minForRebalance <= getCollateralRatioTargets().target
         && getCollateralRatioTargets().maxForRebalance >= getCollateralRatioTargets().target
