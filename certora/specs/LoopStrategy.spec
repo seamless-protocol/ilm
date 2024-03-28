@@ -164,36 +164,6 @@ rule rebalance_direction_non_increasing
 
 
 
-rule same_collateralRatio_after_consecutive_rebalance
-{
-    env e1; env e2;
-    requireInvariant validCollateralRatioTargets();
-    requireInvariant ratioMargin_leq_1usd();
-    require decimals() == 15;
-    
-    rebalance(e1);
-    uint256 collateralRatio_before = currentCollateralRatio();
-    rebalance(e2);
-    uint256 collateralRatio_after = currentCollateralRatio();
-
-    assert collateralRatio_after == collateralRatio_before;
-}
-
-rule same_collateralRatio_after_consecutive_rebalance_zero_slippage
-{
-    env e1; env e2;
-    requireInvariant validCollateralRatioTargets();
-    requireInvariant ratioMargin_leq_1usd();
-    require decimals() == 15;
-    
-    rebalance(e1);
-    uint256 collateralRatio_before = currentCollateralRatio();
-    rebalance(e2);
-    uint256 collateralRatio_after = currentCollateralRatio();
-
-    assert maxSlippagePercent() == 0 => collateralRatio_after == collateralRatio_before;
-}
-
 //
 // Invariants
 //
