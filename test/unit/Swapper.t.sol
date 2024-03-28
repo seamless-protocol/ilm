@@ -20,6 +20,7 @@ import { ISwapAdapter } from "../../src/interfaces/ISwapAdapter.sol";
 import { ISwapper } from "../../src/interfaces/ISwapper.sol";
 import { Step } from "../../src/types/DataTypes.sol";
 import { Swapper } from "../../src/swap/Swapper.sol";
+import { Constants } from "../../src/libraries/math/Constants.sol";
 
 /// @notice Unit tests for the Swapper contract
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
@@ -344,39 +345,6 @@ contract SwapperTest is BaseForkTest {
         swapper.setOracle(IPriceOracleGetter(NO_ROLE));
     }
 
-    /// @dev ensures setOffsetDeviationUSD sets new value for offsetDeviationUSD and emits appropirate event
-    function test_setOffsetDeviationUSD_setsNewValueForOffsetDeviationUSD_and_emitsOffsetDeviationSetEvent(
-    ) public {
-        uint256 newOffsetDeviationUSD = 100;
-
-        assertEq(1, swapper.getOffsetDeviationUSD());
-
-        vm.expectEmit();
-        emit OffsetDeviationSet(newOffsetDeviationUSD);
-
-        vm.startPrank(OWNER);
-        swapper.setOffsetDeviationUSD(newOffsetDeviationUSD);
-        vm.stopPrank();
-
-        assertEq(newOffsetDeviationUSD, swapper.getOffsetDeviationUSD());
-    }
-
-    /// @dev ensures setOffsetDeviationUSD vall reverts when called by non-manager
-    function test_setOffsetDeviationUSD_revertsWhen_calledByNonManager()
-        public
-    {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                NO_ROLE,
-                swapper.MANAGER_ROLE()
-            )
-        );
-
-        vm.prank(NO_ROLE);
-        swapper.setOffsetDeviationUSD(123);
-    }
-
     /// @dev ensures swapping works for a route with a single step
     function test_swap_performsSwap_SingleStep() public {
         Step[] memory steps = new Step[](1);
@@ -398,7 +366,9 @@ contract SwapperTest is BaseForkTest {
         uint256 oldWETHBalance = WETH.balanceOf(ALICE);
         uint256 oldCbETHBalance = CbETH.balanceOf(ALICE);
 
-        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
+        swapper.swap(
+            WETH, CbETH, swapAmount, payable(ALICE), Constants.MAX_SLIPPAGE
+        );
 
         assertEq(oldWETHBalance - WETH.balanceOf(ALICE), swapAmount);
         assertEq(CbETH.balanceOf(ALICE) - oldCbETHBalance, swapAmount);
@@ -427,7 +397,9 @@ contract SwapperTest is BaseForkTest {
         uint256 oldWETHBalance = WETH.balanceOf(ALICE);
         uint256 oldUSDbCBalance = USDbC.balanceOf(ALICE);
 
-        swapper.swap(WETH, USDbC, swapAmount, payable(ALICE));
+        swapper.swap(
+            WETH, USDbC, swapAmount, payable(ALICE), Constants.MAX_SLIPPAGE
+        );
 
         assertEq(oldWETHBalance - WETH.balanceOf(ALICE), swapAmount);
         assertEq(USDbC.balanceOf(ALICE) - oldUSDbCBalance, swapAmount);
@@ -458,19 +430,19 @@ contract SwapperTest is BaseForkTest {
             )
         );
 
-        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
+        swapper.swap(
+            WETH, CbETH, swapAmount, payable(ALICE), Constants.MAX_SLIPPAGE
+        );
         vm.stopPrank();
     }
 
     /// @dev ensures that when slippage is high enough, swapping reverts
     function test_swap_revertsWhen_tooFewEndAssetsAreReceived() public {
         uint256 offsetFactor = 5e6;
-        uint256 offsetDeviation = 5e6;
+        uint256 maxSlippage = 5_00; // 5%
 
-        // add 5% slippage +- 5% so max 5.025% max slippage
         vm.startPrank(OWNER);
         swapper.setOffsetFactor(WETH, CbETH, offsetFactor);
-        swapper.setOffsetDeviationUSD(offsetDeviation);
         vm.stopPrank();
 
         Step[] memory steps = new Step[](1);
@@ -496,6 +468,6 @@ contract SwapperTest is BaseForkTest {
 
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
 
-        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE));
+        swapper.swap(WETH, CbETH, swapAmount, payable(ALICE), maxSlippage);
     }
 }

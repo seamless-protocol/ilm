@@ -15,6 +15,7 @@ import { LoanState } from "../../src/types/DataTypes.sol";
 import { ConversionMath } from "../../src/libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "../../src/libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "../../src/libraries/math/USDWadRayMath.sol";
+import { Constants } from "../../src/libraries/math/Constants.sol";
 
 /// @title RebalanceLogicTest
 /// @dev RebalanceLogicTest contract which exposes RebalanceLogic library functions
@@ -49,7 +50,11 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         uint256 ratio = RebalanceLogic.rebalanceUp(
-            $, state, currentCR, $.collateralRatioTargets.target
+            $,
+            state,
+            currentCR,
+            $.collateralRatioTargets.target,
+            Constants.MAX_SLIPPAGE
         );
 
         assertApproxEqAbs(ratio, targetCR, margin);
@@ -84,7 +89,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $.assets.debt,
             $.assets.collateral,
             borrowAmountAsset,
-            payable(address(this))
+            payable(address(this)),
+            Constants.MAX_SLIPPAGE
         );
 
         state = LoanLogic.supply(
@@ -94,8 +100,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         assertApproxEqAbs(ratio, targetCR, margin);
     }
@@ -129,7 +136,8 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             $.assets.debt,
             $.assets.collateral,
             borrowAmountAsset,
-            payable(address(this))
+            payable(address(this)),
+            Constants.MAX_SLIPPAGE
         );
 
         state = LoanLogic.supply(
@@ -139,8 +147,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         assertApproxEqAbs(ratio, targetCR, margin);
     }
@@ -160,7 +169,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
         vm.expectRevert(RebalanceLogic.RatioOutsideRange.selector);
-        RebalanceLogic.rebalanceTo($, state, targetCR);
+        RebalanceLogic.rebalanceTo($, state, targetCR, Constants.MAX_SLIPPAGE);
     }
 
     /// @dev ensure that collateral ratio is the target collateral ratio after rebalanceDown
@@ -175,8 +184,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -188,7 +198,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -207,8 +219,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -220,7 +233,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -238,8 +253,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -272,8 +288,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetRatio);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetRatio, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetRatio / USDWadRayMath.USD;
 
@@ -293,8 +310,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         assertApproxEqAbs(ratio, targetCR, margin);
 
@@ -306,7 +324,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        ratio = RebalanceLogic.rebalanceDown($, state, currentCR, targetCR);
+        ratio = RebalanceLogic.rebalanceDown(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -326,8 +346,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -357,7 +378,11 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
-        RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
+
+        uint256 maxSlippage = 5_00; // set max allowed slippage to 5%
+        RebalanceLogic.rebalanceTo(
+            $, state, $.collateralRatioTargets.target, maxSlippage
+        );
     }
 
     /// @dev ensures that rebalanceTo reverts when calling rebalanceDown if slippage is too high
@@ -372,8 +397,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 
@@ -387,7 +413,11 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         state = LoanLogic.getLoanState($.lendingPool);
 
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
-        RebalanceLogic.rebalanceTo($, state, $.collateralRatioTargets.target);
+
+        uint256 maxSlippage = 20_00; // set max allowed slippage to 20%
+        RebalanceLogic.rebalanceTo(
+            $, state, $.collateralRatioTargets.target, maxSlippage
+        );
     }
 
     /// @dev ensures that rebalanceDownToDebt reverts when slippage is too high
@@ -406,8 +436,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 currentCR =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
 
-        uint256 ratio =
-            RebalanceLogic.rebalanceUp($, state, currentCR, targetCR);
+        uint256 ratio = RebalanceLogic.rebalanceUp(
+            $, state, currentCR, targetCR, Constants.MAX_SLIPPAGE
+        );
 
         uint256 margin = $.ratioMargin * targetCR / USDWadRayMath.USD;
 

@@ -72,7 +72,8 @@ contract SwapperMock is Test, ISwapper {
         IERC20 _from,
         IERC20 _to,
         uint256 _fromAmount,
-        address payable _beneficiary
+        address payable _beneficiary,
+        uint256 maxSlippage
     ) external returns (uint256 toAmount) {
         _from.transferFrom(_beneficiary, address(this), _fromAmount);
 
@@ -153,23 +154,11 @@ contract SwapperMock is Test, ISwapper {
 
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
-    function setOffsetDeviationUSD(uint256 offsetDeviationUSD) external { }
-
-    /// @inheritdoc ISwapper
-    /// @dev unimplemented in mock
     function setOracle(IPriceOracleGetter oracles) external { }
 
     /// @inheritdoc ISwapper
     /// @dev unimplemented in mock
     function getOracle() external view returns (IPriceOracleGetter) { }
-
-    /// @inheritdoc ISwapper
-    /// @dev unimplemented in mock
-    function getOffsetDeviationUSD()
-        external
-        view
-        returns (uint256 offsetDeviationUSD)
-    { }
 
     function setOffsets(
         uint256 _borrowToCollateralOffset,

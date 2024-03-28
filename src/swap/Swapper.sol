@@ -14,6 +14,7 @@ import { SafeERC20 } from
 import { ConversionMath } from "../libraries/math/ConversionMath.sol";
 import { ISwapper } from "../interfaces/ISwapper.sol";
 import { USDWadRayMath } from "../libraries/math/USDWadRayMath.sol";
+import { Constants } from "../libraries/math/Constants.sol";
 import { SwapperStorage as Storage } from "../storage/SwapperStorage.sol";
 import { Step } from "../types/DataTypes.sol";
 import { AccessControlUpgradeable } from
@@ -38,18 +39,16 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @dev initializer function for Swapper contract
-    function Swapper_init(
-        address initialAdmin,
-        IPriceOracleGetter oracle,
-        uint256 offsetDeviationUSD
-    ) external initializer {
+    function Swapper_init(address initialAdmin, IPriceOracleGetter oracle)
+        external
+        initializer
+    {
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
 
         Storage.Layout storage $ = Storage.layout();
         $.oracle = oracle;
-        $.offsetDeviationUSD = offsetDeviationUSD;
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -115,21 +114,12 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc ISwapper
-    function setOffsetDeviationUSD(uint256 offsetDeviationUSD)
-        external
-        onlyRole(MANAGER_ROLE)
-    {
-        Storage.layout().offsetDeviationUSD = offsetDeviationUSD;
-
-        emit OffsetDeviationSet(offsetDeviationUSD);
-    }
-
-    /// @inheritdoc ISwapper
     function swap(
         IERC20 from,
         IERC20 to,
         uint256 fromAmount,
-        address payable beneficiary
+        address payable beneficiary,
+        uint256 maxSlippage
     ) external onlyRole(STRATEGY_ROLE) returns (uint256 toAmount) {
         Step[] memory steps = Storage.layout().route[from][to];
 
@@ -153,18 +143,9 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         // step of the route
         toAmount = fromAmount;
 
-        _enforceSlippageLimit(from, to, initialAmount, toAmount);
+        _enforceSlippageLimit(from, to, initialAmount, toAmount, maxSlippage);
 
         to.transfer(beneficiary, toAmount);
-    }
-
-    /// @inheritdoc ISwapper
-    function getOffsetDeviationUSD()
-        external
-        view
-        returns (uint256 offsetDeviationUSD)
-    {
-        return Storage.layout().offsetDeviationUSD;
     }
 
     /// @inheritdoc ISwapper
@@ -204,11 +185,13 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
     /// @param to address of ending token
     /// @param fromAmount amount being swapped
     /// @param toAmount amount received
+    /// @param maxSlippage maximum allowed slippage percent
     function _enforceSlippageLimit(
         IERC20 from,
         IERC20 to,
         uint256 fromAmount,
-        uint256 toAmount
+        uint256 toAmount,
+        uint256 maxSlippage
     ) internal view {
         Storage.Layout storage $ = Storage.layout();
         IPriceOracleGetter oracle = $.oracle;
@@ -225,19 +208,13 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
             IERC20Metadata(address(to)).decimals()
         );
 
-        uint256 offsetUSD = $.offsetUSD[from][to];
-        uint256 maxDeviationUSD =
-            offsetUSD.usdMul($.offsetDeviationUSD).usdDiv(USDWadRayMath.USD);
-
         // ensure these amounts do not differ by more than given slippage
-        uint256 maxSlippageUSD = fromAmountUSD.usdMul(
-            offsetUSD + maxDeviationUSD
-        ).usdDiv(USDWadRayMath.USD);
-
-        // for the very low amounts allow 1 wei of slippage
-        if (maxSlippageUSD == 0) {
-            maxSlippageUSD = 1;
-        }
+        uint256 maxSlippageUSD = Math.mulDiv(
+            fromAmountUSD,
+            maxSlippage,
+            Constants.MAX_SLIPPAGE,
+            Math.Rounding.Ceil
+        );
 
         if (fromAmountUSD - maxSlippageUSD > toAmountUSD) {
             revert MaxSlippageExceeded();

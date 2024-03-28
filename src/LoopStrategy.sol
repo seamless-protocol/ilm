@@ -231,7 +231,8 @@ contract LoopStrategy is
         return RebalanceLogic.rebalanceTo(
             $,
             LoanLogic.getLoanState($.lendingPool),
-            $.collateralRatioTargets.target
+            $.collateralRatioTargets.target,
+            $.maxSlippageOnRebalance
         );
     }
 
@@ -442,6 +443,16 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
+    function setMaxSlippageOnRebalance(uint256 maxSlippage)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        Storage.layout().maxSlippageOnRebalance = maxSlippage;
+
+        emit MaxSlippageOnRebalanceSet(maxSlippage);
+    }
+
+    /// @inheritdoc ILoopStrategy
     function setSwapper(address swapper) external onlyRole(MANAGER_ROLE) {
         Storage.layout().swapper = ISwapper(swapper);
 
@@ -485,6 +496,15 @@ contract LoopStrategy is
     /// @inheritdoc ILoopStrategy
     function getMaxIterations() external view returns (uint256 iterations) {
         return Storage.layout().maxIterations;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getMaxSlippageOnRebalance()
+        external
+        view
+        returns (uint256 maxslippage)
+    {
+        return Storage.layout().maxSlippageOnRebalance;
     }
 
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance

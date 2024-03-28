@@ -218,20 +218,6 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         _depositForExpectsRevert(alice, depositAlice, revertReason);
     }
 
-    /// @dev ensures that if slippage is too high, then deposit call will revert
-    function test_deposit_revertsWhen_slippageIstooHigh() public {
-        _setupSwapperWithMockAdapter();
-        wethCbETHAdapter.setSlippagePCT(25);
-
-        uint256 depositAlice = 3 ether;
-
-        _depositForExpectsRevert(
-            alice,
-            depositAlice,
-            bytes(abi.encodePacked(ISwapper.MaxSlippageExceeded.selector))
-        );
-    }
-
     /// @dev validates current collateral ratio with relative error max 0.01%
     function _validateCollateralRatio(uint256 expectedCR) internal {
         assertApproxEqRel(

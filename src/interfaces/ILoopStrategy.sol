@@ -73,6 +73,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param swapper new address of swapper contract
     event SwapperSet(address swapper);
 
+    /// @notice emitted when a new value for maxSlippageOnRebalanceSet is set
+    /// @param maxSlippage new value for maximum allowed slippage
+    event MaxSlippageOnRebalanceSet(uint256 maxSlippage);
+
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
     /// @return amount equity amount
@@ -168,6 +172,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param iterations new value of maxIterations
     function setMaxIterations(uint16 iterations) external;
 
+    /// @notice sets the maxSlippageOnRebalance value
+    /// @param maxSlippage new value of maxSlippageOnRebalance
+    function setMaxSlippageOnRebalance(uint256 maxSlippage) external;
+
     /// @notice sets the swapper contract address
     /// @param swapper address of swapper contract
     function setSwapper(address swapper) external;
@@ -202,4 +210,11 @@ interface ILoopStrategy is IERC4626 {
     /// @notice returns value of maxIterations
     /// @return iterations maxIterations value
     function getMaxIterations() external view returns (uint256 iterations);
+
+    /// @notice returns value of maxSlippageOnRebalance
+    /// @param maxSlippage MaxSlippageOnRebalance valie
+    function getMaxSlippageOnRebalance()
+        external
+        view
+        returns (uint256 maxSlippage);
 }
