@@ -36,48 +36,47 @@ const oracleABI = [
     "function latestAnswer() external view returns (uint256)"
 ];
 
-exports.handler = async function (payload) {
+const RPC_URL = 'some_rpc_url';
+
+exports.handler = async function (payload, context) {
     const conditionRequest = payload.request.body;
     const matches = [];
     const events = conditionRequest.events;
 
+    const provider = new new ethers.providers.JsonRpcProvider(RPC_URL);
+    
+    const { notificationClient } = context;
+    const store = new KeyValueStoreClient(payload);
+
+    let strategy;
+    let affectedStrategies = [];
+
     for (let evt of events) {
-        if (evt.matchReasons.signature == withdrawSig) {
+        for (let reason of evt.matchReasons) {
+            if (reason.signature == withdrawSig) {
+                strategy = new ethers.Contract(ethers.utils.getAddress(reason.address), strategyABI, provider);
+                    
+                // no udpate to equity per share because withdrawals should never decrease it
+                await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
+                await sendExposureAlert(notificationClient, strategy);
+                await sendEPSAlert(notificationClient, store, strategy);
+            }
 
-            let strategy = new ethers.Contract(evt.matchedChecksumAddress, strategyABI, signer);
+            if (reason.signature == priceUpdateSig) {
+                matches.push({
+                    hash: evt.hash,
+                    metadata: {
+                     "type": "priceUpdate",
+                     "affectedStrategies": affectedStrategies.push[oracleToStrategies[ethers.utils.getAddress(reason.address)]]
+                    }
+                 });
 
-            await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
-            await sendExposureAlert(notificationClient, strategy);
-            await sendEPSAlert(notificationClient, store, strategy);
-
-            matches.push({
-                hash: evt.hash,
-                metadata: {
-                    "notificationType": "withdrawal",
-                    "strategy": evt.matchedChecksumAddress
-                }
-            });
-        }
-
-        if (evt.matchReasons.signature == priceUpdateSig) {
-            matches.push({
-                hash: evt.hash,
-                metadata: {
-                    "notificationType": "priceUpdate",
-                    "oracle": evt.matchedChecksumAddress
-                }
-            })
-        }
-        if (evt.matchReasons.signature == poolSupplySig) {
-            matches.push({
-                hash: evt.hash,
-                metadata: {
-                    "notificationType": "interestRateUpdate",
-
-                }
-            })
+                await sendOracleOutageAlert(notificationClient, store, oracle);
+                await sendSequencerOutageAlert(notificationClient, oracle);
+            }
         }
     }
     return { matches }
 }
+
 
