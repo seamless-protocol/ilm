@@ -62,6 +62,7 @@ async function checkAlertChannelsExist(client) {
 }
 
 async function sendOracleOutageAlert(notificationClient, store, oracle) {
+    //TODO: CHECK FOR FIRST CALLBACK, WHETHER THIS IS NULL OR NOT
     const secondSinceLastUpdate = await store.get(oracle) - Math.floor(Date.now() / 1000);
     
     // check if the different of timestamp updates is more than 1 day and 1 minute
