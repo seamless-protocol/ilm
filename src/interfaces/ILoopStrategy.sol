@@ -45,6 +45,9 @@ interface ILoopStrategy is IERC4626 {
     /// 0 < margin < 1e8 (1 USD)
     error MarginOutsideRange();
 
+    /// @notice thrown when attempting to set max slippage value which is bigger than 100%
+    error MaxSlippageOutOfRange();
+
     /// @notice thrown when the caller of the redeem function is not the owner of the
     /// shares to be redeemed
     error RedeemerNotOwner();

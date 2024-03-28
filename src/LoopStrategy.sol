@@ -29,6 +29,7 @@ import {
 import { ConversionMath } from "./libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "./libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
+import { Constants } from "./libraries/math/Constants.sol";
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ISwapper } from "./interfaces/ISwapper.sol";
@@ -447,6 +448,10 @@ contract LoopStrategy is
         external
         onlyRole(MANAGER_ROLE)
     {
+        if (maxSlippage > Constants.MAX_SLIPPAGE) {
+            revert MaxSlippageOutOfRange();
+        }
+
         Storage.layout().maxSlippageOnRebalance = maxSlippage;
 
         emit MaxSlippageOnRebalanceSet(maxSlippage);
