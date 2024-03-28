@@ -1,7 +1,16 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
+const { equityPerShare } = require("./utils");
 
-const strategyABI = ["function rebalanceNeeded() external view returns (bool)", "function rebalance() external returns (uint256)"];
+const strategyABI = [
+  "function rebalanceNeeded() external view returns (bool)",
+  "function rebalance() external returns (uint256)",
+  "function debt() external view returns (uint256)",
+  "function collateral() external view returns (uint256)",
+  "function currentCollateralRatio() external view returns (uint256)",
+  "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))"
+];
+
 // REPLACE WITH STRATEGY ADDRESS OF INTEREST
 const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
 
@@ -30,6 +39,12 @@ exports.handler = async function (credentials) {
   const strategy = new ethers.Contract(strategyAddress, strategyABI, signer);
 
   await performRebalance(strategy);
+
+  // update equityPerShare because price fluctuations may alter it organically
+  updateEPS(store, strategy, equityPerShare(strategy));
+
+  await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
+  await sendExposureAlert(notificationClient, strategy);
 }
 
 // unit testing
