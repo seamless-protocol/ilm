@@ -167,9 +167,7 @@ contract LoopStrategy is
 
         emit CollateralRatioTargetsSet(targets);
 
-        if (rebalanceNeeded()) {
-            rebalance();
-        }
+        _tryRebalance();
     }
 
     /// @inheritdoc ILoopStrategy
@@ -228,13 +226,8 @@ contract LoopStrategy is
         if (!rebalanceNeeded()) {
             revert RebalanceNotNeeded();
         }
-        Storage.Layout storage $ = Storage.layout();
-        return RebalanceLogic.rebalanceTo(
-            $,
-            LoanLogic.getLoanState($.lendingPool),
-            $.collateralRatioTargets.target,
-            $.maxSlippageOnRebalance
-        );
+
+        return _tryRebalance();
     }
 
     /// @inheritdoc ILoopStrategy
@@ -512,6 +505,25 @@ contract LoopStrategy is
         return Storage.layout().maxSlippageOnRebalance;
     }
 
+    /// @notice rebalance the position if it's out of collateral target range
+    function _tryRebalance() internal returns (uint256 ratio) {
+        Storage.Layout storage $ = Storage.layout();
+
+        if (rebalanceNeeded()) {
+            return RebalanceLogic.rebalanceTo(
+                $,
+                LoanLogic.getLoanState($.lendingPool),
+                $.collateralRatioTargets.target,
+                $.maxSlippageOnRebalance
+            );
+        } else {
+            LoanState memory state = LoanLogic.getLoanState($.lendingPool);
+            return RebalanceMath.collateralRatioUSD(
+                state.collateralUSD, state.debtUSD
+            );
+        }
+    }
+
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
@@ -533,9 +545,11 @@ contract LoopStrategy is
             $.assets.underlying, msg.sender, address(this), assets
         );
 
+        _tryRebalance();
+
         assets = _convertUnderlyingToCollateralAsset($.assets, assets);
 
-        LoanState memory state = RebalanceLogic.updateState($);
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         uint256 prevTotalAssets = totalAssets();
 
@@ -568,6 +582,8 @@ contract LoopStrategy is
         uint256 minUnderlyingAsset
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
+
+        _tryRebalance();
 
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,

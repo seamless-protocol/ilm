@@ -92,8 +92,7 @@ library RebalanceLogic {
         uint256 shares,
         uint256 totalShares
     ) external returns (uint256 shareEquityAsset) {
-        // get updated loan state
-        LoanState memory state = updateState($);
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         // calculate amount of debt and equity corresponding to shares in USD value
         (uint256 shareDebtUSD, uint256 shareEquityUSD) =
@@ -169,39 +168,6 @@ library RebalanceLogic {
             return rebalanceUp($, state, ratio, targetCR, maxSwapSlippage);
         } else {
             return rebalanceDown($, state, ratio, targetCR, maxSwapSlippage);
-        }
-    }
-
-    /// @notice performs a rebalance if necessary and returns the updated state after
-    /// the potential rebalance.
-    /// @dev This function is only called from deposit or redeem flows
-    /// @param $ Storage.Layout struct
-    /// @return state current LoanState of strategy
-    function updateState(Storage.Layout storage $)
-        public
-        returns (LoanState memory state)
-    {
-        // get current loan state and calculate initial collateral ratio
-        state = LoanLogic.getLoanState($.lendingPool);
-        uint256 collateralRatio =
-            RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
-
-        if (
-            state.collateralUSD != 0
-                && isCollateralRatioOutOfBounds(
-                    collateralRatio, $.collateralRatioTargets
-                )
-        ) {
-            // max swap slippage is allowed because this function is only called from deposit or redeem
-            // which both have minSharesReceived/minAssetsReceived as a safe mechanism to prevent big slippage
-            rebalanceTo(
-                $,
-                state,
-                $.collateralRatioTargets.target,
-                Constants.MAX_SLIPPAGE
-            );
-
-            state = LoanLogic.getLoanState($.lendingPool);
         }
     }
 
