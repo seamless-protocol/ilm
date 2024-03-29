@@ -372,19 +372,19 @@ library RebalanceLogic {
         // current collateral ratio
         ratio = _currentCR;
 
+        uint256 count;
+
+        uint256 debtPriceUSD = $.oracle.getAssetPrice(address($.assets.debt));
+        uint8 debtDecimals = IERC20Metadata(address($.assets.debt)).decimals();
+
         // get offset caused by DEX fees + slippage
         uint256 offsetFactor =
             $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
 
-        uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
-        uint256 count;
-
         do {
             // maximum borrowable amount in USD
             uint256 borrowAmountUSD = LoanLogic.getMaxBorrowUSD(
-                $.lendingPool,
-                $.assets.debt,
-                $.oracle.getAssetPrice(address($.assets.debt))
+                $.lendingPool, $.assets.debt, debtPriceUSD
             );
 
             {
@@ -406,10 +406,7 @@ library RebalanceLogic {
 
             // convert borrowAmount from USD to a borrowAsset amount
             uint256 borrowAmountAsset = ConversionMath.convertUSDToAsset(
-                borrowAmountUSD,
-                $.oracle.getAssetPrice(address($.assets.debt)),
-                IERC20Metadata(address($.assets.debt)).decimals(),
-                Math.Rounding.Floor
+                borrowAmountUSD, debtPriceUSD, debtDecimals, Math.Rounding.Floor
             );
 
             if (borrowAmountAsset == 0) {
@@ -448,7 +445,7 @@ library RebalanceLogic {
             if (++count > $.maxIterations) {
                 break;
             }
-        } while (_targetCR + margin < ratio);
+        } while (_targetCR + (_targetCR * $.ratioMargin / ONE_USD) < ratio);
 
         // prevent over exposure
         if (ratio < $.collateralRatioTargets.minForRebalance) {
