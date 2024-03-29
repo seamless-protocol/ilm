@@ -44,10 +44,12 @@ library RebalanceLogic {
     /// @param $ the storage state of LendingStrategyStorage
     /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
     /// @param assets amount of assets to supply in tokens
+    /// @param maxSwapSlippage maximum allowed swap slippage
     function rebalanceAfterSupply(
         Storage.Layout storage $,
         LoanState memory state,
-        uint256 assets
+        uint256 assets,
+        uint256 maxSwapSlippage
     ) external {
         uint256 prevCollateralRatio =
             RebalanceMath.collateralRatioUSD(state.collateralUSD, state.debtUSD);
@@ -59,10 +61,7 @@ library RebalanceLogic {
 
         if (prevCollateralRatio == type(uint256).max) {
             rebalanceTo(
-                $,
-                state,
-                $.collateralRatioTargets.target,
-                Constants.MAX_SLIPPAGE
+                $, state, $.collateralRatioTargets.target, maxSwapSlippage
             );
         } else if (
             afterCollateralRatio
@@ -77,7 +76,7 @@ library RebalanceLogic {
                     $.collateralRatioTargets.maxForDepositRebalance;
             }
 
-            rebalanceTo($, state, rebalanceToRatio, Constants.MAX_SLIPPAGE);
+            rebalanceTo($, state, rebalanceToRatio, maxSwapSlippage);
         }
     }
 
@@ -86,11 +85,13 @@ library RebalanceLogic {
     /// @param $ the storage state of LendingStrategyStorage
     /// @param shares amount of shares to redeem
     /// @param totalShares total supply of shares
+    /// @param maxSwapSlippage maximum allowed swap slippage
     /// @return shareEquityAsset amount of equity in asset corresponding to shares
     function rebalanceBeforeWithdraw(
         Storage.Layout storage $,
         uint256 shares,
-        uint256 totalShares
+        uint256 totalShares,
+        uint256 maxSwapSlippage
     ) external returns (uint256 shareEquityAsset) {
         LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
@@ -123,7 +124,9 @@ library RebalanceLogic {
             uint256 initialEquityUSD = state.collateralUSD - state.debtUSD;
 
             // pay back the debt corresponding to the shares
-            rebalanceDownToDebt($, state, state.debtUSD - shareDebtUSD);
+            rebalanceDownToDebt(
+                $, state, state.debtUSD - shareDebtUSD, maxSwapSlippage
+            );
 
             state = LoanLogic.getLoanState($.lendingPool);
 
@@ -526,11 +529,13 @@ library RebalanceLogic {
     /// @notice rebalances downwards until a debt amount is reached
     /// @param $ the storage state of LendingStrategyStorage
     /// @param state the strategy loan state information (collateralized asset, borrowed asset, current collateral, current debt)
+    /// @param maxSwapSlippage maximum allowed swap slippage
     /// @param targetDebtUSD target debt value in USD to reach
     function rebalanceDownToDebt(
         Storage.Layout storage $,
         LoanState memory state,
-        uint256 targetDebtUSD
+        uint256 targetDebtUSD,
+        uint256 maxSwapSlippage
     ) internal {
         uint256 collateralPriceUSD =
             $.oracle.getAssetPrice(address($.assets.collateral));
@@ -558,10 +563,8 @@ library RebalanceLogic {
                 break;
             }
 
-            // max swap slippage is allowed because this function is only called on redeem
-            // which already has minAssetsReceived as a safe mechanism to prevent big slippage
             uint256 borrowAmountAsset = withdrawAndSwapCollateral(
-                $, collateralAmountAsset, Constants.MAX_SLIPPAGE
+                $, collateralAmountAsset, maxSwapSlippage
             );
 
             if (borrowAmountAsset == 0) {

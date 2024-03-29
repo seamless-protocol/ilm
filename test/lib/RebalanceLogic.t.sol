@@ -265,7 +265,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 debtRepayment = 100 * USDWadRayMath.USD;
         uint256 targetDebtUSD = state.debtUSD - debtRepayment;
 
-        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+        RebalanceLogic.rebalanceDownToDebt(
+            $, state, targetDebtUSD, Constants.MAX_SLIPPAGE
+        );
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -360,7 +362,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         repaymentUSD = bound(repaymentUSD, 1e8, state.debtUSD);
         uint256 targetDebtUSD = state.debtUSD - repaymentUSD;
 
-        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+        RebalanceLogic.rebalanceDownToDebt(
+            $, state, targetDebtUSD, Constants.MAX_SLIPPAGE
+        );
 
         state = LoanLogic.getLoanState($.lendingPool);
 
@@ -451,7 +455,9 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 debtRepayment = 100 * USDWadRayMath.USD;
         uint256 targetDebtUSD = state.debtUSD - debtRepayment;
 
-        RebalanceLogic.rebalanceDownToDebt($, state, targetDebtUSD);
+        RebalanceLogic.rebalanceDownToDebt(
+            $, state, targetDebtUSD, Constants.MAX_SLIPPAGE
+        );
     }
 
     /////////////////////

@@ -553,7 +553,10 @@ contract LoopStrategy is
 
         uint256 prevTotalAssets = totalAssets();
 
-        RebalanceLogic.rebalanceAfterSupply($, state, assets);
+        // MAX_SLIPPAGE is allowed because we check minSharesReceived
+        RebalanceLogic.rebalanceAfterSupply(
+            $, state, assets, Constants.MAX_SLIPPAGE
+        );
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
         shares = _convertToShares(equityReceived, prevTotalAssets);
@@ -585,9 +588,12 @@ contract LoopStrategy is
 
         _tryRebalance();
 
+        // MAX_SLIPPAGE is allowed because we check minUnderlyingAsset received
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
-            RebalanceLogic.rebalanceBeforeWithdraw($, shares, totalSupply())
+            RebalanceLogic.rebalanceBeforeWithdraw(
+                $, shares, totalSupply(), Constants.MAX_SLIPPAGE
+            )
         );
 
         // ensure equity in asset terms to be received is larger than
