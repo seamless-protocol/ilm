@@ -8,6 +8,11 @@ import {
     LendingPool,
     StrategyAssets
 } from "../types/DataTypes.sol";
+import { IPoolAddressesProvider } from
+    "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
+import { IPriceOracleGetter } from
+    "@aave/contracts/interfaces/IPriceOracleGetter.sol";
+import { ISwapper } from "./ISwapper.sol";
 
 /// @title IStrategy
 /// @notice interface for Integration Liquiity Market strategies
@@ -202,4 +207,17 @@ interface ILoopStrategy is IERC4626 {
     /// @notice returns value of maxIterations
     /// @return iterations maxIterations value
     function getMaxIterations() external view returns (uint256 iterations);
+
+    function LoopStrategy_init(
+        string memory _erc20name,
+        string memory _erc20symbol,
+        address _initialAdmin,
+        StrategyAssets memory _strategyAssets,
+        CollateralRatio memory _collateralRatioTargets,
+        IPoolAddressesProvider _poolAddressProvider,
+        IPriceOracleGetter _oracle,
+        ISwapper _swapper,
+        uint256 _ratioMargin,
+        uint16 _maxIterations
+    ) external;
 }
