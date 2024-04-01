@@ -506,6 +506,7 @@ contract LoopStrategy is
     }
 
     /// @notice rebalance the position if it's out of collateral target range
+    /// @return ratio current collateral ratio
     function _tryRebalance() internal returns (uint256 ratio) {
         Storage.Layout storage $ = Storage.layout();
 
