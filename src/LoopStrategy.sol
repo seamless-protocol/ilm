@@ -487,6 +487,11 @@ contract LoopStrategy is
         return Storage.layout().maxIterations;
     }
 
+    /// @inheritdoc ILoopStrategy
+    function getAssetsCap() external view returns (uint256 assetsCap) {
+        return Storage.layout().assetsCap;
+    }
+
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
