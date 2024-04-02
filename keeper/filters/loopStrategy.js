@@ -34,7 +34,7 @@ const oracleABI = [
 
 const poolABI = [
     "function getReserveData(address) external view returns (tuple(uint256,uint128,uint128,uint128,uint128,uint128,uint40,uint16,address,address,address,address,uint128,uint128,uint128))",
-]
+];
 
 const RPC_URL = 'some_rpc_url';
 
