@@ -148,6 +148,22 @@ async function sendExposureAlert(notificationClient, strategy) {
     }
 }
 
+async function sendBorrowRateNotification(notificationClient, currentRate, threshold) {
+    if (
+        ethers.BigNumber.from(currentRate.toString()).gte(threshold)
+    ) {
+        try {
+            notificationClient.send({
+                channelAlias: 'seamless-alerts',
+                subject: 'LENDING POOL BORROW RATE IS LARGE',
+                message: `Current rate is ${ethers.utils.formatEther(currentRate)} and threshold rate is ${threshold}`,
+            });
+        } catch (error) {
+            console.error('Failed to send notification', error);
+        }   
+    }
+}
+
 async function updateEPS(store, strategy, currentEPS) {
     store.put(strategy, currentEPS);
 }
@@ -162,4 +178,5 @@ exports.sendHealthFactorAlert = sendHealthFactorAlert;
 exports.sendEPSAlert = sendEPSAlert;
 exports.sendOracleOutageAlert = sendOracleOutageAlert;
 exports.sendSequencerOutageAlert = sendSequencerOutageAlert;
+exports.sendBorrowRateNotification = sendBorrowRateNotification;
 
