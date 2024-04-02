@@ -26,8 +26,6 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LendingPool, LoanState } from "../../src/types/DataTypes.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
@@ -392,6 +390,16 @@ contract LoanLogicTest is BaseForkTest {
         );
 
         assertEq(maxBorrowBefore, maxBorrowAfter);
+
+        (, uint256 totalBorrowUSD,,,,) =
+            lendingPool.pool.getUserAccountData(address(this));
+
+        assertEq(
+            PercentageMath.percentMul(
+                totalBorrowUSD, LoanLogic.MAX_AMOUNT_PERCENT
+            ),
+            totalBorrowUSD
+        );
     }
 
     /// @dev testing exact return amounts of shareDebtAndEquityUSD per certora example
