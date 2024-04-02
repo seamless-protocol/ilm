@@ -16,8 +16,6 @@ import { IPoolDataProvider } from
     "@aave/contracts/interfaces/IPoolDataProvider.sol";
 import { IVariableDebtToken } from
     "@aave/contracts/interfaces/IVariableDebtToken.sol";
-import { ReserveConfiguration } from
-    "@aave/contracts/protocol/libraries/configuration/ReserveConfiguration.sol";
 import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import { PercentageMath } from
@@ -32,7 +30,6 @@ import { LoanState, LendingPool } from "../types/DataTypes.sol";
 /// @dev represents the strategy vault contract.
 library LoanLogic {
     using USDWadRayMath for uint256;
-    using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
 
     /// @dev used for availableBorrowsBase and maxWithdrawAmount to decrease them by 0.01%
     /// @dev because precision issues on converting to asset amounts can revert borrow/withdraw on lending pool
@@ -217,16 +214,22 @@ library LoanLogic {
 
         availableAssetSupply = asset.balanceOf(reserveData.aTokenAddress);
 
-        uint256 borrowCap = reserveData.configuration.getBorrowCap();
+        (uint256 borrowCap,) = IPoolDataProvider(
+            IPoolAddressesProvider(lendingPool.pool.ADDRESSES_PROVIDER())
+                .getPoolDataProvider()
+        ).getReserveCaps(address(asset));
+
         if (borrowCap != 0) {
             uint256 totalBorrow = _getTotalBorrow(reserveData);
-            uint256 assetUnit = 10 ** reserveData.configuration.getDecimals();
-            uint256 avilableUntilBorrowCap = (
-                borrowCap * assetUnit > totalBorrow
-            ) ? borrowCap * assetUnit - totalBorrow : 0;
+            uint256 borrowCapAssets =
+                borrowCap * (10 ** IERC20Metadata(address(asset)).decimals());
 
-            if (avilableUntilBorrowCap < availableAssetSupply) {
-                availableAssetSupply = avilableUntilBorrowCap;
+            uint256 availableUntilBorrowCap = (borrowCapAssets > totalBorrow)
+                ? borrowCapAssets - totalBorrow
+                : 0;
+
+            if (availableUntilBorrowCap < availableAssetSupply) {
+                availableAssetSupply = availableUntilBorrowCap;
             }
         }
 
