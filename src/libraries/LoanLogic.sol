@@ -215,18 +215,21 @@ library LoanLogic {
         DataTypes.ReserveData memory reserveData =
             lendingPool.pool.getReserveData(address(asset));
 
-        uint256 totalBorrow = _getTotalBorrow(reserveData);
+        availableAssetSupply = asset.balanceOf(reserveData.aTokenAddress);
+
         uint256 borrowCap = reserveData.configuration.getBorrowCap();
-        uint256 assetUnit = 10 ** reserveData.configuration.getDecimals();
-        uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow)
-            ? borrowCap * assetUnit - totalBorrow
-            : 0;
+        if (borrowCap != 0) {
+            uint256 totalBorrow = _getTotalBorrow(reserveData);
+            uint256 assetUnit = 10 ** reserveData.configuration.getDecimals();
+            uint256 avilableUntilBorrowCap = (
+                borrowCap * assetUnit > totalBorrow
+            ) ? borrowCap * assetUnit - totalBorrow : 0;
 
-        uint256 availableLiquidityBase =
-            asset.balanceOf(reserveData.aTokenAddress);
+            if (avilableUntilBorrowCap < availableAssetSupply) {
+                availableAssetSupply = avilableUntilBorrowCap;
+            }
+        }
 
-        availableAssetSupply =
-            Math.min(avilableUntilBorrowCap, availableLiquidityBase);
         return availableAssetSupply;
     }
 

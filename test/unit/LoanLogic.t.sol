@@ -26,6 +26,8 @@ import { LoanLogic } from "../../src/libraries/LoanLogic.sol";
 import { LendingPool, LoanState } from "../../src/types/DataTypes.sol";
 import { MockAaveOracle } from "../mock/MockAaveOracle.sol";
 
+import "forge-std/console.sol";
+
 /// @notice Unit tests for the LoanLogic library
 /// @dev testing on forked Base mainnet to be able to interact with already deployed Seamless pool
 /// @dev assuming that `BASE_MAINNET_RPC_URL` is set in the `.env`
@@ -371,6 +373,25 @@ contract LoanLogicTest is BaseForkTest {
         uint256 totalSupplyUSDbCUSD =
             (USDbC.balanceOf(address(sUSDbC)) * USDbC_price) / ONE_USDbC;
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
+    }
+
+    /// @dev test confirming getMaxBorrowUSD is returning correct value when the borrowCap is set to 0 (no cap)
+    function test_getMaxBorrowUSD_noBorrowCap() public {
+        uint256 supplyAmount = 10 ether;
+        LoanState memory loanState;
+        loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
+
+        _changeBorrowCap(USDbC, 50_000_000);
+        uint256 maxBorrowBefore = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+
+        _changeBorrowCap(USDbC, 0);
+        uint256 maxBorrowAfter = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+
+        assertEq(maxBorrowBefore, maxBorrowAfter);
     }
 
     /// @dev testing exact return amounts of shareDebtAndEquityUSD per certora example

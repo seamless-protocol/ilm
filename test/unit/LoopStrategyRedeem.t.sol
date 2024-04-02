@@ -758,7 +758,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         IPool pool = strategy.getLendingPool().pool;
 
         // assume that borrow cap is reached so we can't rebalance anymore before redeem
-        _changeBorrowCap(USDbC, 0);
+        _changeBorrowCap(USDbC, 1);
 
         // bob repays the whole debt on behalf of the strategy, then redeems all his shares
         vm.startPrank(bob);
@@ -802,7 +802,7 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         uint256 equityBeforeRedeem = strategy.equity();
 
         // assume that borrow cap is reached so we can't rebalance anymore before redeem
-        _changeBorrowCap(USDbC, 0);
+        _changeBorrowCap(USDbC, 1);
 
         // set dex fees to 0 for easier calculations
         SwapperMock(address(swapper)).setRealOffsets(0, 0);
