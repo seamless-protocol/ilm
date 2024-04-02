@@ -41,7 +41,7 @@ exports.handler = async function (payload, context) {
     const matches = [];
     const events = conditionRequest.events;
 
-    const provider = new new ethers.providers.JsonRpcProvider(RPC_URL);
+    const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
     
     const { notificationClient } = context;
     const store = new KeyValueStoreClient(payload);
