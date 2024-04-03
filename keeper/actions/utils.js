@@ -1,18 +1,18 @@
 const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
 
-const BASE = 10 ** 8; // value used for percentage calculations (1e8 == 100%)
+const BASE = ethers.BigNumber.from(ethers.utils.parseUnits('1.0', 8)); // value used for percentage calculations (1e8 == 100%)
 
 // check whether health factor is below threshhold
 async function isStrategyAtRisk(strategy, threshold) {
     try {
-        const debtUSD = await strategy.debt();
-        const collateralUSD = await strategy.collateral();
+        const debtUSD = ethers.BigNumber.from(await strategy.debt());
+        const collateralUSD = ethers.BigNumber.from(await strategy.collateral());
 
-        const healthFactor = collateralUSD * BASE / debtUSD;
+        const healthFactor = collateralUSD.mul(BASE).div(debtUSD);
 
         return {
-            isAtRisk: healthFactor <= threshold,
+            isAtRisk: healthFactor.lt(threshold),
             healthFactor: healthFactor
         };
     } catch (err) {
@@ -23,11 +23,11 @@ async function isStrategyAtRisk(strategy, threshold) {
 // check whether collateral ratio is beneath minForRebalance indicating overexposure
 async function isStrategyOverexposed(strategy) {
     try {
-        const currentCR = await strategy.currentCollateralRatio();
-        const minForRebalance = (await strategy.getCollateralRatioTargets())[1];
+        const currentCR = ethers.BigNumber.from((await strategy.currentCollateralRatio()).toString());
+        const minForRebalance = ethers.BigNumber.from(((await strategy.getCollateralRatioTargets())[1]).toString());
         
        return {
-            isOverExposed: currentCR < minForRebalance,
+            isOverExposed: currentCR.lt(minForRebalance),
             current: currentCR,
             min: minForRebalance
        };
