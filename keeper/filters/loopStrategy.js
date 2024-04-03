@@ -74,6 +74,13 @@ exports.handler = async function (payload, context) {
                 await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
                 await sendExposureAlert(notificationClient, strategy);
                 await sendEPSAlert(notificationClient, store, strategy);
+
+                matches.push({
+                    hash: evt.hash,
+                    metadata: {
+                        "type": "withdrawOrDeposit",
+                    }
+                });
             }
 
             if (reasonSig == priceUpdateSig) {
@@ -123,6 +130,13 @@ exports.handler = async function (payload, context) {
 
                     let reserveData = await pool.getReserveData(reserveAddress);
                     let variableBorrowRate = reserveData[3];
+
+                    matches.push({
+                        hash: evt.hash,
+                        metadata: {
+                            "type": "borrowRate",
+                        }
+                    });
                     
                     for(let strategy of debtTokenToStrategies[reserveAddress]) {
                         // send notification if interest rate is above threshold
