@@ -79,6 +79,7 @@ exports.handler = async function (payload, context) {
                     hash: evt.hash,
                     metadata: {
                         "type": "withdrawOrDeposit",
+                        "sig": reasonSig,
                     }
                 });
             }
@@ -106,6 +107,7 @@ exports.handler = async function (payload, context) {
                     hash: evt.hash,
                     metadata: {
                         "type": "priceUpdate",
+                        "sig": reasonSig,
                         "strategiesToRebalance": strategiesToRebalance
                     }
                 });
@@ -135,6 +137,7 @@ exports.handler = async function (payload, context) {
                         hash: evt.hash,
                         metadata: {
                             "type": "borrowRate",
+                            "sig": reasonSig,
                         }
                     });
                     
