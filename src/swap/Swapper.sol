@@ -143,7 +143,7 @@ contract Swapper is ISwapper, AccessControlUpgradeable, UUPSUpgradeable {
         // step of the route
         toAmount = fromAmount;
 
-        if (maxSlippage != Constants.MAX_SLIPPAGE) {
+        if (maxSlippage < Constants.MAX_SLIPPAGE) {
             _enforceSlippageLimit(
                 from, to, initialAmount, toAmount, maxSlippage
             );
