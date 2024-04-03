@@ -11,7 +11,7 @@ const strategyABI = [
   "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))"
 ];
 
-const healthFactorThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('11.0', 8));  //value used for testing
+const healthFactorThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('1.1', 8));  //value used for testing
 
 // execute rebalance operation if its necessary
 async function performRebalance(strategy) {
