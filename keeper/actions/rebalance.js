@@ -37,24 +37,21 @@ exports.handler = async function (payload, context) {
   const provider = client.relaySigner.getProvider();
   const signer = client.relaySigner.getSigner(provider, { speed: 'fast' });
 
-  const events = payload.request.body.events;
+  const metadata = payload.request.body.metadata;
+  
+  if ('type' in metadata && metadata.type == "priceUpdate") {
+    for (let strategyToRebalance of evt.metadata.strategiesToRebalance) {
+      const strategy = new ethers.Contract(strategyToRebalance, strategyABI, signer);
 
-  for (let evt of events) {
-    if ('type' in evt.metadata && evt.metadata.type == "priceUpdate") {
-      for (let strategyToRebalance of evt.metadata.strategiesToRebalance) {
-        const strategy = new ethers.Contract(strategyToRebalance, strategyABI, signer);
-
-        await performRebalance(strategy);
+      await performRebalance(strategy);
       
-        // update equityPerShare because performRebalance may affect it
-        updateEPS(store, strategy, equityPerShare(strategy));
+      // update equityPerShare because performRebalance may affect it
+      updateEPS(store, strategy, equityPerShare(strategy));
       
-        await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
-        await sendExposureAlert(notificationClient, strategy);
-      }
+      await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
+      await sendExposureAlert(notificationClient, strategy);
     }
   }
-
 }
 
 // unit testing
