@@ -214,7 +214,7 @@ interface ILoopStrategy is IERC4626 {
     function getMaxIterations() external view returns (uint256 iterations);
 
     /// @notice returns value of maxSlippageOnRebalance
-    /// @param maxSlippage MaxSlippageOnRebalance valie
+    /// @param maxSlippage MaxSlippageOnRebalance value
     function getMaxSlippageOnRebalance()
         external
         view
