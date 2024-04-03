@@ -391,14 +391,14 @@ contract LoanLogicTest is BaseForkTest {
 
         assertEq(maxBorrowBefore, maxBorrowAfter);
 
-        (, uint256 totalBorrowUSD,,,,) =
+        (,,uint256 totalBorrowUSD,,,) =
             lendingPool.pool.getUserAccountData(address(this));
 
         assertEq(
             PercentageMath.percentMul(
                 totalBorrowUSD, LoanLogic.MAX_AMOUNT_PERCENT
             ),
-            totalBorrowUSD
+            maxBorrowAfter
         );
     }
 
