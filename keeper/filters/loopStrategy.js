@@ -3,6 +3,7 @@ const { ethers } = require("ethers");
 const { KeyValueStoreClient } = require('defender-kvstore-client');
 const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert, sendBorrowRateNotification } = require("./utils");
 
+// TODO: add deposit event
 const withdrawSig = 'Withdraw(address,address,address,uint256,uint256)';
 const priceUpdateSig = 'AnswerUpdated(int256,uint256,uint256)';
 const poolLiquidationSig = 'LiquidationCall(address,address,address,uint256,uint256,address,bool)';
@@ -39,6 +40,7 @@ const poolABI = [
 const RPC_URL = 'some_rpc_url';
 
 const healthFactorThreshold = 10 ** 8; //value used for testing
+// TODO: make different for each strategies 
 const borrowRateThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('3.0', 27)); // 3% in RAY
 
 exports.handler = async function (payload, context) {
@@ -68,18 +70,23 @@ exports.handler = async function (payload, context) {
 
             if (reasonSig == priceUpdateSig) {
                 let oracle = new ethers.Contract(ethers.utils.getAddress(reason.address), oracleABI, provider);
+                
+                let latestAnswer = await oracle.latestAnswer();
 
-                for (let affectedStrategy of oracleToStrategies[reason.address]) {
-                    strategy = new ethers.Contract(affectedStrategy, strategyABI, provider);
-
-                    // update equityPerShare because price fluctuations may alter it organically
-                    updateEPS(store, strategy, equityPerShare(strategy));
-
-                    if (await strategy.rebalanceNeeded()) {
-                        strategiesToRebalance.push(affectedStrategy);
+                // sequencer oracle event emission is not linked to any strategy rebalances
+                if (latestAnswer != 0 || latestAnswer != 1) {
+                    for (let affectedStrategy of oracleToStrategies[reason.address]) {
+                        strategy = new ethers.Contract(affectedStrategy, strategyABI, provider);
+    
+                        // update equityPerShare because price fluctuations may alter it organically
+                        updateEPS(store, strategy, equityPerShare(strategy));
+    
+                        if (await strategy.rebalanceNeeded()) {
+                            strategiesToRebalance.push(affectedStrategy);
+                        }
                     }
                 }
-
+               
                 matches.push({
                     hash: evt.hash,
                     metadata: {
