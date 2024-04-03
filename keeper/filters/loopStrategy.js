@@ -116,7 +116,7 @@ exports.handler = async function (payload, context) {
             ) {
                 // on all events, reserve/collateral asset is first argument, which correlates to asset 
                 // to query
-                const reserveAddress = reason.args[0];
+                let reserveAddress = reason.args[0];
 
                 if (reserveAddress in debtTokenToStrategies) {
                     let pool = new ethers.Contract(ethers.utils.getAddress(reason.address), poolABI, provider);
@@ -127,11 +127,8 @@ exports.handler = async function (payload, context) {
                     for(let strategy of debtTokenToStrategies[reserveAddress]) {
                         // send notification if interest rate is above threshold
                         await sendBorrowRateNotification(notificationClient, variableBorrowRate, strategyInterestThreshold[strategy]);
-                    }
-                    
+                    }   
                 }
-
-                
             }
         }
     }
