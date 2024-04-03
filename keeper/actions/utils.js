@@ -62,24 +62,26 @@ async function checkAlertChannelsExist(client) {
 }
 
 async function sendOracleOutageAlert(notificationClient, store, oracle) {
-    //TODO: CHECK FOR FIRST CALLBACK, WHETHER THIS IS NULL OR NOT
-    const secondSinceLastUpdate = await store.get(oracle) - Math.floor(Date.now() / 1000);
-    
-    // check if the different of timestamp updates is more than 1 day and 1 minute
-    // as oracles update at least once per day
-    if (secondSinceLastUpdate > (24 * 60 * 60 + 60)) {
-        try {
-            notificationClient.send({
-                channelAlias: 'seamless-alerts',
-                subject: 'ORACLE OUTAGE',
-                message: `Seconds elapsed since last update are ${secondSinceLastUpdate} which are more than ${24 * 60 * 60 + 60} seconds`,
-            });
-        } catch (error) {
-            console.error('Failed to send notification', error);
+    const lastUpdate = await store.get(oracle);
+
+    if (lastUpdate !== null && value !== undefined) {
+        const secondSinceLastUpdate = value - Math.floor(Date.now() / 1000);
+        // check if the different of timestamp updates is more than 1 day and 1 minute
+        // as oracles update at least once per day
+        if (secondSinceLastUpdate > (24 * 60 * 60 + 60)) {
+            try {
+                notificationClient.send({
+                    channelAlias: 'seamless-alerts',
+                    subject: 'ORACLE OUTAGE',
+                    message: `Seconds elapsed since last update are ${secondSinceLastUpdate} which are more than ${24 * 60 * 60 + 60} seconds`,
+                });
+            } catch (error) {
+                console.error('Failed to send notification', error);
+            }
         }
     }
-
-    await store.put(oracle, await oracle.latestRoundDatate()[3]);
+    
+    await store.put(oracle, await oracle.latestRoundData()[3]);
 }
 
 async function sendEPSAlert(notificationClient, store, strategy) {
