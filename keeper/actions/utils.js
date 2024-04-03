@@ -62,7 +62,7 @@ async function checkAlertChannelsExist(client) {
 }
 
 async function sendOracleOutageAlert(notificationClient, store, oracle) {
-    const lastUpdate = await store.get(oracle);
+    const lastUpdate = await store.get(oracle.address);
 
     if (lastUpdate !== null && value !== undefined) {
         const secondSinceLastUpdate = value - Math.floor(Date.now() / 1000);
@@ -80,12 +80,12 @@ async function sendOracleOutageAlert(notificationClient, store, oracle) {
             }
         }
     }
-    
+
     await store.put(oracle, await oracle.latestRoundData()[3]);
 }
 
 async function sendEPSAlert(notificationClient, store, strategy) {
-    const prevEPS = await store.get(strategy);
+    const prevEPS = await store.get(strategy.address);
 
     const currentEPS = equityPerShare(strategy);
 
