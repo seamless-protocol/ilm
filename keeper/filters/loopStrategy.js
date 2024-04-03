@@ -39,7 +39,7 @@ const poolABI = [
 
 const RPC_URL = 'some_rpc_url';
 
-const healthFactorThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('11.0', 8)); //value used for testing
+const healthFactorThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('1.1', 8)); //value used for testing
 // TODO: make different for each strategies 
 const borrowRateThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('3.0', 27)); // 3% in RAY
 
