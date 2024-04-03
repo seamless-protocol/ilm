@@ -3,7 +3,8 @@ const { ethers } = require("ethers");
 const { KeyValueStoreClient } = require('defender-kvstore-client');
 const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert, sendBorrowRateNotification } = require("./utils");
 
-// TODO: add deposit event
+
+const depositSig = 'Deposit(address,address,uint256,uint256)';
 const withdrawSig = 'Withdraw(address,address,address,uint256,uint256)';
 const priceUpdateSig = 'AnswerUpdated(int256,uint256,uint256)';
 const poolLiquidationSig = 'LiquidationCall(address,address,address,uint256,uint256,address,bool)';
@@ -59,7 +60,7 @@ exports.handler = async function (payload, context) {
     for (let evt of events) {
         for (let reason of evt.matchReasons) {
             let reasonSig = reason.signature;
-            if (reasonSig == withdrawSig) {
+            if (reasonSig == withdrawSig || reasonSig == depositSig) {
                 strategy = new ethers.Contract(ethers.utils.getAddress(reason.address), strategyABI, provider);
 
                 // no udpate to equity per share because withdrawals should never decrease it
