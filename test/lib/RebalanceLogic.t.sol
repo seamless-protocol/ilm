@@ -383,7 +383,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
 
-        uint256 maxSlippage = 5_00; // set max allowed slippage to 5%
+        uint256 maxSlippage = 5_000000; // set max allowed slippage to 5%
         RebalanceLogic.rebalanceTo(
             $, state, $.collateralRatioTargets.target, maxSlippage
         );
@@ -418,7 +418,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
 
         vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
 
-        uint256 maxSlippage = 20_00; // set max allowed slippage to 20%
+        uint256 maxSlippage = 20_000000; // set max allowed slippage to 20%
         RebalanceLogic.rebalanceTo(
             $, state, $.collateralRatioTargets.target, maxSlippage
         );

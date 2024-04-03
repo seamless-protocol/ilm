@@ -77,7 +77,7 @@ interface ILoopStrategy is IERC4626 {
     event SwapperSet(address swapper);
 
     /// @notice emitted when a new value for maxSlippageOnRebalanceSet is set
-    /// @param maxSlippage new value for maximum allowed slippage
+    /// @param maxSlippage new value for maximum allowed slippage percentage (1e8 is 100%)
     event MaxSlippageOnRebalanceSet(uint256 maxSlippage);
 
     /// @notice returns the amount of equity belonging to the strategy

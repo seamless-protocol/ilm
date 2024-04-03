@@ -439,7 +439,7 @@ contract SwapperTest is BaseForkTest {
     /// @dev ensures that when slippage is high enough, swapping reverts
     function test_swap_revertsWhen_tooFewEndAssetsAreReceived() public {
         uint256 offsetFactor = 5e6;
-        uint256 maxSlippage = 5_00; // 5%
+        uint256 maxSlippage = 5_000000; // 5%
 
         vm.startPrank(OWNER);
         swapper.setOffsetFactor(WETH, CbETH, offsetFactor);

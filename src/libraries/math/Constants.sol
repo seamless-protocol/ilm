@@ -3,5 +3,5 @@
 pragma solidity ^0.8.21;
 
 library Constants {
-    uint256 internal constant MAX_SLIPPAGE = 100_00;
+    uint256 internal constant MAX_SLIPPAGE = 1e8;
 }
