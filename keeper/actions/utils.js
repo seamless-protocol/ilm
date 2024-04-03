@@ -79,6 +79,8 @@ async function sendOracleOutageAlert(notificationClient, store, oracle) {
                 console.error('Failed to send notification', error);
             }
         }
+    } else {
+        console.log('Oracle is working.');
     }
 
     await store.put(oracle, await oracle.latestRoundData()[3]);
@@ -99,6 +101,8 @@ async function sendEPSAlert(notificationClient, store, strategy) {
         } catch (error) {
             console.error('Failed to send notification', error);
         }
+    } else {
+        console.log('EPS has not decreased.');
     }
 
     updateEPS(store, strategy, currentEPS);
@@ -115,6 +119,8 @@ async function sendSequencerOutageAlert(notificationClient, oracle) {
         } catch (error) {
             console.error('Failed to send notification', error);
         }
+    } else {
+        console.log('Sequencer is working.');
     }
 }
 
@@ -131,6 +137,8 @@ async function sendHealthFactorAlert(notificationClient, strategy, healthFactorT
         } catch (error) {
             console.error('Failed to send notification', error);
         }
+    } else {
+        console.log('Strategy is not at risk.');
     }
 }
 
@@ -147,6 +155,8 @@ async function sendExposureAlert(notificationClient, strategy) {
         } catch (error) {
             console.error('Failed to send notification', error);
         }
+    } else {
+        console.log('Strategy is not overexposed.');
     }
 }
 
@@ -163,6 +173,8 @@ async function sendBorrowRateNotification(notificationClient, currentRate, thres
         } catch (error) {
             console.error('Failed to send notification', error);
         }   
+    } else {
+        console.log('Borrow rate is below threshold.');
     }
 }
 
