@@ -131,8 +131,7 @@ interface ILoopStrategy is IERC4626 {
     /// @notice rebalances the strategy
     /// @dev perofrms a downwards/upwards leverage depending on the current strategy state in order to be
     /// within collateral ratio range
-    /// @return ratio value of collateral ratio after strategy rebalances
-    function rebalance() external returns (uint256 ratio);
+    function rebalance() external;
 
     /// @notice retruns true if collateral ratio is out of the target range, and we need to rebalance pool
     /// @return shouldRebalance true if rebalance is needed

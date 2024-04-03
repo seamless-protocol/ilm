@@ -217,17 +217,12 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function rebalance()
-        public
-        override
-        whenNotPaused
-        returns (uint256 ratio)
-    {
+    function rebalance() public override whenNotPaused {
         if (!rebalanceNeeded()) {
             revert RebalanceNotNeeded();
         }
 
-        return _tryRebalance();
+        _tryRebalance();
     }
 
     /// @inheritdoc ILoopStrategy
@@ -506,21 +501,15 @@ contract LoopStrategy is
     }
 
     /// @notice rebalance the position if it's out of collateral target range
-    /// @return ratio current collateral ratio
-    function _tryRebalance() internal returns (uint256 ratio) {
-        Storage.Layout storage $ = Storage.layout();
-
+    function _tryRebalance() internal {
         if (rebalanceNeeded()) {
-            return RebalanceLogic.rebalanceTo(
+            Storage.Layout storage $ = Storage.layout();
+
+            RebalanceLogic.rebalanceTo(
                 $,
                 LoanLogic.getLoanState($.lendingPool),
                 $.collateralRatioTargets.target,
                 $.maxSlippageOnRebalance
-            );
-        } else {
-            LoanState memory state = LoanLogic.getLoanState($.lendingPool);
-            return RebalanceMath.collateralRatioUSD(
-                state.collateralUSD, state.debtUSD
             );
         }
     }
