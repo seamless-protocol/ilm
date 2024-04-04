@@ -425,13 +425,7 @@ contract RebalanceLogicTest is RebalanceLogicContext {
     }
 
     /// @dev ensures that rebalanceDownToDebt reverts when slippage is too high
-    /// `testFail` had to be used as `rebalanceDownToDebt` is an internal function,
-    /// and without a harness contract the first external call is picked up by `expectRevert`
-    /// which is _within_ the `rebalanceDownToDebt` call, so the vm.expectRevert cheatcode
-    /// cuts the test short as the first external call passes
-    function testFail_rebalanceDownToDebt_revertsWhen_slippageIsTooHigh()
-        public
-    {
+    function test_rebalanceDownToDebt_revertsWhen_slippageIsTooHigh() public {
         // with 0.75 LTV, we have a min CR of 1.33e8
         // given by CR_min = 1 / LTV
         targetCR = 1.35e8;
@@ -455,14 +449,28 @@ contract RebalanceLogicTest is RebalanceLogicContext {
         uint256 debtRepayment = 100 * USDWadRayMath.USD;
         uint256 targetDebtUSD = state.debtUSD - debtRepayment;
 
-        RebalanceLogic.rebalanceDownToDebt(
-            $, state, targetDebtUSD, Constants.MAX_SLIPPAGE
-        );
+        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
+        this.rebalanceDownToDebtHelperCall(state, targetDebtUSD, 20_000000);
     }
 
     /////////////////////
     ////// HELPERS //////
     /////////////////////
+
+    /// @dev helper function used in test where expectRevert is needed, as it works only with external calls
+    /// for it to be external call it should be called with `this.rebalanceDownToDebtHelperCall(...)`
+    /// @param state current loan state
+    /// @param targetDebtUSD target debt to rebalance
+    /// @param maxSwapSlippage maximum allowed swap slippage
+    function rebalanceDownToDebtHelperCall(
+        LoanState memory state,
+        uint256 targetDebtUSD,
+        uint256 maxSwapSlippage
+    ) public {
+        RebalanceLogic.rebalanceDownToDebt(
+            $, state, targetDebtUSD, maxSwapSlippage
+        );
+    }
 
     /// @dev changes the borrow and cap parameter for the given asset
     /// @param asset asset to change borrow cap
