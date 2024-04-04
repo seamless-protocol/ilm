@@ -373,6 +373,35 @@ contract LoanLogicTest is BaseForkTest {
         assertApproxEqRel(maxBorrow, totalSupplyUSDbCUSD, 0.0005 ether);
     }
 
+    /// @dev test confirming getMaxBorrowUSD is returning correct value when the borrowCap is set to 0 (no cap)
+    function test_getMaxBorrowUSD_noBorrowCap() public {
+        uint256 supplyAmount = 10 ether;
+        LoanState memory loanState;
+        loanState = LoanLogic.supply(lendingPool, WETH, supplyAmount);
+
+        _changeBorrowCap(USDbC, 50_000_000);
+        uint256 maxBorrowBefore = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+
+        _changeBorrowCap(USDbC, 0);
+        uint256 maxBorrowAfter = LoanLogic.getMaxBorrowUSD(
+            lendingPool, USDbC, priceOracle.getAssetPrice(address(USDbC))
+        );
+
+        assertEq(maxBorrowBefore, maxBorrowAfter);
+
+        (,, uint256 totalBorrowUSD,,,) =
+            lendingPool.pool.getUserAccountData(address(this));
+
+        assertEq(
+            PercentageMath.percentMul(
+                totalBorrowUSD, LoanLogic.MAX_AMOUNT_PERCENT
+            ),
+            maxBorrowAfter
+        );
+    }
+
     /// @dev testing exact return amounts of shareDebtAndEquityUSD per certora example
     /// @dev debt should be rounded up
     function test_shareDebtAndEquityUSD() public {

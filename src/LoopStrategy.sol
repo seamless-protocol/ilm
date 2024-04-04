@@ -492,6 +492,11 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
+    function getAssetsCap() external view returns (uint256 assetsCap) {
+        return Storage.layout().assetsCap;
+    }
+
+    /// @inheritdoc ILoopStrategy
     function getMaxSlippageOnRebalance()
         external
         view

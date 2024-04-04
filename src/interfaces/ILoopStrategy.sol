@@ -213,6 +213,10 @@ interface ILoopStrategy is IERC4626 {
     /// @return iterations maxIterations value
     function getMaxIterations() external view returns (uint256 iterations);
 
+    /// @notice returns value of assetsCap
+    /// @return assetsCap assetsCap value
+    function getAssetsCap() external view returns (uint256 assetsCap);
+
     /// @notice returns value of maxSlippageOnRebalance
     /// @param maxSlippage MaxSlippageOnRebalance value
     function getMaxSlippageOnRebalance()
