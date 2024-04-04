@@ -45,6 +45,9 @@ interface ILoopStrategy is IERC4626 {
     /// 0 < margin < 1e8 (1 USD)
     error MarginOutsideRange();
 
+    /// @notice thrown when attempting to set max slippage value which is bigger than 100%
+    error MaxSlippageOutOfRange();
+
     /// @notice thrown when the caller of the redeem function is not the owner of the
     /// shares to be redeemed
     error RedeemerNotOwner();
@@ -72,6 +75,10 @@ interface ILoopStrategy is IERC4626 {
     /// @notice emitted when a new value for the swapper address is set
     /// @param swapper new address of swapper contract
     event SwapperSet(address swapper);
+
+    /// @notice emitted when a new value for maxSlippageOnRebalanceSet is set
+    /// @param maxSlippage new value for maximum allowed slippage percentage (1e8 is 100%)
+    event MaxSlippageOnRebalanceSet(uint256 maxSlippage);
 
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
@@ -124,8 +131,7 @@ interface ILoopStrategy is IERC4626 {
     /// @notice rebalances the strategy
     /// @dev perofrms a downwards/upwards leverage depending on the current strategy state in order to be
     /// within collateral ratio range
-    /// @return ratio value of collateral ratio after strategy rebalances
-    function rebalance() external returns (uint256 ratio);
+    function rebalance() external;
 
     /// @notice retruns true if collateral ratio is out of the target range, and we need to rebalance pool
     /// @return shouldRebalance true if rebalance is needed
@@ -168,6 +174,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param iterations new value of maxIterations
     function setMaxIterations(uint16 iterations) external;
 
+    /// @notice sets the maxSlippageOnRebalance value
+    /// @param maxSlippage new value of maxSlippageOnRebalance
+    function setMaxSlippageOnRebalance(uint256 maxSlippage) external;
+
     /// @notice sets the swapper contract address
     /// @param swapper address of swapper contract
     function setSwapper(address swapper) external;
@@ -206,4 +216,11 @@ interface ILoopStrategy is IERC4626 {
     /// @notice returns value of assetsCap
     /// @return assetsCap assetsCap value
     function getAssetsCap() external view returns (uint256 assetsCap);
+
+    /// @notice returns value of maxSlippageOnRebalance
+    /// @param maxSlippage MaxSlippageOnRebalance value
+    function getMaxSlippageOnRebalance()
+        external
+        view
+        returns (uint256 maxSlippage);
 }

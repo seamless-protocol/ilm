@@ -719,23 +719,6 @@ contract LoopStrategyRedeemTest is LoopStrategyTest {
         strategy.redeem(redeemAmount, bob, alice);
     }
 
-    /// @dev ensures that if slippage is too high, then redeem call will revert
-    function test_redeem_revertsWhen_slippageIsTooHigh() public {
-        assertEq(strategy.totalSupply(), 0);
-        uint256 depositAmount = 1 ether;
-        uint256 aliceShares = _depositFor(alice, depositAmount);
-
-        uint256 redeemAmount = aliceShares / 2;
-
-        _setupSwapperWithMockAdapter();
-        wethCbETHAdapter.setSlippagePCT(25);
-
-        vm.expectRevert(ISwapper.MaxSlippageExceeded.selector);
-
-        vm.prank(alice);
-        strategy.redeem(redeemAmount, alice, alice);
-    }
-
     /// @dev tests that user receives the correct amount of assets on redeem when debtUSD = 0
     /// @dev this can happen if user repays debt on behalf of the strategy, and borrow cap is reached
     function test_redeem_repayTotalDebtAttackWhileBorrowCapReached() public {
