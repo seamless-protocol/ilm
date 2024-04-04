@@ -90,12 +90,14 @@ interface ISwapper {
     /// @param to address of token to swap to
     /// @param fromAmount amount of from token to swap
     /// @param beneficiary receiver of final to token amount
+    /// @param maxSlippage maximum allowed slippage percent
     /// @return toAmount amount of to token returned from swapping
     function swap(
         IERC20 from,
         IERC20 to,
         uint256 fromAmount,
-        address payable beneficiary
+        address payable beneficiary,
+        uint256 maxSlippage
     ) external returns (uint256 toAmount);
 
     /// @notice calculates the offset factor for the entire swap route from `from` token to `to` token
@@ -114,10 +116,6 @@ interface ISwapper {
     function setOffsetFactor(IERC20 from, IERC20 to, uint256 offsetUSD)
         external;
 
-    /// @notice sets a new value for the offsetDeviationUSD from the offsetFactor
-    /// @param offsetDeviationUSD new value for the offsetDeviationUSD
-    function setOffsetDeviationUSD(uint256 offsetDeviationUSD) external;
-
     /// @notice sets a new address for the oracle
     /// @param oracle new IPriceOracleGetter contract address
     function setOracle(IPriceOracleGetter oracle) external;
@@ -125,11 +123,4 @@ interface ISwapper {
     /// @notice returns address of oracle contract
     /// @return oracle address of oracle contract
     function getOracle() external view returns (IPriceOracleGetter oracle);
-
-    /// @notice returns offsetDeviationUSD value
-    /// @return offsetDeviationUSD offsetDeviationUSD value
-    function getOffsetDeviationUSD()
-        external
-        view
-        returns (uint256 offsetDeviationUSD);
 }

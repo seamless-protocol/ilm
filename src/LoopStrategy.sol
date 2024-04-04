@@ -29,6 +29,7 @@ import {
 import { ConversionMath } from "./libraries/math/ConversionMath.sol";
 import { RebalanceMath } from "./libraries/math/RebalanceMath.sol";
 import { USDWadRayMath } from "./libraries/math/USDWadRayMath.sol";
+import { Constants } from "./libraries/math/Constants.sol";
 import { SafeERC20 } from
     "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ISwapper } from "./interfaces/ISwapper.sol";
@@ -166,9 +167,7 @@ contract LoopStrategy is
 
         emit CollateralRatioTargetsSet(targets);
 
-        if (rebalanceNeeded()) {
-            rebalance();
-        }
+        _tryRebalance();
     }
 
     /// @inheritdoc ILoopStrategy
@@ -218,21 +217,12 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
-    function rebalance()
-        public
-        override
-        whenNotPaused
-        returns (uint256 ratio)
-    {
+    function rebalance() public override whenNotPaused {
         if (!rebalanceNeeded()) {
             revert RebalanceNotNeeded();
         }
-        Storage.Layout storage $ = Storage.layout();
-        return RebalanceLogic.rebalanceTo(
-            $,
-            LoanLogic.getLoanState($.lendingPool),
-            $.collateralRatioTargets.target
-        );
+
+        _tryRebalance();
     }
 
     /// @inheritdoc ILoopStrategy
@@ -442,6 +432,20 @@ contract LoopStrategy is
     }
 
     /// @inheritdoc ILoopStrategy
+    function setMaxSlippageOnRebalance(uint256 maxSlippage)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        if (maxSlippage > Constants.MAX_SLIPPAGE) {
+            revert MaxSlippageOutOfRange();
+        }
+
+        Storage.layout().maxSlippageOnRebalance = maxSlippage;
+
+        emit MaxSlippageOnRebalanceSet(maxSlippage);
+    }
+
+    /// @inheritdoc ILoopStrategy
     function setSwapper(address swapper) external onlyRole(MANAGER_ROLE) {
         Storage.layout().swapper = ISwapper(swapper);
 
@@ -487,6 +491,29 @@ contract LoopStrategy is
         return Storage.layout().maxIterations;
     }
 
+    /// @inheritdoc ILoopStrategy
+    function getMaxSlippageOnRebalance()
+        external
+        view
+        returns (uint256 maxslippage)
+    {
+        return Storage.layout().maxSlippageOnRebalance;
+    }
+
+    /// @notice rebalance the position if it's out of collateral target range
+    function _tryRebalance() internal {
+        if (rebalanceNeeded()) {
+            Storage.Layout storage $ = Storage.layout();
+
+            RebalanceLogic.rebalanceTo(
+                $,
+                LoanLogic.getLoanState($.lendingPool),
+                $.collateralRatioTargets.target,
+                $.maxSlippageOnRebalance
+            );
+        }
+    }
+
     /// @notice deposit assets to the strategy with the requirement of equity received after rebalance
     /// @param assets amount of assets to deposit
     /// @param receiver address of the receiver of share tokens
@@ -508,13 +535,18 @@ contract LoopStrategy is
             $.assets.underlying, msg.sender, address(this), assets
         );
 
+        _tryRebalance();
+
         assets = _convertUnderlyingToCollateralAsset($.assets, assets);
 
-        LoanState memory state = RebalanceLogic.updateState($);
+        LoanState memory state = LoanLogic.getLoanState($.lendingPool);
 
         uint256 prevTotalAssets = totalAssets();
 
-        RebalanceLogic.rebalanceAfterSupply($, state, assets);
+        // MAX_SLIPPAGE is allowed because we check minSharesReceived
+        RebalanceLogic.rebalanceAfterSupply(
+            $, state, assets, Constants.MAX_SLIPPAGE
+        );
 
         uint256 equityReceived = totalAssets() - prevTotalAssets;
         shares = _convertToShares(equityReceived, prevTotalAssets);
@@ -544,9 +576,14 @@ contract LoopStrategy is
     ) internal returns (uint256 assets) {
         Storage.Layout storage $ = Storage.layout();
 
+        _tryRebalance();
+
+        // MAX_SLIPPAGE is allowed because we check minUnderlyingAsset received
         uint256 shareUnderlyingAsset = _convertCollateralToUnderlyingAsset(
             $.assets,
-            RebalanceLogic.rebalanceBeforeWithdraw($, shares, totalSupply())
+            RebalanceLogic.rebalanceBeforeWithdraw(
+                $, shares, totalSupply(), Constants.MAX_SLIPPAGE
+            )
         );
 
         // ensure equity in asset terms to be received is larger than
