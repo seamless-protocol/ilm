@@ -16,4 +16,8 @@ line_length = 80
 bracket_spacing = true
 number_underscore = "preserve"
 
+[rpc_endpoints]
+base = "${BASE_MAINNET_RPC_URL}"
+tenderly = "${TENDERLY_FORK_RPC_URL}"
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
