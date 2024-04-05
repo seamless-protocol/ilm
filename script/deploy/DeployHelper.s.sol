@@ -322,6 +322,13 @@ contract DeployHelper is BaseMainnetConstants {
         _logAddress("Strategy Implementation", address(strategyImplementation));
     }
 
+    /// @dev deploys a new Swapper contract implementation
+    function _deploySwapperImplementation() internal {
+        Swapper swapperImplementation = new Swapper();
+
+        _logAddress("Swapper Implementation", address(swapperImplementation));
+    }
+
     /// @dev set deposit permissions to the LoopStrategy and WrappedTokenAdapter contracts
     /// @dev requires caller to have MANAGER_ROLE on the WrappedToken contract
     /// @param wrappedToken address of the WrappedTokenContract
