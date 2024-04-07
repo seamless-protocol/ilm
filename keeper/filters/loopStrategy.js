@@ -36,7 +36,8 @@ const strategyABI = [
     "function debt() external view returns (uint256)",
     "function collateral() external view returns (uint256)",
     "function currentCollateralRatio() external view returns (uint256)",
-    "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))"
+    "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))",
+    "function equity() external view returns (uint256)"
 ];
 
 const oracleABI = [
