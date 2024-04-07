@@ -2,6 +2,7 @@
 const { ethers } = require("ethers");
 const { KeyValueStoreClient } = require('defender-kvstore-client');
 const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert, sendBorrowRateNotification } = require("./utils");
+const { isSequencerOut, isOracleOut } = require("../actions/utils");
 
 const depositSig = 'Deposit(address,address,uint256,uint256)';
 const withdrawSig = 'Withdraw(address,address,address,uint256,uint256)';
@@ -108,12 +109,12 @@ exports.handler = async function (payload, context) {
                     metadata: {
                         "type": "priceUpdate",
                         "sig": reasonSig,
-                        "strategiesToRebalance": strategiesToRebalance
+                        "strategiesToRebalance": strategiesToRebalance,
+                        "sendOracleOutageAlert": isOracleOut(oracle), 
+                        "sendSequencerOutageAlert": isSequencerOut(oracle)
+
                     }
                 });
-
-                await sendOracleOutageAlert(notificationClient, store, oracle);
-                await sendSequencerOutageAlert(notificationClient, oracle);
             }
 
             if (

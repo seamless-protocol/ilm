@@ -61,29 +61,28 @@ async function checkAlertChannelsExist(client) {
     }
 }
 
-async function sendOracleOutageAlert(notificationClient, store, oracle) {
+async function isOracleOut(store, oracle) {
     const lastUpdate = await store.get(oracle.address);
 
     if (lastUpdate !== null && value !== undefined) {
-        const secondSinceLastUpdate = value - Math.floor(Date.now() / 1000);
-        // check if the different of timestamp updates is more than 1 day and 1 minute
-        // as oracles update at least once per day
-        if (secondSinceLastUpdate > (24 * 60 * 60 + 60)) {
-            try {
-                notificationClient.send({
-                    channelAlias: 'seamless-alerts',
-                    subject: 'ORACLE OUTAGE',
-                    message: `Seconds elapsed since last update are ${secondSinceLastUpdate} which are more than ${24 * 60 * 60 + 60} seconds`,
-                });
-            } catch (error) {
-                console.error('Failed to send notification', error);
-            }
-        }
-    } else {
-        console.log('Oracle is working.');
+        let secondSinceLastUpdate = value - Math.floor(Date.now() / 1000);
+
+        return secondSinceLastUpdate > 24 * 60 * 60 + 60;
     }
 
     await store.put(oracle, await oracle.latestRoundData()[3]);
+}
+
+async function sendOracleOutageAlert(notificationClient) {
+    try {
+        notificationClient.send({
+            channelAlias: 'seamless-alerts',
+            subject: 'ORACLE OUTAGE',
+            message: `Seconds elapsed since last update are more than ${24 * 60 * 60 + 60} seconds`,
+        });
+    } catch (error) {
+        console.error('Failed to send notification', error);
+    }
 }
 
 async function sendEPSAlert(notificationClient, store, strategy) {
@@ -108,19 +107,19 @@ async function sendEPSAlert(notificationClient, store, strategy) {
     updateEPS(store, strategy, currentEPS);
 }
 
-async function sendSequencerOutageAlert(notificationClient, oracle) {
-    if(await oracle.latestAnswer() == 1) {
-        try {
-            notificationClient.send({
-                channelAlias: 'seamless-alerts',
-                subject: 'SEQUENCER OUTAGE',
-                message: `Latest answer of sequencer oracle is 1.`,
-            });
-        } catch (error) {
-            console.error('Failed to send notification', error);
-        }
-    } else {
-        console.log('Sequencer is working.');
+async function isSequencerOut(oracle) {
+    return await oracle.latestAnswer() == 1;
+}
+
+async function sendSequencerOutageAlert(notificationClient) {
+    try {
+        notificationClient.send({
+            channelAlias: 'seamless-alerts',
+            subject: 'SEQUENCER OUTAGE',
+            message: `Latest answer of sequencer oracle is 1.`,
+        });
+    } catch (error) {
+        console.error('Failed to send notification', error);
     }
 }
 
@@ -181,12 +180,19 @@ async function sendBorrowRateNotification(notificationClient, currentRate, thres
 async function updateEPS(store, strategy, currentEPS) {
     store.put(strategy, currentEPS);
 }
-     
+
+// checkers
 exports.isStrategyAtRisk = isStrategyAtRisk;
 exports.isStrategyOverexposed = isStrategyOverexposed;
-exports.equityPerShare = equityPerShare;
 exports.checkAlertChannelsExist = checkAlertChannelsExist;
+exports.isOracleOut = isOracleOut;
+exports.isSequencerOut = isSequencerOut;
+
+// utils
+exports.equityPerShare = equityPerShare;
 exports.updateEPS = updateEPS;
+
+// notifications
 exports.sendExposureAlert = sendExposureAlert;
 exports.sendHealthFactorAlert = sendHealthFactorAlert;
 exports.sendEPSAlert = sendEPSAlert;
