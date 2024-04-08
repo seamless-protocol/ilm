@@ -78,10 +78,24 @@ exports.handler = async function (payload, context) {
           await performRebalance(strategy);
           
           // update equityPerShare because performRebalance may affect it
-          updateEPS(store, strategy, equityPerShare(strategy));
+          updateEPS(store, strategy.address, equityPerShare(strategy));
+
+          let riskState = await isStrategyAtRisk(strategy, healthFactorThreshold);
+          let exposureState = await isStrategyOverexposed(strategy);
           
-          await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
-          await sendExposureAlert(notificationClient, strategy);
+          if (riskState.isAtRisk) {
+            await sendHealthFactorAlert(notificationClient, riskState.threshold, riskState.healthFactor);
+            console.log('Sent health factor alert.');
+          } else {
+            console.log(`Health factor is deemed to be safe at: ${riskState.healthFactor}.`);
+          }
+    
+          if (exposureState.isOverExposed) {
+            await sendExposureAlert(notificationClient, exposureState.current, exposureState.min);
+            console.log('Sent exposure alert.');
+          } else {
+            console.log(`Exposure is deemed to be fine at ${exposureState.current}.`);
+          }
         });
 
         await Promise.all(rebalancePromises);
@@ -93,7 +107,7 @@ exports.handler = async function (payload, context) {
     }
 
     if (metadata.oracleState.isOut) {
-      await sendOracleOutageAlert(notificationClient);
+      await sendOracleOutageAlert(notificationClient, metadata.oracleState.oracleAddress, metadata.oracleState.secondsSinceLastUpdate);
       console.log('Sent oracle outage alert.');
     } else {
       console.log('Oracle outage alert has not been sent.');

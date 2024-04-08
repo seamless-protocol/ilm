@@ -2,12 +2,12 @@
 /// This file contains only helpers to send notifications via the OZ Defender notification client.
 /// No checking logic is contained herein.
 
-async function sendOracleOutageAlert(notificationClient) {
+async function sendOracleOutageAlert(notificationClient, oracleAddress, secondSinceLastUpdate) {
     try {
         notificationClient.send({
             channelAlias: 'seamless-alerts',
             subject: 'ORACLE OUTAGE',
-            message: `Seconds elapsed since last update are more than ${24 * 60 * 60 + 60} seconds`,
+            message: `Seconds elapsed since last update for ${oracleAddress}: ${secondSinceLastUpdate}. This is more than ${24 * 60 * 60 + 60} seconds`,
         });
     } catch (error) {
         console.error('Failed to send notification', error);
