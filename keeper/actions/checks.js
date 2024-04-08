@@ -17,6 +17,7 @@ async function isStrategyAtRisk(strategy, threshold) {
 
         return {
             isAtRisk: healthFactor.lt(threshold),
+            threshold: threshold,
             healthFactor: healthFactor
         };
     } catch (err) {
@@ -71,6 +72,7 @@ async function hasEPSDecreased(store, strategy) {
     updateEPS(store, strategy, currentEPS);
 
     return {
+        strategyAddress: strategy,address,
         hasEPSDecreased: prevEPS > currentEPS,
         prevEPS: prevEPS,
         currentEPS: currentEPS
