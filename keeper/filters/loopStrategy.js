@@ -77,7 +77,6 @@ exports.handler = async function (payload) {
                 let EPSState  = await hasEPSDecreased(store, strategy);
 
                 matches.push({
-                    hash: evt.hash,
                     metadata: {
                         "type": "withdrawOrDeposit",
                         "riskState": riskState,
@@ -107,7 +106,6 @@ exports.handler = async function (payload) {
                 }
                
                 matches.push({
-                    hash: evt.hash,
                     metadata: {
                         "type": "priceUpdate",
                         "strategiesToRebalance": strategiesToRebalance,
@@ -136,7 +134,6 @@ exports.handler = async function (payload) {
                     let variableBorrowRate = reserveData[3];
                     
                     matches.push({
-                        hash: evt.hash,
                         metadata: {
                             "type": "borrowRate",
                             "currBorrowRate": variableBorrowRate,
