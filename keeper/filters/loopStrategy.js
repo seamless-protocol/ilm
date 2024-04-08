@@ -1,9 +1,8 @@
 
 const { ethers } = require("ethers");
 const { KeyValueStoreClient } = require('defender-kvstore-client');
-const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert, sendBorrowRateNotification } = require("./utils");
-const { isSequencerOut, isOracleOut } = require("../actions/utils");
-const { isStrategyAtRisk, isStrategyOverexposed, hasEPSDecreased } = require("../actions/checks");
+const { isStrategyAtRisk, isStrategyOverexposed, hasEPSDecreased, isSequencerOut, isOracleOut } = require("../actions/checks");
+const { updateEPS, equityPerShare } = require("../actions/utils");
 
 const depositSig = 'Deposit(address,address,uint256,uint256)';
 const withdrawSig = 'Withdraw(address,address,address,uint256,uint256)';
@@ -54,14 +53,13 @@ const RPC_URL = 'some_rpc_url';
 
 const healthFactorThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('1.1', 8)); //value used for testing
 
-exports.handler = async function (payload, context) {
+exports.handler = async function (payload) {
     const conditionRequest = payload.request.body;
     const matches = [];
     const events = conditionRequest.events;
 
     const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
 
-    const { notificationClient } = context;
     const store = new KeyValueStoreClient(payload);
 
     let strategy;
@@ -70,6 +68,7 @@ exports.handler = async function (payload, context) {
     for (let evt of events) {
         for (let reason of evt.matchReasons) {
             let reasonSig = reason.signature;
+
             if (reasonSig == withdrawSig || reasonSig == depositSig) {
                 strategy = new ethers.Contract(ethers.utils.getAddress(reason.address), strategyABI, provider);
                 
@@ -112,8 +111,8 @@ exports.handler = async function (payload, context) {
                     metadata: {
                         "type": "priceUpdate",
                         "strategiesToRebalance": strategiesToRebalance,
-                        "sendOracleOutageAlert": isOracleOut(oracle), 
-                        "sendSequencerOutageAlert": isSequencerOut(oracle)
+                        "sendOracleOutageAlert": await isOracleOut(oracle), 
+                        "sendSequencerOutageAlert": await isSequencerOut(oracle)
 
                     }
                 });
