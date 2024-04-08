@@ -7,7 +7,7 @@ const { equityPerShare } = require("./utils");
 
 const BASE = ethers.BigNumber.from(ethers.utils.parseUnits('1.0', 8)); // value used for percentage calculations (1e8 == 100%)
 
-// check whether health factor is below threshhold
+// check whether health factor is below threshold
 async function isStrategyAtRisk(strategy, threshold) {
     try {
         const debtUSD = ethers.BigNumber.from(await strategy.debt());
@@ -46,8 +46,9 @@ async function isStrategyOverexposed(strategy) {
 async function isOracleOut(store, oracle) {
     const lastUpdate = await store.get(oracle.address);
 
-    if (lastUpdate !== null && value !== undefined) {
-        let secondSinceLastUpdate = value - Math.floor(Date.now() / 1000);
+
+    if (lastUpdate !== null && lastUpdate !== undefined) {
+        let secondSinceLastUpdate = lastUpdate - Math.floor(Date.now() / 1000);
 
         return {
             secondSinceLastUpdate: secondSinceLastUpdate,
