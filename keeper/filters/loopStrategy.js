@@ -3,6 +3,7 @@ const { ethers } = require("ethers");
 const { KeyValueStoreClient } = require('defender-kvstore-client');
 const { sendOracleOutageAlert, sendExposureAlert, sendHealthFactorAlert, sendEPSAlert, sendSequencerOutageAlert, sendBorrowRateNotification } = require("./utils");
 const { isSequencerOut, isOracleOut } = require("../actions/utils");
+const { isStrategyAtRisk, isStrategyOverexposed, hasEPSDecreased } = require("../actions/checks");
 
 const depositSig = 'Deposit(address,address,uint256,uint256)';
 const withdrawSig = 'Withdraw(address,address,address,uint256,uint256)';
@@ -71,17 +72,18 @@ exports.handler = async function (payload, context) {
             let reasonSig = reason.signature;
             if (reasonSig == withdrawSig || reasonSig == depositSig) {
                 strategy = new ethers.Contract(ethers.utils.getAddress(reason.address), strategyABI, provider);
-
-                // no udpate to equity per share because withdrawals should never decrease it
-                await sendHealthFactorAlert(notificationClient, strategy, healthFactorThreshold);
-                await sendExposureAlert(notificationClient, strategy);
-                await sendEPSAlert(notificationClient, store, strategy);
+                
+                let riskState = await isStrategyAtRisk(strategy, healthFactorThreshold);
+                let exposureState = await isStrategyOverexposed(strategy);
+                let EPSState  = await hasEPSDecreased(store, strategy);
 
                 matches.push({
                     hash: evt.hash,
                     metadata: {
                         "type": "withdrawOrDeposit",
-                        "sig": reasonSig,
+                        "riskState": riskState,
+                        "exposureState": exposureState,
+                        "EPSState": EPSState
                     }
                 });
             }
@@ -109,7 +111,6 @@ exports.handler = async function (payload, context) {
                     hash: evt.hash,
                     metadata: {
                         "type": "priceUpdate",
-                        "sig": reasonSig,
                         "strategiesToRebalance": strategiesToRebalance,
                         "sendOracleOutageAlert": isOracleOut(oracle), 
                         "sendSequencerOutageAlert": isSequencerOut(oracle)
@@ -134,19 +135,15 @@ exports.handler = async function (payload, context) {
 
                     let reserveData = await pool.getReserveData(reserveAddress);
                     let variableBorrowRate = reserveData[3];
-
+                    
                     matches.push({
                         hash: evt.hash,
                         metadata: {
                             "type": "borrowRate",
-                            "sig": reasonSig,
+                            "currBorrowRate": variableBorrowRate,
+                            "affectedStrategies": debtTokenToStrategies[reserveAddress]
                         }
                     });
-                    
-                    for(let strategy of debtTokenToStrategies[reserveAddress]) {
-                        // send notification if interest rate is above threshold
-                        await sendBorrowRateNotification(notificationClient, variableBorrowRate, strategyInterestThreshold[strategy]);
-                    }   
                 }
             }
         }
