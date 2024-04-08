@@ -60,11 +60,6 @@ async function isOracleOut(store, oracle) {
     await store.put(oracle, await oracle.latestRoundData()[3]);
 }
 
-// checks if sequencer is out
-async function isSequencerOut(oracle) {
-    return await oracle.latestAnswer() == 1;
-}
-
 // checks if EPS has decreased between withdrawals / deposits, and updates latest EPS value
 async function hasEPSDecreased(store, strategy) {
     const prevEPS = await store.get(strategy.address);
@@ -95,6 +90,5 @@ async function checkAlertChannelsExist(client) {
 exports.isStrategyAtRisk = isStrategyAtRisk;
 exports.isStrategyOverexposed = isStrategyOverexposed;
 exports.isOracleOut = isOracleOut;
-exports.isSequencerOut = isSequencerOut;
 exports.hasEPSDecreased = hasEPSDecreased;
 exports.checkAlertChannelsExist = checkAlertChannelsExist;

@@ -1,7 +1,7 @@
 
 const { ethers } = require("ethers");
 const { KeyValueStoreClient } = require('defender-kvstore-client');
-const { isStrategyAtRisk, isStrategyOverexposed, hasEPSDecreased, isSequencerOut, isOracleOut } = require("../actions/checks");
+const { isStrategyAtRisk, isStrategyOverexposed, hasEPSDecreased, isOracleOut } = require("../actions/checks");
 const { updateEPS, equityPerShare } = require("../actions/utils");
 
 const depositSig = 'Deposit(address,address,uint256,uint256)';
@@ -99,7 +99,7 @@ exports.handler = async function (payload) {
                         strategy = new ethers.Contract(affectedStrategy, strategyABI, provider);
     
                         // update equityPerShare because price fluctuations may alter it organically
-                        updateEPS(store, strategy, equityPerShare(strategy));
+                        updateEPS(store, affectedStrategy, equityPerShare(strategy));
     
                         if (await strategy.rebalanceNeeded()) {
                             strategiesToRebalance.push(affectedStrategy);
@@ -108,7 +108,7 @@ exports.handler = async function (payload) {
                 }
 
                 let oracleState = await isOracleOut(store, oracle);
-                let isSequencerOut = await isSequencerOut(oracle);
+                let isSequencerOut = latestAnswer == 1;
                
                 if (strategiesToRebalance.length != 0 || oracleState.isOut || isSequencerOut) {
                     matches.push({
@@ -131,7 +131,7 @@ exports.handler = async function (payload) {
                 || reasonSig == poolLiquidationSig
             ) {
                 // on all events, reserve/collateral asset is first argument, which correlates to asset 
-                // to query
+                // to query as this is the asset whose borrow rate is affected
                 let reserveAddress = reason.args[0];
 
                 if (reserveAddress in debtTokenToStrategies) {
