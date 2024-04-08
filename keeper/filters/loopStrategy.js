@@ -25,7 +25,7 @@ const strategyInterestThreshold = {
     "0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e": ethers.BigNumber.from(ethers.utils.parseUnits('3.0', 27)), // 3% in RAY
 };
 
-// 0x4200000000000000000000000000000000000006: WETH
+// 0x4200000000000000000000000000000000000006: rwWETH
 const debtTokenToStrategies = {
     "0x4200000000000000000000000000000000000006": ["0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e"],
 };
@@ -75,15 +75,17 @@ exports.handler = async function (payload) {
                 let riskState = await isStrategyAtRisk(strategy, healthFactorThreshold);
                 let exposureState = await isStrategyOverexposed(strategy);
                 let EPSState  = await hasEPSDecreased(store, strategy);
-
-                matches.push({
-                    metadata: {
-                        "type": "withdrawOrDeposit",
-                        "riskState": riskState,
-                        "exposureState": exposureState,
-                        "EPSState": EPSState
-                    }
-                });
+                
+                if (riskState.isAtRisk || exposureState.isOverExposed || EPSState.hasEPSDecreased) {
+                    matches.push({
+                        metadata: {
+                            "type": "withdrawOrDeposit",
+                            "riskState": riskState,
+                            "exposureState": exposureState,
+                            "EPSState": EPSState
+                        }
+                    });
+                }
             }
 
             if (reasonSig == priceUpdateSig) {
@@ -104,16 +106,21 @@ exports.handler = async function (payload) {
                         }
                     }
                 }
-               
-                matches.push({
-                    metadata: {
-                        "type": "priceUpdate",
-                        "strategiesToRebalance": strategiesToRebalance,
-                        "sendOracleOutageAlert": await isOracleOut(oracle), 
-                        "sendSequencerOutageAlert": await isSequencerOut(oracle)
 
-                    }
-                });
+                let oracleState = await isOracleOut(store, oracle);
+                let isSequencerOut = await isSequencerOut(oracle);
+               
+                if (strategiesToRebalance.length != 0 || oracleState.isOut || isSequencerOut) {
+                    matches.push({
+                        metadata: {
+                            "type": "priceUpdate",
+                            "strategiesToRebalance": strategiesToRebalance,
+                            "oracleState": oracleState,
+                            "isSequencerOut": isSequencerOut
+    
+                        }
+                    });
+                }   
             }
 
             if (
@@ -133,13 +140,20 @@ exports.handler = async function (payload) {
                     let reserveData = await pool.getReserveData(reserveAddress);
                     let variableBorrowRate = reserveData[3];
                     
-                    matches.push({
-                        metadata: {
-                            "type": "borrowRate",
-                            "currBorrowRate": variableBorrowRate,
-                            "affectedStrategies": debtTokenToStrategies[reserveAddress]
-                        }
-                    });
+                    const affectedStrategies = debtTokenToStrategies[reserveAddress].filter(
+                        strategy => strategyInterestThreshold[strategy] < variableBorrowRate
+                    );
+                    
+                    if (affectedStrategies.length != 0) {
+                        matches.push({
+                            metadata: {
+                                "type": "borrowRate",
+                                "reserve": reserveAddress,
+                                "currBorrowRate": variableBorrowRate,
+                                "affectedStrategies": affectedStrategies
+                            }
+                        });
+                    }
                 }
             }
         }
