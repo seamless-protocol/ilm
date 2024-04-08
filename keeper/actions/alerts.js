@@ -62,12 +62,12 @@ async function sendExposureAlert(notificationClient, currentCR, minForRebalance)
     }
 }
 
-async function sendBorrowRateNotification(notificationClient, currentRate, threshold) {
+async function sendBorrowRateAlert(notificationClient, reserve, currentRate, affectedStrategies) {
     try {
         notificationClient.send({
             channelAlias: 'seamless-alerts',
-            subject: 'LENDING POOL BORROW RATE IS LARGE',
-            message: `Current rate is ${ethers.utils.formatEther(currentRate)} and threshold rate is ${threshold}`,
+            subject: 'LENDING POOL BORROW RATE EXCEEDED THRESHOLD',
+            message: `Current rate for ${reserve} is ${ethers.utils.formatEther(currentRate)}, which affectes ${affectedStrategies}.`,
         });
     } catch (error) {
         console.error('Failed to send notification', error);
@@ -80,4 +80,4 @@ exports.sendSequencerOutageAlert = sendSequencerOutageAlert;
 exports.sendHealthFactorAlert = sendHealthFactorAlert;
 exports.sendEPSAlert = sendEPSAlert;
 exports.sendExposureAlert = sendExposureAlert;
-exports.sendBorrowRateNotification = sendBorrowRateNotification;
+exports.sendBorrowRateAlert = sendBorrowRateAlert;
