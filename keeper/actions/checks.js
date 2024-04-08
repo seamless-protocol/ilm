@@ -69,7 +69,7 @@ async function hasEPSDecreased(store, strategy) {
     updateEPS(store, strategy.address, currentEPS);
 
     return {
-        strategyAddress: strategy,address,
+        strategyAddress: strategy.address,
         hasEPSDecreased: prevEPS > currentEPS,
         prevEPS: prevEPS,
         currentEPS: currentEPS
