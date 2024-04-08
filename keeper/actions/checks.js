@@ -3,7 +3,7 @@
 /// a boolean indicating whether a notificaiton should be sent or not.
 
 const { ethers } = require("ethers");
-const { equityPerShare } = require("./utils");
+const { equityPerShare, updateEPS } = require("./utils");
 
 const BASE = ethers.BigNumber.from(ethers.utils.parseUnits('1.0', 8)); // value used for percentage calculations (1e8 == 100%)
 
@@ -71,7 +71,7 @@ async function hasEPSDecreased(store, strategy) {
 
     const currentEPS = equityPerShare(strategy);
 
-    updateEPS(store, strategy, currentEPS);
+    updateEPS(store, strategy.address, currentEPS);
 
     return {
         strategyAddress: strategy,address,
