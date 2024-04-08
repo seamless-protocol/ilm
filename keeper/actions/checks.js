@@ -51,7 +51,8 @@ async function isOracleOut(store, oracle) {
 
         return {
             secondSinceLastUpdate: secondSinceLastUpdate,
-            isOut: secondSinceLastUpdate > 24 * 60 * 60 + 60
+            isOut: secondSinceLastUpdate > 24 * 60 * 60 + 60,
+            oracleAddress: oracle.address
         };
     }
 
