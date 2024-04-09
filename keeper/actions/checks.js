@@ -22,6 +22,7 @@ async function isStrategyAtRisk(strategy, threshold) {
         };
     } catch (err) {
         console.error('An error has occurred during health factor check: ', err);
+        throw err;
     }
 }
 
@@ -39,6 +40,7 @@ async function isStrategyOverexposed(strategy) {
         
     } catch (err) {
         console.error('An error has occured during collateral ratio check: ', err);
+        throw err;
     }
 }
 
@@ -46,6 +48,9 @@ async function isStrategyOverexposed(strategy) {
 async function isOracleOut(store, oracle) {
     const lastUpdate = await store.get(oracle.address);
 
+    const latestUpdate = await oracle.latestRoundData()[3];
+
+    await store.put(oracle.address, latestUpdate.toString());
 
     if (lastUpdate !== null && lastUpdate !== undefined) {
         let secondSinceLastUpdate = lastUpdate - Math.floor(Date.now() / 1000);
@@ -56,8 +61,6 @@ async function isOracleOut(store, oracle) {
             oracleAddress: oracle.address
         };
     }
-
-    await store.put(oracle, await oracle.latestRoundData()[3]);
 }
 
 // checks if EPS has decreased between withdrawals / deposits, and updates latest EPS value
@@ -66,7 +69,7 @@ async function hasEPSDecreased(store, strategy) {
 
     const currentEPS = equityPerShare(strategy);
 
-    updateEPS(store, strategy.address, currentEPS);
+    updateEPS(store, strategy.address, currentEPS.toString());
 
     return {
         strategyAddress: strategy.address,
