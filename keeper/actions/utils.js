@@ -15,7 +15,7 @@ async function equityPerShare(strategy) {
 
 // store new value of equity per share in OZ KV store
 async function updateEPS(store, strategy, currentEPS) {
-    store.put(strategy, currentEPS);
+    store.put(strategy, currentEPS.toString());
 }
 
 exports.equityPerShare = equityPerShare;

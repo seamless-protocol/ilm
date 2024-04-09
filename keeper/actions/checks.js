@@ -53,7 +53,7 @@ async function isOracleOut(store, oracle) {
     await store.put(oracle.address, latestUpdate.toString());
 
     if (lastUpdate !== null && lastUpdate !== undefined) {
-        let secondSinceLastUpdate = lastUpdate - Math.floor(Date.now() / 1000);
+        let secondSinceLastUpdate = parseInt(lastUpdate) - Math.floor(Date.now() / 1000);
 
         return {
             secondSinceLastUpdate: secondSinceLastUpdate,
@@ -69,11 +69,11 @@ async function hasEPSDecreased(store, strategy) {
 
     const currentEPS = equityPerShare(strategy);
 
-    updateEPS(store, strategy.address, currentEPS.toString());
+    updateEPS(store, strategy.address, currentEPS);
 
     return {
         strategyAddress: strategy.address,
-        hasEPSDecreased: prevEPS > currentEPS,
+        hasEPSDecreased: ethers.BigNumber.from(prevEPS).gt(ethers.BigNumber.from(currentEPS.toString())),
         prevEPS: prevEPS,
         currentEPS: currentEPS
     };
