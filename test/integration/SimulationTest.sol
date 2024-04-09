@@ -39,10 +39,10 @@ contract SimulationTest is IntegrationBase {
         target: USDWadRayMath.usdDiv(TARGET_LEV, TARGET_LEV - 1000),
         minForRebalance: USDWadRayMath.usdDiv(
             TARGET_LEV + 10, TARGET_LEV - 1000 + 10
-            ),
+        ),
         maxForRebalance: USDWadRayMath.usdDiv(
             TARGET_LEV - 10, TARGET_LEV - 1000 - 10
-            ),
+        ),
         maxForDepositRebalance: USDWadRayMath.usdDiv(TARGET_LEV, TARGET_LEV - 1000),
         minForWithdrawRebalance: USDWadRayMath.usdDiv(TARGET_LEV, TARGET_LEV - 1000)
     });
