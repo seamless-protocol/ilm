@@ -1,0 +1,237 @@
+diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol
+--- lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-04-01 13:48:37
++++ lib/aave-v3-core/contracts/protocol/libraries/logic/BorrowLogic.sol	2024-03-21 12:14:33
+@@ -132,10 +132,14 @@
+ 
+     if (isolationModeActive) {
+       uint256 nextIsolationModeTotalDebt = reservesData[isolationModeCollateralAddress]
+-        .isolationModeTotalDebt += (params.amount /
++        .isolationModeTotalDebt += (mulDivDown(params.amount, 1 ,
+         10 **
+           (reserveCache.reserveConfiguration.getDecimals() -
+-            ReserveConfiguration.DEBT_CEILING_DECIMALS)).toUint128();
++            ReserveConfiguration.DEBT_CEILING_DECIMALS))).toUint128();
++        // .isolationModeTotalDebt += (params.amount /     // Munged by Certora
++        // 10 **
++        //   (reserveCache.reserveConfiguration.getDecimals() -
++        //     ReserveConfiguration.DEBT_CEILING_DECIMALS)).toUint128();
+       emit IsolationModeTotalDebtUpdated(
+         isolationModeCollateralAddress,
+         nextIsolationModeTotalDebt
+@@ -349,5 +353,9 @@
+     reserve.updateInterestRates(reserveCache, asset, 0, 0);
+ 
+     emit SwapBorrowRateMode(asset, msg.sender, interestRateMode);
++  }
++  
++  function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
+   }
+ }
+diff -ruN lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol
+--- lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-04-01 13:48:37
++++ lib/aave-v3-core/contracts/protocol/libraries/logic/GenericLogic.sol	2024-04-01 12:25:59
+@@ -135,15 +135,19 @@
+ 
+         if (vars.ltv != 0) {
+           vars.avgLtv +=
+-            vars.userBalanceInBaseCurrency *
+-            (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
++            mulDivDown(vars.userBalanceInBaseCurrency, 
++            (vars.isInEModeCategory ? vars.eModeLtv : vars.ltv), 1);
++            //vars.userBalanceInBaseCurrency * // Munged by Certora
++            //(vars.isInEModeCategory ? vars.eModeLtv : vars.ltv);
+         } else {
+           vars.hasZeroLtvCollateral = true;
+         }
+ 
+         vars.avgLiquidationThreshold +=
+-          vars.userBalanceInBaseCurrency *
+-          (vars.isInEModeCategory ? vars.eModeLiqThreshold : vars.liquidationThreshold);
++          mulDivDown(vars.userBalanceInBaseCurrency,
++          (vars.isInEModeCategory ? vars.eModeLiqThreshold : vars.liquidationThreshold), 1);
++          //vars.userBalanceInBaseCurrency * //Munged by Certora
++          //(vars.isInEModeCategory ? vars.eModeLiqThreshold : vars.liquidationThreshold);
+       }
+ 
+       if (params.userConfig.isBorrowing(vars.i)) {
+@@ -162,10 +166,12 @@
+ 
+     unchecked {
+       vars.avgLtv = vars.totalCollateralInBaseCurrency != 0
+-        ? vars.avgLtv / vars.totalCollateralInBaseCurrency
++        ? mulDivDown(vars.avgLtv, 1, vars.totalCollateralInBaseCurrency)
++        //? vars.avgLtv / vars.totalCollateralInBaseCurrency // Munged by Certora
+         : 0;
+       vars.avgLiquidationThreshold = vars.totalCollateralInBaseCurrency != 0
+-        ? vars.avgLiquidationThreshold / vars.totalCollateralInBaseCurrency
++        ? mulDivDown(vars.avgLiquidationThreshold, 1, vars.totalCollateralInBaseCurrency)
++        //? vars.avgLiquidationThreshold / vars.totalCollateralInBaseCurrency  // Munged by Certora
+         : 0;
+     }
+ 
+@@ -234,10 +240,12 @@
+ 
+     userTotalDebt = userTotalDebt + IERC20(reserve.stableDebtTokenAddress).balanceOf(user);
+ 
+-    userTotalDebt = assetPrice * userTotalDebt;
++    userTotalDebt = mulDivDown(assetPrice, userTotalDebt, 1);
++    //userTotalDebt = assetPrice * userTotalDebt; // Munged by Certora
+ 
+     unchecked {
+-      return userTotalDebt / assetUnit;
++      return mulDivDown(userTotalDebt, 1, assetUnit);
++      //return userTotalDebt / assetUnit; // Munged by Certora
+     }
+   }
+ 
+@@ -258,12 +266,20 @@
+     uint256 assetUnit
+   ) private view returns (uint256) {
+     uint256 normalizedIncome = reserve.getNormalizedIncome();
+-    uint256 balance = (
++    uint256 balance = mulDivDown((
+       IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)
+-    ) * assetPrice;
++    ), assetPrice, 1);
++    //uint256 balance = (
++    //  IScaledBalanceToken(reserve.aTokenAddress).scaledBalanceOf(user).rayMul(normalizedIncome)
++    //) * assetPrice; // Munged by Certora
+ 
+     unchecked {
+-      return balance / assetUnit;
++      return mulDivDown(balance, 1, assetUnit);
++      //return balance / assetUnit; //Munged by Certora
+     }
+   }
++
++  function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
++    }
+ }
+diff -ruN lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC4626Upgradeable.sol lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC4626Upgradeable.sol
+--- lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC4626Upgradeable.sol	2024-04-01 13:48:37
++++ lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC4626Upgradeable.sol	2024-03-21 12:14:33
+@@ -308,4 +308,9 @@
+     function _decimalsOffset() internal view virtual returns (uint8) {
+         return 0;
+     }
++    // munging to access ERC4626 storage
++    function _getERC4626StoragePublic() public pure returns (ERC4626Storage memory $){
++        return _getERC4626Storage();
++    }
++    // end of munging
+ }
+diff -ruN src/libraries/LoanLogic.sol src/libraries/LoanLogic.sol
+--- src/libraries/LoanLogic.sol	2024-04-01 13:48:37
++++ src/libraries/LoanLogic.sol	2024-03-21 12:14:33
+@@ -115,7 +115,7 @@
+     ) internal pure returns (uint256 shareDebtUSD, uint256 shareEquityUSD) {
+         shareDebtUSD =
+             Math.mulDiv(state.debtUSD, shares, totalShares, Math.Rounding.Ceil);
+-
++            
+         shareEquityUSD = Math.mulDiv(
+             state.collateralUSD, shares, totalShares, Math.Rounding.Floor
+         ) - shareDebtUSD;
+@@ -218,9 +218,12 @@
+         uint256 totalBorrow = _getTotalBorrow(reserveData);
+         uint256 borrowCap = reserveData.configuration.getBorrowCap();
+         uint256 assetUnit = 10 ** reserveData.configuration.getDecimals();
+-        uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow)
+-            ? borrowCap * assetUnit - totalBorrow
++        uint256 avilableUntilBorrowCap = (mulDivDown(borrowCap, assetUnit, 1) > totalBorrow)
++            ? mulDivDown(borrowCap, assetUnit, 1) - totalBorrow
+             : 0;
++        //uint256 avilableUntilBorrowCap = (borrowCap * assetUnit > totalBorrow) // Munged by Certora
++        //    ? borrowCap * assetUnit - totalBorrow // Munged by Certora
++        //    : 0;
+ 
+         uint256 availableLiquidityBase =
+             asset.balanceOf(reserveData.aTokenAddress);
+@@ -287,4 +290,9 @@
+ 
+         sToken = IAToken(sTokenAddress);
+     }
++
++    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
++    }
++
+ }
+diff -ruN src/libraries/RebalanceLogic.sol src/libraries/RebalanceLogic.sol
+--- src/libraries/RebalanceLogic.sol	2024-04-01 13:48:37
++++ src/libraries/RebalanceLogic.sol	2024-03-21 12:14:33
+@@ -392,7 +392,8 @@
+         uint256 offsetFactor =
+             $.swapper.offsetFactor($.assets.debt, $.assets.collateral);
+ 
+-        uint256 margin = _targetCR * $.ratioMargin / ONE_USD;
++        uint256 margin = mulDivDown(_targetCR, $.ratioMargin, ONE_USD);
++        //uint256 margin = _targetCR * $.ratioMargin / ONE_USD; // Munged by Certora
+         uint256 count;
+ 
+         do {
+@@ -492,7 +493,8 @@
+         uint256 offsetFactor =
+             $.swapper.offsetFactor($.assets.collateral, $.assets.debt);
+ 
+-        uint256 margin = targetCR * $.ratioMargin / ONE_USD;
++        uint256 margin = mulDivDown(targetCR, $.ratioMargin, ONE_USD);
++        //uint256 margin = targetCR * $.ratioMargin / ONE_USD; // Munged by Certora
+         uint256 count;
+ 
+         do {
+@@ -561,7 +563,8 @@
+             uint256 collateralAmountAsset = RebalanceMath
+                 .calculateCollateralAsset(
+                 state,
+-                remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor),
++                mulDivDown(remainingDebtUSD, ONE_USD, (ONE_USD - offsetFactor)),
++                //remainingDebtUSD * ONE_USD / (ONE_USD - offsetFactor), // Munged by Certora
+                 collateralPriceUSD,
+                 collateralDecimals
+             );
+@@ -629,4 +632,9 @@
+                 || collateralRatio > collateraRatioTargets.maxForRebalance
+         );
+     }
++
++    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
++    }
++
+ }
+diff -ruN src/libraries/math/RebalanceMath.sol src/libraries/math/RebalanceMath.sol
+--- src/libraries/math/RebalanceMath.sol	2024-04-01 13:48:37
++++ src/libraries/math/RebalanceMath.sol	2024-03-21 12:14:33
+@@ -33,11 +33,16 @@
+         returns (uint256 amount)
+     {
+         // prevent overflows
+-        if (a <= type(uint256).max / (ONE_USD - offsetUSD)) {
+-            amount = (a * (ONE_USD - offsetUSD)) / ONE_USD;
++        if (a <= mulDivDown(type(uint256).max, 1,  (ONE_USD - offsetUSD))) {
++            amount = mulDivDown(a, (ONE_USD - offsetUSD), ONE_USD);
+         } else {
+-            amount = (a / ONE_USD) * (ONE_USD - offsetUSD);
++            amount =  mulDivDown(mulDivDown(a, 1, ONE_USD), (ONE_USD - offsetUSD), 1);
+         }
++        //if (a <= type(uint256).max / (ONE_USD - offsetUSD)) { // Munged by Certora
++        //    amount = (a * (ONE_USD - offsetUSD)) / ONE_USD; // Munged by Certora
++        //} else {
++        //    amount = (a / ONE_USD) * (ONE_USD - offsetUSD); // Munged by Certora
++        //}
+     }
+ 
+     /// @notice calculates the total required borrow amount in order to reach a target collateral ratio value
+@@ -108,5 +113,9 @@
+             collateralDecimals,
+             Math.Rounding.Ceil
+         );
++    }
++    
++    function mulDivDown(uint256 a, uint256 b, uint256 c) internal pure returns (uint256 res) {
++            res = a * b / c;
+     }
+ }
