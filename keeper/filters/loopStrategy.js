@@ -33,8 +33,8 @@ const debtTokenToStrategies = {
 const strategyABI = [
     "function rebalanceNeeded() external view returns (bool)",
     "function rebalance() external returns (uint256)",
-    "function debt() external view returns (uint256)",
-    "function collateral() external view returns (uint256)",
+    "function debtUSD() external view returns (uint256)",
+    "function collateralUSD() external view returns (uint256)",
     "function currentCollateralRatio() external view returns (uint256)",
     "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))",
     "function equity() external view returns (uint256)"

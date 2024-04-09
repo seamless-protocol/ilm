@@ -10,8 +10,8 @@ const BASE = ethers.BigNumber.from(ethers.utils.parseUnits('1.0', 8)); // value 
 // check whether health factor is below threshold
 async function isStrategyAtRisk(strategy, threshold) {
     try {
-        const debtUSD = ethers.BigNumber.from(await strategy.debt());
-        const collateralUSD = ethers.BigNumber.from(await strategy.collateral());
+        const debtUSD = ethers.BigNumber.from(await strategy.debtUSD());
+        const collateralUSD = ethers.BigNumber.from(await strategy.collateralUSD());
 
         const healthFactor = collateralUSD.mul(BASE).div(debtUSD);
 
