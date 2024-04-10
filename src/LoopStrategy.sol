@@ -100,7 +100,7 @@ contract LoopStrategy is
             interestRateMode: 2,
             sTokenCollateral: LoanLogic.getSToken(
                 $.poolAddressProvider, $.assets.collateral
-                )
+            )
         });
 
         // there is no assets cap until it's otherwise set by the setter function
