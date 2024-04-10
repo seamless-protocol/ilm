@@ -25,9 +25,7 @@ contract DeployWrappedWETH is Script, DeployHelper, WrappedWETHConfig {
         vm.startBroadcast(deployerPrivateKey);
 
         WrappedERC20PermissionedDeposit wrappedToken = _deployWrappedToken(
-            deployerAddress,
-            wrappedWETHERC20Config,
-            IERC20(BASE_MAINNET_WETH)
+            deployerAddress, wrappedWETHERC20Config, IERC20(BASE_MAINNET_WETH)
         );
 
         wrappedToken.grantRole(
