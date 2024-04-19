@@ -59,7 +59,8 @@ contract LoopStrategyWstETHoverETHConfig is BaseMainnetConstants {
         swapperConfig: SwapperConfig({
             swapperOffsetFactor: 350000, // 0.35 %
             swapperOffsetDeviation: 200000000 // 200%
-         })
+         }),
+        debtAsset: BASE_MAINNET_WETH
     });
 }
 

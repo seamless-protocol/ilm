@@ -13,6 +13,8 @@ abstract contract BaseMainnetConstants {
         0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452;
     address public constant BASE_MAINNET_cbETH =
         0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22;
+    address public constant BASE_MAINNET_USDC =
+        0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
 
     address public constant SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET =
         0x0E02EB705be325407707662C6f6d3466E939f3a0;
@@ -41,4 +43,13 @@ abstract contract BaseMainnetConstants {
 
     address public constant SEAMLESS_COMMUNITY_MULTISIG =
         0xA1b5f2cc9B407177CD8a4ACF1699fa0b99955A22;
+
+    address public constant SWAPPER = 0xE314ae9D279919a00d4773cCe37946A98fADDaBc;
+    address public constant WRAPPED_TOKEN_ADAPTER =
+        0xc3e17CDac7C6ED317f0D9845d47df1a281B5f79E;
+    address public constant AERODROME_ADAPTER =
+        0x6Cfc78c96f87e522EBfDF86995609414cFB1DcB2;
+
+    address public constant BASE_MAINNET_SEAMLESS_WRAPPED_WETH =
+        0x3e8707557D4aD25d6042f590bCF8A06071Da2c5F;
 }

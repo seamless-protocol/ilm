@@ -9,6 +9,9 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 /// @dev Wraps the underlying ERC20 contract and mints the same amount of a wrapped token.
 /// @dev Deposits are permissioned but withdrawals are open to any address.
 interface IWrappedERC20PermissionedDeposit is IERC20 {
+    /// @notice role which can deposit to this contract to wrap underlying token
+    function DEPOSITOR_ROLE() external view returns (bytes32);
+
     /// @notice Deposit/wrapping underlying token
     /// @param account account doing the deposit
     /// @param amount amount of tokens deposited

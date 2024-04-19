@@ -55,7 +55,9 @@ contract DeployForkConfigs {
         swapperConfig: SwapperConfig({
             swapperOffsetFactor: 500000, // 0.5 %
             swapperOffsetDeviation: 499000000 // 499%
-         })
+         }),
+        // WETH address
+        debtAsset: 0x4200000000000000000000000000000000000006
     });
 
     LoopStrategyConfig public wstETHconfig = LoopStrategyConfig({
@@ -98,6 +100,8 @@ contract DeployForkConfigs {
         swapperConfig: SwapperConfig({
             swapperOffsetFactor: 500000, // 0.5 %
             swapperOffsetDeviation: 499000000 // 499%
-         })
+         }),
+        // WETH address
+        debtAsset: 0x4200000000000000000000000000000000000006
     });
 }
