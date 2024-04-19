@@ -60,8 +60,8 @@ contract LoopStrategyETHoverUSDCConfig is BaseMainnetConstants {
                 target: USDWadRayMath.usdDiv(300, 100), // 3 (1.5x)
                 minForRebalance: USDWadRayMath.usdDiv(255, 100), // 2.55 (-15%) (1.645x)
                 maxForRebalance: USDWadRayMath.usdDiv(345, 100), // 3.45 (+15%) (1.408x)
-                maxForDepositRebalance: USDWadRayMath.usdDiv(150, 50), // = target
-                minForWithdrawRebalance: USDWadRayMath.usdDiv(150, 50) // = target
+                maxForDepositRebalance: USDWadRayMath.usdDiv(300, 100), // = target
+                minForWithdrawRebalance: USDWadRayMath.usdDiv(300, 100) // = target
              }),
             ratioMargin: 1, // 0.000001% ratio margin
             maxIterations: 20
