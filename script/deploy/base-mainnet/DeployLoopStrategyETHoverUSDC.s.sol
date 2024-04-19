@@ -105,12 +105,8 @@ contract DeployLoopStrategyETHoverUSDC is
         strategy.renounceRole(strategy.MANAGER_ROLE(), deployerAddress);
         strategy.renounceRole(strategy.DEFAULT_ADMIN_ROLE(), deployerAddress);
 
-        address guardianPayload = address(
-            new DeployLoopStrategyETHoverUSDCGuardianPayload(
-                ILoopStrategy(strategy),
-                ethOverUSDCconfig.swapperConfig.swapperOffsetFactor
-            )
-        );
+        address guardianPayload =
+            address(new DeployLoopStrategyETHoverUSDCGuardianPayload());
 
         _logAddress("GuardianPayloadContract", guardianPayload);
 
@@ -125,18 +121,13 @@ contract DeployLoopStrategyETHoverUSDC is
     }
 }
 
+/// @notice Helper setup contract which guardian or governance can call through delegate call to setup this strategy
 contract DeployLoopStrategyETHoverUSDCGuardianPayload is
     BaseMainnetConstants
 {
-    ILoopStrategy public immutable strategy;
-    uint256 public immutable swapperOffsetFactor;
-
-    constructor(ILoopStrategy _strategy, uint256 _swapperOffsetFactor) {
-        strategy = _strategy;
-        swapperOffsetFactor = _swapperOffsetFactor;
-    }
-
-    function run() external {
+    function run(ILoopStrategy strategy, uint256 swapperOffsetFactor)
+        external
+    {
         StrategyAssets memory strategyAssets = strategy.getAssets();
 
         IWrappedERC20PermissionedDeposit wrappedToken =
