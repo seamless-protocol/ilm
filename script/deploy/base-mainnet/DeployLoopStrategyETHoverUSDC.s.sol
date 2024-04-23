@@ -121,13 +121,26 @@ contract DeployLoopStrategyETHoverUSDC is
     }
 }
 
+interface IOwnable2Step {
+    function transferOwnership(address newOwner) external; 
+    function acceptOwnership() external;
+}
+
 /// @notice Helper setup contract which guardian or governance can call through delegate call to setup this strategy
 contract DeployLoopStrategyETHoverUSDCGuardianPayload is
     BaseMainnetConstants
 {
+    error NotAuthorized();
+
     function run(ILoopStrategy strategy, uint256 swapperOffsetFactor)
         external
     {
+        if (msg.sender != SEAMLESS_COMMUNITY_MULTISIG && msg.sender != SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS) {
+            revert NotAuthorized();
+        }
+
+        _acceptRoles();
+
         StrategyAssets memory strategyAssets = strategy.getAssets();
 
         IWrappedERC20PermissionedDeposit wrappedToken =
@@ -139,10 +152,10 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
             wrappedToken.DEPOSITOR_ROLE(), address(strategy)
         );
         IAccessControl(address(wrappedToken)).grantRole(
-            wrappedToken.DEPOSITOR_ROLE(), address(wrappedTokenAdapter)
+            wrappedToken.DEPOSITOR_ROLE(), WRAPPED_TOKEN_ADAPTER
         );
 
-        wrappedTokenAdapter.setWrapper(
+        IWrappedTokenAdapter(WRAPPED_TOKEN_ADAPTER).setWrapper(
             wrappedToken.underlying(),
             IERC20(address(wrappedToken)),
             wrappedToken
@@ -163,5 +176,20 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
             ISwapAdapter(AERODROME_ADAPTER),
             swapperOffsetFactor
         );
+
+        _renounceRoles();
+    }
+
+    function _acceptRoles() internal {
+        IOwnable2Step(WRAPPED_TOKEN_ADAPTER).acceptOwnership();
+        IOwnable2Step(AERODROME_ADAPTER).acceptOwnership();
+    }
+
+    function _renounceRoles() internal {
+        IOwnable2Step(WRAPPED_TOKEN_ADAPTER).transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
+        IOwnable2Step(AERODROME_ADAPTER).transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
+
+        bytes32 MANAGER_ROLE = keccak256("MANAGER_ROLE");
+        IAccessControl(SWAPPER).renounceRole(MANAGER_ROLE, address(this));
     }
 }
