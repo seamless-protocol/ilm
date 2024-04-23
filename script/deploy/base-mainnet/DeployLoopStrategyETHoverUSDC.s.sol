@@ -166,7 +166,7 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
 
         DeployHelperLib._setAerodromeAdapterRoutes(
             IAerodromeAdapter(AERODROME_ADAPTER),
-            strategyAssets.collateral,
+            strategyAssets.underlying,
             strategyAssets.debt,
             AERODROME_FACTORY
         );
