@@ -27,7 +27,7 @@ library DeployHelperLib {
         IERC20 tokenB,
         address aerodromeFactory
     ) internal {
-        IRouter.Route[] memory routesAtoB= new IRouter.Route[](1);
+        IRouter.Route[] memory routesAtoB = new IRouter.Route[](1);
         routesAtoB[0] = IRouter.Route({
             from: address(tokenA),
             to: address(tokenB),
@@ -91,16 +91,12 @@ library DeployHelperLib {
             adapter: wrappedTokenAdapter
         });
 
-        swapper.setRoute(
-            IERC20(address(wrappedTokenA)), tokenB, stepsAtoB
-        );
+        swapper.setRoute(IERC20(address(wrappedTokenA)), tokenB, stepsAtoB);
         swapper.setOffsetFactor(
             IERC20(address(wrappedTokenA)), tokenB, swapperOffsetFactor
         );
 
-        swapper.setRoute(
-            tokenB, IERC20(address(wrappedTokenA)), stepsBtoA
-        );
+        swapper.setRoute(tokenB, IERC20(address(wrappedTokenA)), stepsBtoA);
         swapper.setOffsetFactor(
             tokenB, IERC20(address(wrappedTokenA)), swapperOffsetFactor
         );

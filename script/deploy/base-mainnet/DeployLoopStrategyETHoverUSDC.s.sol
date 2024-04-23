@@ -122,7 +122,7 @@ contract DeployLoopStrategyETHoverUSDC is
 }
 
 interface IOwnable2Step {
-    function transferOwnership(address newOwner) external; 
+    function transferOwnership(address newOwner) external;
     function acceptOwnership() external;
 }
 
@@ -135,7 +135,10 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
     function run(ILoopStrategy strategy, uint256 swapperOffsetFactor)
         external
     {
-        if (msg.sender != SEAMLESS_COMMUNITY_MULTISIG && msg.sender != SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS) {
+        if (
+            msg.sender != SEAMLESS_COMMUNITY_MULTISIG
+                && msg.sender != SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS
+        ) {
             revert NotAuthorized();
         }
 
@@ -186,8 +189,12 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
     }
 
     function _renounceRoles() internal {
-        IOwnable2Step(WRAPPED_TOKEN_ADAPTER).transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
-        IOwnable2Step(AERODROME_ADAPTER).transferOwnership(SEAMLESS_COMMUNITY_MULTISIG);
+        IOwnable2Step(WRAPPED_TOKEN_ADAPTER).transferOwnership(
+            SEAMLESS_COMMUNITY_MULTISIG
+        );
+        IOwnable2Step(AERODROME_ADAPTER).transferOwnership(
+            SEAMLESS_COMMUNITY_MULTISIG
+        );
 
         bytes32 MANAGER_ROLE = keccak256("MANAGER_ROLE");
         IAccessControl(SWAPPER).renounceRole(MANAGER_ROLE, address(this));
