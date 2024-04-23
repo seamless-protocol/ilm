@@ -27,81 +27,82 @@ library DeployHelperLib {
         IERC20 tokenB,
         address aerodromeFactory
     ) internal {
-        IRouter.Route[] memory routesUnderlyingtoWETH = new IRouter.Route[](1);
-        routesUnderlyingtoWETH[0] = IRouter.Route({
+        IRouter.Route[] memory routesAtoB= new IRouter.Route[](1);
+        routesAtoB[0] = IRouter.Route({
             from: address(tokenA),
             to: address(tokenB),
             stable: false,
             factory: aerodromeFactory
         });
 
-        IRouter.Route[] memory routesWETHtoUnderlying = new IRouter.Route[](1);
-        routesWETHtoUnderlying[0] = IRouter.Route({
+        IRouter.Route[] memory routesBtoA = new IRouter.Route[](1);
+        routesBtoA[0] = IRouter.Route({
             from: address(tokenB),
             to: address(tokenA),
             stable: false,
             factory: aerodromeFactory
         });
 
-        aerodromeAdapter.setRoutes(tokenA, tokenB, routesUnderlyingtoWETH);
-        aerodromeAdapter.setRoutes(tokenB, tokenA, routesWETHtoUnderlying);
+        aerodromeAdapter.setRoutes(tokenA, tokenB, routesAtoB);
+        aerodromeAdapter.setRoutes(tokenB, tokenA, routesBtoA);
     }
 
-    /// @dev set up the routes for swapping (wrappedToken <-> toToken)
+    /// @dev set up the routes for swapping (wrappedTokenA <-> tokenB)
     /// @dev requires for the caller to have MANAGER_ROLE on the Swapper contract
     /// @param swapper address of the Swapper contract
-    /// @param wrappedToken address of the WrappedToken contract
+    /// @param wrappedTokenA address of the WrappedToken contract
+    /// @param tokenB address of the tokenB
     /// @param wrappedTokenAdapter address of the WrappedTokenAdapter contract
     /// @param aerodromeAdapter address of the AerodromeAdapter contract
     /// @param swapperOffsetFactor offsetFactor for this swapping routes
     function _setSwapperRouteBetweenWrappedAndToken(
         ISwapper swapper,
-        IWrappedERC20PermissionedDeposit wrappedToken,
-        IERC20 toToken,
+        IWrappedERC20PermissionedDeposit wrappedTokenA,
+        IERC20 tokenB,
         ISwapAdapter wrappedTokenAdapter,
         ISwapAdapter aerodromeAdapter,
         uint256 swapperOffsetFactor
     ) internal {
-        IERC20 underlyingToken = wrappedToken.underlying();
+        IERC20 underlyingTokenA = wrappedTokenA.underlying();
 
-        // from wrappedToken -> toToken
-        Step[] memory stepsWrappedToWETH = new Step[](2);
-        stepsWrappedToWETH[0] = Step({
-            from: IERC20(address(wrappedToken)),
-            to: underlyingToken,
+        // from wrappedTokenA -> tokenB
+        Step[] memory stepsAtoB = new Step[](2);
+        stepsAtoB[0] = Step({
+            from: IERC20(address(wrappedTokenA)),
+            to: underlyingTokenA,
             adapter: wrappedTokenAdapter
         });
-        stepsWrappedToWETH[1] = Step({
-            from: underlyingToken,
-            to: toToken,
+        stepsAtoB[1] = Step({
+            from: underlyingTokenA,
+            to: tokenB,
             adapter: aerodromeAdapter
         });
 
-        // from toToken -> wrappedToken
-        Step[] memory stepsWETHtoWrapped = new Step[](2);
-        stepsWETHtoWrapped[0] = Step({
-            from: toToken,
-            to: underlyingToken,
+        // from tokenB -> wrappedTokenA
+        Step[] memory stepsBtoA = new Step[](2);
+        stepsBtoA[0] = Step({
+            from: tokenB,
+            to: underlyingTokenA,
             adapter: aerodromeAdapter
         });
-        stepsWETHtoWrapped[1] = Step({
-            from: underlyingToken,
-            to: IERC20(address(wrappedToken)),
+        stepsBtoA[1] = Step({
+            from: underlyingTokenA,
+            to: IERC20(address(wrappedTokenA)),
             adapter: wrappedTokenAdapter
         });
 
         swapper.setRoute(
-            IERC20(address(wrappedToken)), toToken, stepsWrappedToWETH
+            IERC20(address(wrappedTokenA)), tokenB, stepsAtoB
         );
         swapper.setOffsetFactor(
-            IERC20(address(wrappedToken)), toToken, swapperOffsetFactor
+            IERC20(address(wrappedTokenA)), tokenB, swapperOffsetFactor
         );
 
         swapper.setRoute(
-            toToken, IERC20(address(wrappedToken)), stepsWETHtoWrapped
+            tokenB, IERC20(address(wrappedTokenA)), stepsBtoA
         );
         swapper.setOffsetFactor(
-            toToken, IERC20(address(wrappedToken)), swapperOffsetFactor
+            tokenB, IERC20(address(wrappedTokenA)), swapperOffsetFactor
         );
     }
 }
