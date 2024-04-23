@@ -180,6 +180,9 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
             swapperOffsetFactor
         );
 
+        bytes32 STRATEGY_ROLE = keccak256("STRATEGY_ROLE");
+        IAccessControl(SWAPPER).grantRole(STRATEGY_ROLE, address(strategy));
+
         _renounceRoles();
     }
 
