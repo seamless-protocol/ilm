@@ -198,5 +198,8 @@ contract DeployLoopStrategyETHoverUSDCGuardianPayload is
 
         bytes32 MANAGER_ROLE = keccak256("MANAGER_ROLE");
         IAccessControl(SWAPPER).renounceRole(MANAGER_ROLE, address(this));
+        IAccessControl(BASE_MAINNET_SEAMLESS_WRAPPED_WETH).renounceRole(
+            MANAGER_ROLE, address(this)
+        );
     }
 }
