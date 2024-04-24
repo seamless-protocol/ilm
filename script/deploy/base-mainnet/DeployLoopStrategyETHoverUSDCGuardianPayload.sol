@@ -11,11 +11,9 @@ import { IWrappedTokenAdapter } from
     "../../../src/interfaces/IWrappedTokenAdapter.sol";
 import { IAerodromeAdapter } from
     "../../../src/interfaces/IAerodromeAdapter.sol";
-import {
-    IWrappedERC20PermissionedDeposit
-} from "../../../src/tokens/WrappedERC20PermissionedDeposit.sol";
-import { StrategyAssets
-} from "../../../src/types/DataTypes.sol";
+import { IWrappedERC20PermissionedDeposit } from
+    "../../../src/tokens/WrappedERC20PermissionedDeposit.sol";
+import { StrategyAssets } from "../../../src/types/DataTypes.sol";
 import { ISwapAdapter } from "../../../src/interfaces/ISwapAdapter.sol";
 import { DeployHelperLib } from "../DeployHelperLib.sol";
 import { BaseMainnetConstants } from "../config/BaseMainnetConstants.sol";

@@ -32,7 +32,8 @@ import { USDWadRayMath } from "../../../src/libraries/math/USDWadRayMath.sol";
 import { BaseMainnetConstants } from "../config/BaseMainnetConstants.sol";
 import { ISwapAdapter } from "../../../src/interfaces/ISwapAdapter.sol";
 import { DeployHelperLib } from "../DeployHelperLib.sol";
-import { DeployLoopStrategyETHoverUSDCGuardianPayload } from "./DeployLoopStrategyETHoverUSDCGuardianPayload.sol";
+import { DeployLoopStrategyETHoverUSDCGuardianPayload } from
+    "./DeployLoopStrategyETHoverUSDCGuardianPayload.sol";
 
 contract LoopStrategyETHoverUSDCConfig is BaseMainnetConstants {
     // wrapped WETH
