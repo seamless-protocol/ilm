@@ -31,7 +31,7 @@ jobs:
           cache: 'pip'
 
       - name: Install certora
-        run: pip3 install certora-cli
+        run: pip3 install certora-cli==7.3.0
 
       - name: Install solc
         run: |
