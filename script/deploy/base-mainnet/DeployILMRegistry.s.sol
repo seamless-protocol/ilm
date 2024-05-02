@@ -3,7 +3,7 @@
 pragma solidity 0.8.21;
 
 import { Script } from "forge-std/Script.sol";
-import { Console } from "forge-std/Console.sol";
+import { console } from "forge-std/console.sol";
 
 import { ILMRegistry } from "../../../src/ILMRegistry.sol";
 
