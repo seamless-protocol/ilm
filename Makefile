@@ -23,3 +23,6 @@ deploy-loopStrategyWstETHoverETH-fork 						:; forge script script/deploy/base-m
 
 deploy-loopStrategyImplementation-base-mainnet		:; forge script script/deploy/DeployLoopStrategyImplementation.s.sol --tc DeployLoopStrategyImplementation --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url  ${VERIFIER_URL} -vvvv
 deploy-loopStrategyImplementation-fork		        :; forge script script/deploy/DeployLoopStrategyImplementation.s.sol --tc DeployLoopStrategyImplementation --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
+
+deploy-ilmregistry-base-mainnet		:; forge script script/deploy/base-mainnet/DeployILMRegistry.s.sol --tc DeployILMRegistry --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url  ${VERIFIER_URL} -vvvv
+deploy-ilmregistry-fork		        :; forge script script/deploy/base-mainnet/DeployILMRegistry.s.sol --tc DeployILMRegistry --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
