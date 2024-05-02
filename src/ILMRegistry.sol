@@ -6,6 +6,8 @@ import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol"
 import { EnumerableSet } from
     "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import { IILMRegistry } from "./interfaces/IILMRegistry.sol";
+
 /// @title ILMRegistry
 /// @notice Registry for the deployed ILMs
 contract ILMRegistry is AccessControl, IILMRegistry {
@@ -37,17 +39,17 @@ contract ILMRegistry is AccessControl, IILMRegistry {
     }
 
     /// @inheritdoc IILMRegistry
-    function countILM() external view returns (uint256) {
+    function countILM() external view returns (uint256 ilmCount) {
         return ilmSet.length();
     }
 
     /// @inheritdoc IILMRegistry
-    function getAllILMs() external view returns (address[] memory) {
+    function getAllILMs() external view returns (address[] memory ilms) {
         return ilmSet.values();
     }
 
     /// @inheritdoc IILMRegistry
-    function getILMat(uint256 index) external view returns (address) {
+    function getILM(uint256 index) external view returns (address ilm) {
         return ilmSet.at(index);
     }
 }
