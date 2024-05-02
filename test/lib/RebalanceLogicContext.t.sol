@@ -74,7 +74,7 @@ abstract contract RebalanceLogicContext is BaseForkTest {
             interestRateMode: 2,
             sTokenCollateral: LoanLogic.getSToken(
                 poolAddressProvider, $.assets.collateral
-            )
+                )
         });
         $.oracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
         $.ratioMargin = 100_000; // 1e2 / 1e8 = 0.001%

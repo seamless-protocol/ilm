@@ -2,11 +2,9 @@
 
 pragma solidity ^0.8.21;
 
-
 /// @title IILMRegistry
 /// @notice Interface for ILMRegistry
 interface IILMRegistry {
-
     /// @notice emitted when a new ILM proxy contract address is added to
     /// the ilmSet
     /// @param ilm address of ILM proxy contract
