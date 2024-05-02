@@ -44,7 +44,7 @@ contract LoopStrategyWstETHoverETHConfig is BaseMainnetConstants {
         wrappedTokenERC20Config: ERC20Config("", ""), // empty, not used
         wrappedTokenReserveConfig: ReserveConfig(
             address(0), "", "", "", "", "", "", 0, 0, 0
-            ), // empty, not used
+        ), // empty, not used
         collateralRatioConfig: CollateralRatioConfig({
             collateralRatioTargets: CollateralRatio({
                 target: USDWadRayMath.usdDiv(150, 100), // 1.5
