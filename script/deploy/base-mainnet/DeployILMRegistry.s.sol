@@ -13,7 +13,6 @@ contract DeployILMRegistry is Script {
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PK");
-        address deployerAddress = vm.addr(deployerPrivateKey);
 
         vm.startBroadcast(deployerPrivateKey);
         ILMRegistry registry = new ILMRegistry(INITIAL_ADMIN);
