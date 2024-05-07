@@ -44,6 +44,15 @@ contract ILMRegistry is AccessControl, IILMRegistry {
     }
 
     /// @inheritdoc IILMRegistry
+    function isILM(address ilmAddress)
+        external
+        view
+        returns (bool isContained)
+    {
+        return ilmSet.contains(ilmAddress);
+    }
+
+    /// @inheritdoc IILMRegistry
     function getAllILMs() external view returns (address[] memory ilms) {
         return ilmSet.values();
     }

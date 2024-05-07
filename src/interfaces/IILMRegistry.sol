@@ -25,6 +25,16 @@ interface IILMRegistry {
     /// @return ilmCount number of registered ilms
     function countILM() external view returns (uint256 ilmCount);
 
+    /// @notice returns a boolean indicated whether an ILM proxy contract address
+    /// is included in the ILMSet
+    /// @param ilmAddress address of ILM proxy contract
+    /// @return isContained a boolean indicated whether the ILM proxy contract address is
+    /// contained in the ILMSet
+    function isILM(address ilmAddress)
+        external
+        view
+        returns (bool isContained);
+
     /// @notice returns all registered ILM proxy contract addresses
     /// @return ilms registered ILM proxy contract addresses
     function getAllILMs() external view returns (address[] memory ilms);
