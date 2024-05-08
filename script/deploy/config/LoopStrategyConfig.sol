@@ -47,4 +47,5 @@ struct LoopStrategyConfig {
     ReserveConfig wrappedTokenReserveConfig;
     CollateralRatioConfig collateralRatioConfig;
     SwapperConfig swapperConfig;
+    address debtAsset;
 }

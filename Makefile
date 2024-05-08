@@ -15,14 +15,21 @@ fmt                     :; forge fmt
 test                    :; forge test -vvv --no-match-test test_e2eSimulation --gas-report && forge test -vvv --mt test_e2eSimulation
 
 # Deploy
-deploy-wrappedwstETH-base-mainnet 		:; forge script script/deploy/base-mainnet/DeployWrappedwstETH.s.sol --tc DeployWrappedwstETH --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
-deploy-wrappedwstETH-fork 						:; forge script script/deploy/base-mainnet/DeployWrappedwstETH.s.sol --tc DeployWrappedwstETH --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
+deploy-wrappedwstETH-base-mainnet 								:; forge script script/deploy/base-mainnet/DeployWrappedwstETH.s.sol --tc DeployWrappedwstETH --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-wrappedwstETH-tenderly 										:; forge script script/deploy/base-mainnet/DeployWrappedwstETH.s.sol --tc DeployWrappedwstETH --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
 
-deploy-loopStrategyWstETHoverETH-base-mainnet 		:; forge script script/deploy/base-mainnet/DeployLoopStrategyWstETHoverETH.s.sol --tc DeployLoopStrategyWstETHoverETH --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
-deploy-loopStrategyWstETHoverETH-fork 						:; forge script script/deploy/base-mainnet/DeployLoopStrategyWstETHoverETH.s.sol --tc DeployLoopStrategyWstETHoverETH --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
+deploy-loopStrategyWstETHoverETH-base-mainnet 		:; forge script script/deploy/base-mainnet/DeployLoopStrategyWstETHoverETH.s.sol --tc DeployLoopStrategyWstETHoverETH --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-loopStrategyWstETHoverETH-tenderly 				:; forge script script/deploy/base-mainnet/DeployLoopStrategyWstETHoverETH.s.sol --tc DeployLoopStrategyWstETHoverETH --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
 
-deploy-loopStrategyImplementation-base-mainnet		:; forge script script/deploy/DeployLoopStrategyImplementation.s.sol --tc DeployLoopStrategyImplementation --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url  ${VERIFIER_URL} -vvvv
-deploy-loopStrategyImplementation-fork		        :; forge script script/deploy/DeployLoopStrategyImplementation.s.sol --tc DeployLoopStrategyImplementation --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
+deploy-loopStrategyImplementation-base-mainnet		:; forge script script/deploy/DeployLoopStrategyImplementation.s.sol --tc DeployLoopStrategyImplementation --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-loopStrategyImplementation-tenderly		    :; forge script script/deploy/DeployLoopStrategyImplementation.s.sol --tc DeployLoopStrategyImplementation --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
 
-deploy-ilmregistry-base-mainnet		:; forge script script/deploy/base-mainnet/DeployILMRegistry.s.sol --tc DeployILMRegistry --force --rpc-url ${BASE_MAINNET_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url  ${VERIFIER_URL} -vvvv
-deploy-ilmregistry-fork		        :; forge script script/deploy/base-mainnet/DeployILMRegistry.s.sol --tc DeployILMRegistry --force --rpc-url ${FORK_RPC} --slow --broadcast -vvvv
+deploy-swapperImplementation-base-mainnet					:; forge script script/deploy/DeploySwapperImplementation.s.sol --tc DeploySwapperImplementation --force --rpc-url base  --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-swapperImplementation-tenderly		    			:; forge script script/deploy/DeploySwapperImplementation.s.sol --tc DeploySwapperImplementation --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+
+deploy-wrappedWETH-base-mainnet 									:; forge script script/deploy/base-mainnet/DeployWrappedWETH.s.sol --tc DeployWrappedWETH --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-wrappedWETH-tenderly 											:; forge script script/deploy/base-mainnet/DeployWrappedWETH.s.sol --tc DeployWrappedWETH --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+
+deploy-loopStrategyETHoverUSDC-base-mainnet 			:; forge script script/deploy/base-mainnet/DeployLoopStrategyETHoverUSDC.s.sol --tc DeployLoopStrategyETHoverUSDC --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-loopStrategyETHoverUSDC-tenderly 					:; forge script script/deploy/base-mainnet/DeployLoopStrategyETHoverUSDC.s.sol --tc DeployLoopStrategyETHoverUSDC --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+
