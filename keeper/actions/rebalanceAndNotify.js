@@ -6,11 +6,12 @@ const { sendHealthFactorAlert, sendExposureAlert, sendEPSAlert, sendOracleOutage
 const strategyABI = [
   "function rebalanceNeeded() external view returns (bool)",
   "function rebalance() external returns (uint256)",
-  "function debt() external view returns (uint256)",
-  "function collateral() external view returns (uint256)",
+  "function debtUSD() external view returns (uint256)",
+  "function collateralUSD() external view returns (uint256)",
   "function currentCollateralRatio() external view returns (uint256)",
   "function getCollateralRatioTargets() external view returns (tuple(uint256,uint256,uint256,uint256,uint256))",
-  "function equity() external view returns (uint256)"
+  "function equity() external view returns (uint256)",
+  "function totalSupply() external view returns (uint256)"
 ];
 
 const healthFactorThreshold = ethers.BigNumber.from(ethers.utils.parseUnits('1.1', 8));  //value used for testing
@@ -43,22 +44,23 @@ exports.handler = async function (payload, context) {
   
   if ('type' in metadata && metadata.type == 'withdrawOrDeposit') {
       console.log('Processing states after withdrawal or deposit...');
+      console.log('Metadata to check against: ', metadata);
 
-      if (metadata.riskState.isAtRisk) {
+      if (metadata.riskState !== undefined && metadata.riskState.isAtRisk) {
         await sendHealthFactorAlert(notificationClient, riskState.threshold, riskState.healthFactor);
         console.log('Sent health factor alert.');
       } else {
         console.log(`Health factor is deemed to be safe at: ${riskState.healthFactor}.`);
       }
 
-      if (metadata.exposureState.isOverExposed) {
+      if (metadata.exposureState !== undefined && metadata.exposureState.isOverExposed) {
         await sendExposureAlert(notificationClient, exposureState.current, exposureState.min);
         console.log('Sent exposure alert.');
       } else {
         console.log(`Exposure is deemed to be fine at ${exposureState.current}.`);
       }
 
-      if (metadata.EPSState.hasEPSDecreased) {
+      if (metadata.EPSState !== undefined && metadata.EPSState.hasEPSDecreased) {
         await sendEPSAlert(notificationClient, EPSState.strategyAddress, EPSState.currentEPS, EPSState.currentEPS);
         console.log('EPS alert has been sent out.');
       } else {
@@ -69,6 +71,9 @@ exports.handler = async function (payload, context) {
   }
 
   if ('type' in metadata && metadata.type == "priceUpdate") {
+    console.log('Processing potential rebalances after price update...');
+    console.log('Metadata to check against: ', metadata);
+
     if (metadata.strategiesToRebalance.length != 0) {
        try {
         console.log('Attempting to rebalance strategies...');
@@ -106,14 +111,14 @@ exports.handler = async function (payload, context) {
       console.log('No strategies needing rebalance have been detected.');
     }
 
-    if (metadata.oracleState.isOut) {
+    if (metadata.oracleState !== undefined && metadata.oracleState.isOut) {
       await sendOracleOutageAlert(notificationClient, metadata.oracleState.oracleAddress, metadata.oracleState.secondsSinceLastUpdate);
       console.log('Sent oracle outage alert.');
     } else {
       console.log('Oracle outage alert has not been sent.');
     }
     
-    if (metadata.isSequencerOut) {
+    if (metadata.isSequencerOut !== undefined && metadata.isSequencerOut) {
       await sendSequencerOutageAlert(notificationClient);
       console.log('Sent sequencer outage alert.');
     } else {

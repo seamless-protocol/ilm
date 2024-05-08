@@ -22,15 +22,23 @@ async function isStrategyAtRisk(strategy, threshold) {
         };
     } catch (err) {
         console.error('An error has occurred during health factor check: ', err);
-        throw err;
+      	throw err;
     }
 }
 
 // check whether collateral ratio is beneath minForRebalance indicating overexposure
 async function isStrategyOverexposed(strategy) {
     try {
-        const currentCR = ethers.BigNumber.from((await strategy.currentCollateralRatio()).toString());
-        const minForRebalance = ethers.BigNumber.from(((await strategy.getCollateralRatioTargets())[1]).toString());
+        const currentCR = ethers.BigNumber.from(
+          (
+          	await strategy.currentCollateralRatio()
+          ).toString()
+        );
+        const minForRebalance = ethers.BigNumber.from(
+          (
+            (await strategy.getCollateralRatioTargets())[1]
+          ).toString()
+        );
         
        return {
             isOverExposed: currentCR.lt(minForRebalance),
@@ -40,17 +48,16 @@ async function isStrategyOverexposed(strategy) {
         
     } catch (err) {
         console.error('An error has occured during collateral ratio check: ', err);
-        throw err;
+      	throw err;
     }
 }
 
 // checks if an oracle is out and update the last time it was updated
 async function isOracleOut(store, oracle) {
     const lastUpdate = await store.get(oracle.address);
-
     const latestUpdate = await oracle.latestRoundData()[3];
-
-    await store.put(oracle.address, latestUpdate.toString());
+	
+	await store.put(oracle.address, latestUpdate.toString());
 
     if (lastUpdate !== null && lastUpdate !== undefined) {
         let secondSinceLastUpdate = parseInt(lastUpdate) - Math.floor(Date.now() / 1000);
@@ -61,22 +68,36 @@ async function isOracleOut(store, oracle) {
             oracleAddress: oracle.address
         };
     }
+
+    
 }
 
 // checks if EPS has decreased between withdrawals / deposits, and updates latest EPS value
 async function hasEPSDecreased(store, strategy) {
-    const prevEPS = await store.get(strategy.address);
+  	let prevEPS = await store.get(strategy.address);
+  	try {
+      	if (prevEPS === null || prevEPS === undefined) {
+ 			prevEPS = 0;
+        }
 
-    const currentEPS = equityPerShare(strategy);
+    	const currentEPS = await equityPerShare(strategy);
 
-    updateEPS(store, strategy.address, currentEPS);
+    	await updateEPS(store, strategy.address, currentEPS);
+      
+      	console.log('prevEPS: ', prevEPS);
+        console.log('currentEPS: ', currentEPS);
 
-    return {
-        strategyAddress: strategy.address,
-        hasEPSDecreased: ethers.BigNumber.from(prevEPS).gt(ethers.BigNumber.from(currentEPS.toString())),
-        prevEPS: prevEPS,
-        currentEPS: currentEPS
-    };
+    	return {
+        	strategyAddress: strategy.address,
+        	hasEPSDecreased: ethers.BigNumber.from(prevEPS.toString()).lt(ethers.BigNumber.from(currentEPS.toString())),
+        	prevEPS: prevEPS,
+        	currentEPS: currentEPS
+    	};
+    } catch (err) {
+    	console.error('An error occurred when attempting to check if EPS has decreased: ', err);
+        console.log('prevEPS: ', prevEPS);
+        throw err;
+    }
 }
 
 // checks that alert channels matching 'seamless-alerts' alias exist and returns them
