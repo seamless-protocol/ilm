@@ -33,3 +33,5 @@ deploy-wrappedWETH-tenderly 											:; forge script script/deploy/base-mainne
 deploy-loopStrategyETHoverUSDC-base-mainnet 			:; forge script script/deploy/base-mainnet/DeployLoopStrategyETHoverUSDC.s.sol --tc DeployLoopStrategyETHoverUSDC --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
 deploy-loopStrategyETHoverUSDC-tenderly 					:; forge script script/deploy/base-mainnet/DeployLoopStrategyETHoverUSDC.s.sol --tc DeployLoopStrategyETHoverUSDC --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
 
+deploy-ilmregistry-base-mainnet		:; forge script script/deploy/base-mainnet/DeployILMRegistry.s.sol --tc DeployILMRegistry --force --rpc-url base --chain base --slow --broadcast --verify --delay 5 -vvvv
+deploy-ilmregistry-fork		        :; forge script script/deploy/base-mainnet/DeployILMRegistry.s.sol --tc DeployILMRegistry --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
