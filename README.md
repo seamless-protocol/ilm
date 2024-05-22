@@ -34,6 +34,7 @@ The ILMs integrate directly with the [Seamless Protocol](https://docs.seamlesspr
 | Swapper                      | `0xE314ae9D279919a00d4773cCe37946A98fADDaBc` | `0x08561d280654790861591fFAf68ed193AdDC479D` |
 | WrappedTokenAdapter          |                                              | `0xc3e17CDac7C6ED317f0D9845d47df1a281B5f79E` |
 | AerodromeAdapter             |                                              | `0x6Cfc78c96f87e522EBfDF86995609414cFB1DcB2` |
+| ILMRegistry                  |                                              | `0x36291d2D51a0122B9faCbE3c3F989cc6b1f859B3` |
 
 ## Audits
 
