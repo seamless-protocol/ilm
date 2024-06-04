@@ -47,7 +47,7 @@ contract UniversalAerodromeAdapter is
             _encodeSlipstreamExactInSwap(beneficiary, from, to, fromAmount, 0);
 
         uint256 oldBalance = to.balanceOf(beneficiary);
-        
+
         IUniversalRouter(UNIVERSAL_ROUTER).execute(
             abi.encodePacked(bytes1(uint8(Commands.V3_SWAP_EXACT_IN))),
             inputs,
@@ -65,7 +65,8 @@ contract UniversalAerodromeAdapter is
         external
         onlyOwner
     {
-        bytes memory path =  abi.encodePacked(address(from), tickSpacing, address(to));
+        bytes memory path =
+            abi.encodePacked(address(from), tickSpacing, address(to));
 
         swapPaths[from][to] = path;
         swapPaths[to][from] = path;
