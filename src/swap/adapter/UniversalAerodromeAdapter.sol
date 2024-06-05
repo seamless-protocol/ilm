@@ -6,11 +6,14 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 import { Commands } from "../../vendor/aerodrome/Commands.sol";
+import { IUniversalRouter } from "../../vendor/aerodrome/IUniversalRouter.sol";
 import { IUniversalAerodromeAdapter } from
     "../../interfaces/IUniversalAerodromeAdapter.sol";
-import { IUniversalRouter } from "../../vendor/aerodrome/IUniversalRouter.sol";
+import { ISwapAdapter } from "../../interfaces/ISwapAdapter.sol";
 import { SwapAdapterBase } from "./SwapAdapterBase.sol";
 
+/// @title AerodromeAdapter
+/// @notice Adapter contract for executing swaps on aerodrome
 contract UniversalAerodromeAdapter is
     SwapAdapterBase,
     IUniversalAerodromeAdapter
@@ -22,6 +25,7 @@ contract UniversalAerodromeAdapter is
 
     constructor(address initialOwner) Ownable(initialOwner) { }
 
+    /// @inheritdoc ISwapAdapter
     function executeSwap(
         IERC20 from,
         IERC20 to,
@@ -31,6 +35,13 @@ contract UniversalAerodromeAdapter is
         return _executeSwap(from, to, fromAmount, beneficiary);
     }
 
+    /// @notice swaps a given amount of a token to another token, sending the final amount to the beneficiary
+    /// @dev overridden internal _executeSwap function from SwapAdapterBase contract
+    /// @param from address of token to swap from
+    /// @param to address of token to swap to
+    /// @param fromAmount amount of from token to swap
+    /// @param beneficiary receiver of final to token amount
+    /// @return toAmount amount of to token returned from swapping
     function _executeSwap(
         IERC20 from,
         IERC20 to,
@@ -57,10 +68,12 @@ contract UniversalAerodromeAdapter is
         toAmount = to.balanceOf(beneficiary) - oldBalance;
     }
 
+    /// @inheritdoc ISwapAdapter
     function setSwapper(address swapper) external onlyOwner {
         _setSwapper(swapper);
     }
 
+    /// @inheritdoc IUniversalAerodromeAdapter
     function setPath(IERC20 from, IERC20 to, int24 tickSpacing)
         external
         onlyOwner
@@ -74,6 +87,13 @@ contract UniversalAerodromeAdapter is
         emit PathSet(from, to, path);
     }
 
+    /// @notice encodes the swapData needed for a Slpistream swap execution
+    /// @param beneficiary address receiving the amount of tokens received after the swap
+    /// @param from token being swapped
+    /// @param to token being received
+    /// @param amountIn amount of from token being swapped
+    /// @param amountOutMin minimum amount to receive of to token
+    /// @return swapData encoded swapData as bytes
     function _encodeSlipstreamExactInSwap(
         address beneficiary,
         IERC20 from,
@@ -81,6 +101,7 @@ contract UniversalAerodromeAdapter is
         uint256 amountIn,
         uint256 amountOutMin
     ) internal view returns (bytes memory swapData) {
+        // `true` sets `payerIsUser` in execution
         swapData = abi.encode(
             beneficiary, amountIn, amountOutMin, swapPaths[from][to], true
         );

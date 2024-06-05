@@ -11,4 +11,10 @@ interface IUniversalAerodromeAdapter {
     /// @param to second token of the pool
     /// @param path path for token swap encoded as bytes
     event PathSet(IERC20 from, IERC20 to, bytes path);
+
+    /// @notice sets the path for a given token pair, for both directions of swapping
+    /// @param from token being swapped
+    /// @param to token being received
+    /// @param tickSpacing tick spacing value
+    function setPath(IERC20 from, IERC20 to, int24 tickSpacing) external;
 }
