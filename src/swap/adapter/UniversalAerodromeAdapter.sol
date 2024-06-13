@@ -21,7 +21,7 @@ contract UniversalAerodromeAdapter is
     address public constant UNIVERSAL_ROUTER =
         0x6Cb442acF35158D5eDa88fe602221b67B400Be3E;
 
-    mapping(IERC20 from => mapping(IERC20 to => bytes path)) swapPaths;
+    mapping(IERC20 from => mapping(IERC20 to => bytes path)) public swapPaths;
 
     constructor(address initialOwner) Ownable(initialOwner) { }
 
