@@ -1,0 +1,61 @@
+name: Certora verification
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install certora
+        run: pip3 install certora-cli==7.3.0
+
+      - name: Install solc
+        run: |
+          pip install solc-select
+          solc-select install 0.8.21
+          solc-select use 0.8.21
+
+      -name: create munged
+        run: cd certora
+          touch applyHarness.patch
+          make munged
+          cd ..
+
+      - name: Verify conf ${{ matrix.params.name }}
+        run: >
+          message="$(git log -n 1 --pretty=format:'CI ${{matrix.params.name}} %h .... %s')";
+          certoraRun \
+            certora/confs/${{ matrix.params.command }} \
+            --msg "$(echo $message | sed 's/[^a-zA-Z0-9., _-]/ /g')"
+        env:
+          CERTORAKEY: ${{ secrets.CERTORAKEY }}
+
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        params: 
+          - {name: verifyERC4626Deposit, command: 'verifyERC4626Deposit.conf'}
+          - {name: verifyERC4626Redeem, command: 'verifyERC4626Redeem.conf'}
+          - {name: equityPerShareNonDecreasing, command: 'equityPerShareNonDecreasing.conf'}
+          - {name: equityDecreasingAfterRebalanceWitnessRebalanceUp, command: 'equityDecreasingAfterRebalanceWitnessRebalanceUp.conf'}
+          - {name: validCollateralRatioTargets, command: 'validCollateralRatioTargets.conf'}
+          - {name: verifyLoopStrategyReach, command: 'verifyLoopStrategyMany.conf --rule method_reachability'}
+          - {name: verifyLoopStrategyNonDec, command: 'verifyLoopStrategyMany.conf --rule rebalance_direction_non_decreasing'}
+          - {name: verifyLoopStrategyWItness, command: 'verifyLoopStrategyMany.conf --rule same_equity_after_consecutive_rebalance_witness'}
+          - {name: verifyLoopStrategyTheRest, command: 'verifyLoopStrategyFew.conf --rule same_equity_after_rebalance equity_decreasing_after_rebalance_witness_rebalanceDown equity_per_share_non_decreasing_witness ratioMargin_leq_1usd usdMul_summary_self_check usdDiv_summary_self_check divDown_summary_self_check usdMul_summary_under_approximation_self_check usdDiv_summary_under_approximation_self_check'}
