@@ -17,8 +17,6 @@ import { WrappedTokenAdapter } from
     "../../src/swap/adapter/WrappedTokenAdapter.sol";
 import { TestConstants } from "../config/TestConstants.sol";
 
-import "forge-std/console.sol";
-
 contract UniversalAerodromeAdapterBackTest is Test, TestConstants {
     string internal BASE_RPC_URL = vm.envString("BASE_MAINNET_RPC_URL");
 
