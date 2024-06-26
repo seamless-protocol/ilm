@@ -80,6 +80,15 @@ interface ILoopStrategy is IERC4626 {
     /// @param maxSlippage new value for maximum allowed slippage percentage (1e8 is 100%)
     event MaxSlippageOnRebalanceSet(uint256 maxSlippage);
 
+    /// @notice emitted when a deposit is made
+    /// @param sender address sending assets to strategy
+    /// @param receiver address receiving shares
+    /// @param assetsReceived assets remaining after rebalance costs have been deducted
+    /// @param shares shares received for assetsReceived
+    event DepositEquity(
+        address sender, address receiver, uint256 assetsReceived, uint256 shares
+    );
+
     /// @notice returns the amount of equity belonging to the strategy
     /// in underlying token value
     /// @return amount equity amount

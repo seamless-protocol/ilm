@@ -563,6 +563,8 @@ contract LoopStrategy is
         _mint(receiver, shares);
 
         emit Deposit(msg.sender, receiver, assets, shares);
+        emit DepositEquity(msg.sender, receiver, equityReceived, shares);
+
         return shares;
     }
 
