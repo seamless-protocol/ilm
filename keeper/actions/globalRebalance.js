@@ -2,8 +2,10 @@ const { ethers } = require("ethers");
 const { Defender } = require('@openzeppelin/defender-sdk');
 
 const strategyABI = ["function rebalanceNeeded() external view returns (bool)", "function rebalance() external returns (uint256)"];
-// REPLACE WITH STRATEGY ADDRESS OF INTEREST
-const strategyAddress = '0x08dd8c0b5E660800970410f6Ab3e61727599501F';
+
+// 0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e: 3x wstETH-ETH
+// 0x2FB1bEa0a63F77eFa77619B903B2830b52eE78f4: 1.5x ETH-USDC
+const strategyAddresses = ['0x258730e23cF2f25887Cb962d32Bd10b878ea8a4e', '0x2FB1bEa0a63F77eFa77619B903B2830b52eE78f4']
 
 // execute rebalance operation if its necessary
 async function performRebalance(strategy) {
@@ -27,10 +29,9 @@ exports.handler = async function (credentials) {
   const provider = client.relaySigner.getProvider();
   const signer = client.relaySigner.getSigner(provider, { speed: 'fast' });
 
-  const strategy = new ethers.Contract(strategyAddress, strategyABI, signer);
+  for (let strategyAddress of strategyAddresses) {
+  	let strategy = new ethers.Contract(strategyAddress, strategyABI, signer);
 
-  await performRebalance(strategy);
+  	await performRebalance(strategy);
+  }
 }
-
-// unit testing
-exports.performRebalance = performRebalance;
