@@ -1,5 +1,8 @@
 name: Certora verification
 
+on:
+  workflow_dispatch:
+  
 jobs:
   verify:
     runs-on: ubuntu-latest
