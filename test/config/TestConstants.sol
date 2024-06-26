@@ -13,9 +13,15 @@ abstract contract TestConstants {
         0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
     address public constant BASE_MAINNET_CbETH =
         0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22;
+    address public constant BASE_MAINNET_USDC =
+        0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address public constant BASE_MAINNET_WSTETH =
+        0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452;
 
     address public constant SEAMLESS_ADDRESS_PROVIDER_BASE_MAINNET =
         0x0E02EB705be325407707662C6f6d3466E939f3a0;
+    address public constant SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS =
+        0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
 
     address public constant AERODROME_ROUTER =
         0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43;
