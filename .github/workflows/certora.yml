@@ -30,8 +30,9 @@ jobs:
           solc-select install 0.8.21
           solc-select use 0.8.21
 
-      -name: create munged
-        run: cd certora
+      - name: create munged
+        run: |
+          cd certora
           touch applyHarness.patch
           make munged
           cd ..
