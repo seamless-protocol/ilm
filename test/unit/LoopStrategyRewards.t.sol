@@ -22,7 +22,7 @@ import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
-import { RewardsDepositor } from "./helpers/RewardsDepositor.sol";
+import { RewardsHandler } from "./helpers/RewardsHandler.sol";
 
 contract LoopStrategyDepositTest is LoopStrategyTest {
     address public constant SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS =
@@ -41,7 +41,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     MockAaveOracle public oracle;
     MockTransferStrategy public transferStrategy;
 
-    RewardsDepositor public rewardsDepositor;
+    RewardsHandler public rewardsDepositor;
 
     function setUp() public override {
         super.setUp();
@@ -82,7 +82,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         });
         REWARDS_CONTROLLER.configureAssets(config);
 
-        rewardsDepositor = new RewardsDepositor(
+        rewardsDepositor = new RewardsHandler(
             address(strategy),
             address(POOL),
             address(REWARDS_CONTROLLER),
@@ -102,10 +102,11 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         excludeContract(address(rewardToken));
         excludeContract(address(rewardsDepositor));
 
-        bytes4[] memory selectors = new bytes4[](3);
+        bytes4[] memory selectors = new bytes4[](4);
         selectors[0] = rewardsDepositor.deposit.selector;
         selectors[1] = rewardsDepositor.withdraw.selector;
         selectors[2] = rewardsDepositor.transfer.selector;
+        selectors[3] = rewardsDepositor.claimAllRewards.selector;
 
         FuzzSelector memory selector = FuzzSelector({
             addr: address(rewardsDepositor),

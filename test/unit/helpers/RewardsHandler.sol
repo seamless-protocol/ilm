@@ -12,7 +12,7 @@ import { DataTypes } from
 import { Test } from "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-contract RewardsDepositor is Test {
+contract RewardsHandler is Test {
     IRewardsController public constant REWARDS_CONTROLLER =
         IRewardsController(0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780);
 
@@ -80,8 +80,8 @@ contract RewardsDepositor is Test {
         vm.stopPrank();
 
         _validateRewards();
-
         vm.warp(block.timestamp + timeToPass);
+        _validateRewards();
     }
 
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
@@ -108,8 +108,8 @@ contract RewardsDepositor is Test {
         vm.stopPrank();
 
         _validateRewards();
-
         vm.warp(block.timestamp + timeToPass);
+        _validateRewards();
     }
 
     function transfer(
@@ -137,8 +137,56 @@ contract RewardsDepositor is Test {
         vm.stopPrank();
 
         _validateRewards();
-
         vm.warp(block.timestamp + timeToPass);
+        _validateRewards();
+    }
+
+    function claimAllRewards(
+        uint256 fromUserIndex,
+        uint256 toUserIndex,
+        uint8 timeToPass
+    ) external {
+        fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
+        toUserIndex = bound(toUserIndex, 0, actors.length - 1);
+        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
+
+        address fromUser = actors[fromUserIndex];
+        address toUser = actors[toUserIndex];
+
+        vm.startPrank(fromUser);
+        address[] memory assets = new address[](1);
+        assets[0] = address(strategy);
+
+        (address[] memory rewardsList1, uint256[] memory claimedAmounts1) =
+            REWARDS_CONTROLLER.claimAllRewards(assets, toUser);
+
+        assets[0] = _getSTokenAddress(address(supplyToken));
+        (address[] memory rewardsList2, uint256[] memory claimedAmounts2) =
+            REWARDS_CONTROLLER.claimAllRewards(assets, toUser);
+
+        assertEq(
+            rewardsList1.length, rewardsList2.length, "Rewards length mismatch"
+        );
+        assertEq(
+            claimedAmounts1.length,
+            claimedAmounts2.length,
+            "Claimed amounts length mismatch"
+        );
+
+        for (uint256 i = 0; i < rewardsList1.length; i++) {
+            assertEq(rewardsList1[i], rewardsList2[i], "Rewards mismatch");
+            assertEq(
+                claimedAmounts1[i],
+                claimedAmounts2[i],
+                "Claimed amounts mismatch"
+            );
+        }
+
+        vm.stopPrank();
+
+        _validateRewards();
+        vm.warp(block.timestamp + timeToPass);
+        _validateRewards();
     }
 
     function _validateRewards() internal {
