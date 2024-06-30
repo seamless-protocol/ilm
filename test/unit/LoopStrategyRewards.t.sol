@@ -23,6 +23,7 @@ import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import { RewardsHandler } from "./helpers/RewardsHandler.sol";
+import "forge-std/console.sol";
 
 contract LoopStrategyDepositTest is LoopStrategyTest {
     address public constant SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS =
@@ -50,10 +51,8 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
 
         oracle = new MockAaveOracle();
         oracle.setAssetPrice(address(strategy), 1e8);
-        excludeContract(address(oracle));
 
         transferStrategy = new MockTransferStrategy();
-        excludeContract(address(transferStrategy));
 
         address emissionManager = REWARDS_CONTROLLER.getEmissionManager();
 
@@ -95,12 +94,8 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         vm.allowCheatcodes(address(rewardsDepositor));
         rewardsDepositor.createUsers();
 
-        excludeContract(address(strategy));
-        excludeContract(address(transferStrategy));
-        excludeContract(address(swapper));
-        excludeContract(address(supplyToken));
-        excludeContract(address(rewardToken));
-        excludeContract(address(rewardsDepositor));
+        // This is neccessar so all deployed contracts in setUp are removed from the target contracts list
+        targetContract(address(rewardsDepositor));
 
         bytes4[] memory selectors = new bytes4[](4);
         selectors[0] = rewardsDepositor.deposit.selector;
@@ -184,6 +179,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     }
 
     function invariant_MultipleActions() public {
+        console.log("counter", rewardsDepositor.counter());
         address[] memory users = rewardsDepositor.getActors();
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];

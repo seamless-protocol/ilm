@@ -47,8 +47,6 @@ import { Swapper } from "../../src/swap/Swapper.sol";
 import { WrappedERC20PermissionedDeposit } from
     "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 
-import "forge-std/console.sol";
-
 /// @notice Setup for the tests for the LoopStrategy contract
 contract LoopStrategyTest is BaseForkTest {
     using stdStorage for StdStorage;
@@ -111,12 +109,10 @@ contract LoopStrategyTest is BaseForkTest {
 
         // deploy MockAaveOracle to the address of already existing priceOracle
         MockAaveOracle mockOracle = new MockAaveOracle();
-        excludeContract(address(mockOracle));
 
         bytes memory mockOracleCode = address(mockOracle).code;
         vm.etch(poolAddressProvider.getPriceOracle(), mockOracleCode);
         priceOracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
-        excludeContract(address(priceOracle));
 
         _changePrice(USDbC, DEBT_PRICE);
         _changePrice(CbETH, COLLATERAL_PRICE);
@@ -126,12 +122,9 @@ contract LoopStrategyTest is BaseForkTest {
             "wCbETH", "wCbETH", CbETH, address(this)
         );
 
-        excludeContract(address(wrappedToken));
-
         swapper = new SwapperMock(
             address(CbETH), address(USDbC), address(priceOracle)
         );
-        excludeContract(address(swapper));
         strategyAssets = StrategyAssets({
             underlying: CbETH,
             collateral: CbETH,
@@ -147,7 +140,6 @@ contract LoopStrategyTest is BaseForkTest {
         });
 
         LoopStrategy strategyImplementation = new LoopStrategy();
-        excludeContract(address(strategyImplementation));
 
         ERC1967Proxy strategyProxy = new ERC1967Proxy(
             address(strategyImplementation),

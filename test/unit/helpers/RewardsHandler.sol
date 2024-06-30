@@ -57,6 +57,7 @@ contract RewardsHandler is Test {
     function deposit(uint256 userIndex, uint256 amount, uint8 timeToPass)
         public
     {
+        counter += 1;
         userIndex = bound(userIndex, 0, actors.length - 1);
         amount = bound(amount, 1 ether, 3 ether);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
@@ -87,6 +88,7 @@ contract RewardsHandler is Test {
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
         public
     {
+        counter += 1;
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
         userIndex = bound(userIndex, 0, actors.length - 1);
         address user = actors[userIndex];
@@ -118,6 +120,7 @@ contract RewardsHandler is Test {
         uint256 amount,
         uint8 timeToPass
     ) public {
+        counter += 1;
         fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
         toUserIndex = bound(toUserIndex, 0, actors.length - 1);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
@@ -146,6 +149,7 @@ contract RewardsHandler is Test {
         uint256 toUserIndex,
         uint8 timeToPass
     ) external {
+        counter += 1;
         fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
         toUserIndex = bound(toUserIndex, 0, actors.length - 1);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));

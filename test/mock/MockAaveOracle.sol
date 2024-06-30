@@ -6,6 +6,8 @@ import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 
+import "forge-std/console.sol";
+
 contract MockAaveOracle is IAaveOracle {
     mapping(address => uint256) public assetPrice;
 
@@ -67,6 +69,7 @@ contract MockAaveOracle is IAaveOracle {
     function getFallbackOracle() external view override returns (address) { }
 
     function setAssetPrice(address asset, uint256 price) external {
+        console.log("usosssssss");
         assetPrice[asset] = price;
     }
 }
