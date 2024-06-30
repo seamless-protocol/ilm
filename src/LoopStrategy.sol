@@ -39,6 +39,8 @@ import { AccessControlUpgradeable } from
     "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { UUPSUpgradeable } from
     "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { IRewardsController } from
+    "@aave-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 
 /// @title LoopStrategy
 /// @notice Integrated Liquidity Market strategy for amplifying the cbETH staking rewards
@@ -57,6 +59,10 @@ contract LoopStrategy is
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     /// @dev role which can upgrade the contract
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
+    /// @dev address of the rewards controller contract which is responsible for distributing rewards
+    address public constant REWARDS_CONTROLLER =
+        0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 
     constructor() {
         _disableInitializers();
@@ -505,6 +511,20 @@ contract LoopStrategy is
         return Storage.layout().maxSlippageOnRebalance;
     }
 
+    /// @inheritdoc ILoopStrategy
+    function scaledTotalSupply() external view returns (uint256) {
+        return totalSupply();
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getScaledUserBalanceAndSupply(address user)
+        external
+        view
+        returns (uint256, uint256)
+    {
+        return (balanceOf(user), totalSupply());
+    }
+
     /// @notice rebalance the position if it's out of collateral target range
     function _tryRebalance() internal {
         if (rebalanceNeeded()) {
@@ -682,5 +702,24 @@ contract LoopStrategy is
             underlyingDecimals,
             Math.Rounding.Floor
         );
+    }
+
+    function _update(address from, address to, uint256 value)
+        internal
+        override
+    {
+        if (from != address(0)) {
+            IRewardsController(REWARDS_CONTROLLER).handleAction(
+                from, totalSupply(), balanceOf(from)
+            );
+        }
+
+        if (to != address(0)) {
+            IRewardsController(REWARDS_CONTROLLER).handleAction(
+                to, totalSupply(), balanceOf(to)
+            );
+        }
+
+        super._update(from, to, value);
     }
 }

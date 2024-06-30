@@ -17,6 +17,10 @@ contract MockAaveOracle is IAaveOracle {
         return (1e8);
     }
 
+    function latestAnswer() external pure returns (int256) {
+        return 1e8;
+    }
+
     function getAssetPrice(address asset)
         public
         view
