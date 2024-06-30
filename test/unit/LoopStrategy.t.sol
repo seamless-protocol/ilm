@@ -109,7 +109,6 @@ contract LoopStrategyTest is BaseForkTest {
 
         // deploy MockAaveOracle to the address of already existing priceOracle
         MockAaveOracle mockOracle = new MockAaveOracle();
-
         bytes memory mockOracleCode = address(mockOracle).code;
         vm.etch(poolAddressProvider.getPriceOracle(), mockOracleCode);
         priceOracle = IPriceOracleGetter(poolAddressProvider.getPriceOracle());
