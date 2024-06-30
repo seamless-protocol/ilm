@@ -24,8 +24,6 @@ import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import { RewardsDepositor } from "./helpers/RewardsDepositor.sol";
 
-import "forge-std/console.sol";
-
 contract LoopStrategyDepositTest is LoopStrategyTest {
     address public constant SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS =
         0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
@@ -52,6 +50,8 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
 
         oracle = new MockAaveOracle();
         oracle.setAssetPrice(address(strategy), 1e8);
+        excludeContract(address(oracle));
+
         transferStrategy = new MockTransferStrategy();
         excludeContract(address(transferStrategy));
 
@@ -96,7 +96,6 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         rewardsDepositor.createUsers();
 
         excludeContract(address(strategy));
-        excludeContract(address(oracle));
         excludeContract(address(transferStrategy));
         excludeContract(address(swapper));
         excludeContract(address(supplyToken));
@@ -117,7 +116,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     }
 
     function test_Deposit_OneUser() public {
-        uint256 depositAmount = 1 ether;
+        uint256 depositAmount = 3 ether;
         uint256 sharesReturned = _depositFor(alice, depositAmount);
 
         uint256 timeToPass = 1 days;
@@ -130,7 +129,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
             assets, alice, address(rewardToken)
         );
 
-        assertApproxEqAbs(userRewards, totalDistributedRewards, 1);
+        assertEq(userRewards, totalDistributedRewards - 1);
     }
 
     function test_Rewards_MultipleActions() public {

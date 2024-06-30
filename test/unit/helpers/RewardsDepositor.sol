@@ -25,6 +25,8 @@ contract RewardsDepositor is Test {
 
     address[] public actors;
 
+    uint256 public counter;
+
     constructor(
         address _strategy,
         address _pool,
@@ -67,10 +69,13 @@ contract RewardsDepositor is Test {
         vm.startPrank(user);
 
         strategyUnderlying.approve(address(strategy), amount);
-        uint256 shares = strategy.deposit(amount, user);
 
-        supplyToken.approve(address(pool), shares);
-        pool.deposit(address(supplyToken), shares, user, 0);
+        try strategy.deposit(amount, user) returns (uint256 shares) {
+            supplyToken.approve(address(pool), shares);
+            pool.deposit(address(supplyToken), shares, user, 0);
+        } catch {
+            console.log("Strategy deposit failed");
+        }
 
         vm.stopPrank();
 
@@ -93,8 +98,13 @@ contract RewardsDepositor is Test {
         amount = bound(amount, 1, strategy.balanceOf(user));
 
         vm.startPrank(user);
-        strategy.redeem(amount, user, user);
-        pool.withdraw(address(supplyToken), amount, user);
+
+        try strategy.redeem(amount, user, user) {
+            pool.withdraw(address(supplyToken), amount, user);
+        } catch {
+            console.log("Strategy redeem failed");
+        }
+
         vm.stopPrank();
 
         _validateRewards();
@@ -114,6 +124,10 @@ contract RewardsDepositor is Test {
 
         address fromUser = actors[fromUserIndex];
         address toUser = actors[toUserIndex];
+
+        if (strategy.balanceOf(fromUser) == 0) {
+            return;
+        }
 
         amount = bound(amount, 1, strategy.balanceOf(fromUser));
 

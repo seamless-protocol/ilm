@@ -6,6 +6,8 @@ import { IPoolAddressesProvider } from
     "@aave/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 
+import "forge-std/console.sol";
+
 contract MockAaveOracle is IAaveOracle {
     mapping(address => uint256) public assetPrice;
 

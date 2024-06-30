@@ -47,6 +47,8 @@ import { Swapper } from "../../src/swap/Swapper.sol";
 import { WrappedERC20PermissionedDeposit } from
     "../../src/tokens/WrappedERC20PermissionedDeposit.sol";
 
+import "forge-std/console.sol";
+
 /// @notice Setup for the tests for the LoopStrategy contract
 contract LoopStrategyTest is BaseForkTest {
     using stdStorage for StdStorage;
