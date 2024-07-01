@@ -60,6 +60,10 @@ contract LoopStrategy is
     /// @dev role which can upgrade the contract
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+    /// @dev constant for getting the incentives controller address
+    bytes32 public constant INCENTIVES_CONTROLLER =
+        keccak256("INCENTIVES_CONTROLLER");
+
     constructor() {
         _disableInitializers();
     }
@@ -454,15 +458,6 @@ contract LoopStrategy is
         emit SwapperSet(swapper);
     }
 
-    function setRewardsController(address rewardsController)
-        external
-        onlyRole(MANAGER_ROLE)
-    {
-        Storage.layout().rewardsController = rewardsController;
-
-        emit RewardsControllerSet(rewardsController);
-    }
-
     /// @inheritdoc ILoopStrategy
     function getAssets() external view returns (StrategyAssets memory assets) {
         return Storage.layout().assets;
@@ -514,11 +509,6 @@ contract LoopStrategy is
         returns (uint256 maxslippage)
     {
         return Storage.layout().maxSlippageOnRebalance;
-    }
-
-    /// @inheritdoc ILoopStrategy
-    function getRewardsController() public view returns (address) {
-        return Storage.layout().rewardsController;
     }
 
     /// @inheritdoc ILoopStrategy
@@ -718,8 +708,12 @@ contract LoopStrategy is
         internal
         override
     {
-        IRewardsController rewardsController =
-            IRewardsController(Storage.layout().rewardsController);
+        IPoolAddressesProvider poolAddressProvider =
+            Storage.layout().poolAddressProvider;
+
+        IRewardsController rewardsController = IRewardsController(
+            poolAddressProvider.getAddress(INCENTIVES_CONTROLLER)
+        );
 
         if (from != address(0)) {
             rewardsController.handleAction(from, totalSupply(), balanceOf(from));

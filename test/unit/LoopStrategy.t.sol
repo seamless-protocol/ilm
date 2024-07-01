@@ -161,7 +161,6 @@ contract LoopStrategyTest is BaseForkTest {
         strategy.grantRole(strategy.PAUSER_ROLE(), address(this));
         strategy.grantRole(strategy.MANAGER_ROLE(), address(this));
         strategy.grantRole(strategy.UPGRADER_ROLE(), address(this));
-        strategy.setRewardsController(address(REWARDS_CONTROLLER));
 
         wrappedToken.grantRole(wrappedToken.DEPOSITOR_ROLE(), address(strategy));
 
