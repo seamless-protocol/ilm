@@ -24,6 +24,14 @@ contract RewardsHandler is Test, TestConstants {
     address public sSupplyTokenAddress;
     address[] public actors;
 
+    modifier useActor(uint256 actorIndexSeed) {
+        address currentActor =
+            actors[bound(actorIndexSeed, 0, actors.length - 1)];
+        vm.startPrank(currentActor);
+        _;
+        vm.stopPrank();
+    }
+
     constructor(
         address _strategy,
         address _pool,
@@ -55,19 +63,17 @@ contract RewardsHandler is Test, TestConstants {
         return actors;
     }
 
-    function deposit(uint256 userIndex, uint256 amount, uint8 timeToPass)
+    function deposit(uint256 actorIndex, uint256 amount, uint8 timeToPass)
         public
+        useActor(actorIndex)
     {
-        userIndex = bound(userIndex, 0, actors.length - 1);
         amount = bound(amount, 1 ether, 3 ether);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
 
-        address user = actors[userIndex];
+        (, address user,) = vm.readCallers();
 
         deal(address(supplyToken), user, amount);
         deal(address(strategyUnderlying), user, amount);
-
-        vm.startPrank(user);
 
         strategyUnderlying.approve(address(strategy), amount);
 
@@ -79,25 +85,22 @@ contract RewardsHandler is Test, TestConstants {
             console.log("Strategy deposit failed");
         }
 
-        vm.stopPrank();
-
         vm.warp(block.timestamp + timeToPass);
     }
 
-    function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
+    function withdraw(uint256 actorIndex, uint256 amount, uint8 timeToPass)
         public
+        useActor(actorIndex)
     {
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
-        userIndex = bound(userIndex, 0, actors.length - 1);
-        address user = actors[userIndex];
+
+        (, address user,) = vm.readCallers();
 
         if (strategy.balanceOf(user) == 0) {
             return;
         }
 
         amount = bound(amount, 1, strategy.balanceOf(user));
-
-        vm.startPrank(user);
 
         // Sometimes redeem fails because of small amounts. In that case we just skip
         try strategy.redeem(amount, user, user) {
@@ -106,23 +109,20 @@ contract RewardsHandler is Test, TestConstants {
             console.log("Strategy redeem failed");
         }
 
-        vm.stopPrank();
-
         vm.warp(block.timestamp + timeToPass);
     }
 
     function transfer(
-        uint256 fromUserIndex,
-        uint256 toUserIndex,
+        uint256 fromActorIndex,
+        uint256 toActorIndex,
         uint256 amount,
         uint8 timeToPass
-    ) public {
-        fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
-        toUserIndex = bound(toUserIndex, 0, actors.length - 1);
+    ) public useActor(fromActorIndex) {
+        toActorIndex = bound(toActorIndex, 0, actors.length - 1);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
 
-        address fromUser = actors[fromUserIndex];
-        address toUser = actors[toUserIndex];
+        (, address fromUser,) = vm.readCallers();
+        address toUser = actors[toActorIndex];
 
         if (strategy.balanceOf(fromUser) == 0) {
             return;
@@ -130,27 +130,22 @@ contract RewardsHandler is Test, TestConstants {
 
         amount = bound(amount, 1, strategy.balanceOf(fromUser));
 
-        vm.startPrank(fromUser);
         strategy.transfer(toUser, amount);
         IERC20(sSupplyTokenAddress).transfer(toUser, amount);
-        vm.stopPrank();
 
         vm.warp(block.timestamp + timeToPass);
     }
 
     function claimAllRewards(
-        uint256 fromUserIndex,
-        uint256 toUserIndex,
+        uint256 fromActorIndex,
+        uint256 toActorIndex,
         uint8 timeToPass
-    ) external {
-        fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
-        toUserIndex = bound(toUserIndex, 0, actors.length - 1);
+    ) external useActor(fromActorIndex) {
+        toActorIndex = bound(toActorIndex, 0, actors.length - 1);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
 
-        address fromUser = actors[fromUserIndex];
-        address toUser = actors[toUserIndex];
+        address toUser = actors[toActorIndex];
 
-        vm.startPrank(fromUser);
         address[] memory assets = new address[](1);
         assets[0] = address(strategy);
 
@@ -178,8 +173,6 @@ contract RewardsHandler is Test, TestConstants {
                 "Claimed amounts mismatch"
             );
         }
-
-        vm.stopPrank();
 
         vm.warp(block.timestamp + timeToPass);
     }
