@@ -37,6 +37,8 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     function setUp() public override {
         super.setUp();
 
+        strategy.setRewardsController(address(REWARDS_CONTROLLER));
+
         _openLendingPoolMarket();
 
         oracle = new MockAaveOracle();

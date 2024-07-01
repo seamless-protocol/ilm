@@ -74,6 +74,7 @@ contract RewardsHandler is Test, TestConstants {
         try strategy.deposit(amount, user) returns (uint256 shares) {
             supplyToken.approve(address(pool), shares);
             pool.deposit(address(supplyToken), shares, user, 0);
+            console.log("Deposit done");
         } catch {
             console.log("Strategy deposit failed");
         }
@@ -83,6 +84,8 @@ contract RewardsHandler is Test, TestConstants {
         _validateRewards();
         vm.warp(block.timestamp + timeToPass);
         _validateRewards();
+
+        console.log("Deposit");
     }
 
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
@@ -111,6 +114,8 @@ contract RewardsHandler is Test, TestConstants {
         _validateRewards();
         vm.warp(block.timestamp + timeToPass);
         _validateRewards();
+
+        console.log("Withdraw");
     }
 
     function transfer(
@@ -140,6 +145,8 @@ contract RewardsHandler is Test, TestConstants {
         _validateRewards();
         vm.warp(block.timestamp + timeToPass);
         _validateRewards();
+
+        console.log("Transfer");
     }
 
     function claimAllRewards(
@@ -188,6 +195,8 @@ contract RewardsHandler is Test, TestConstants {
         _validateRewards();
         vm.warp(block.timestamp + timeToPass);
         _validateRewards();
+
+        console.log("Claimed rewards");
     }
 
     function _validateRewards() internal {

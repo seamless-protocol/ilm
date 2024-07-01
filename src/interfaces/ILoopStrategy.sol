@@ -76,6 +76,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param swapper new address of swapper contract
     event SwapperSet(address swapper);
 
+    /// @notice emitted when a new value for the rewards controller address is set
+    /// @param rewardsController new address of rewards controller
+    event RewardsControllerSet(address rewardsController);
+
     /// @notice emitted when a new value for maxSlippageOnRebalanceSet is set
     /// @param maxSlippage new value for maximum allowed slippage percentage (1e8 is 100%)
     event MaxSlippageOnRebalanceSet(uint256 maxSlippage);
@@ -191,6 +195,10 @@ interface ILoopStrategy is IERC4626 {
     /// @param swapper address of swapper contract
     function setSwapper(address swapper) external;
 
+    /// @notice sets the rewards controller address
+    /// @param rewardsController address of rewards controller
+    function setRewardsController(address rewardsController) external;
+
     /// @notice returns underlying StrategyAssets struct
     /// @return assets underlying StrategyAssets struct
     function getAssets() external view returns (StrategyAssets memory assets);
@@ -232,6 +240,12 @@ interface ILoopStrategy is IERC4626 {
         external
         view
         returns (uint256 maxSlippage);
+
+    /// @notice returns address of rewards controller
+    function getRewardsController()
+        external
+        view
+        returns (address rewardsController);
 
     /// @notice returns total supply of strategy shares
     /// @dev this function returns the same value as totalSupply

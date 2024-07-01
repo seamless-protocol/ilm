@@ -40,6 +40,8 @@ library LoopStrategyStorage {
         uint256 assetsCap;
         /// @dev maximum allowed slippage percent on rebalancing
         uint256 maxSlippageOnRebalance;
+        /// @dev address of rewards controller
+        address rewardsController;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.LoopStrategy")) - 1)) & ~bytes32(uint256(0xff));

@@ -60,10 +60,6 @@ contract LoopStrategy is
     /// @dev role which can upgrade the contract
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    /// @dev address of the rewards controller contract which is responsible for distributing rewards
-    address public constant REWARDS_CONTROLLER =
-        0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
-
     constructor() {
         _disableInitializers();
     }
@@ -458,6 +454,15 @@ contract LoopStrategy is
         emit SwapperSet(swapper);
     }
 
+    function setRewardsController(address rewardsController)
+        external
+        onlyRole(MANAGER_ROLE)
+    {
+        Storage.layout().rewardsController = rewardsController;
+
+        emit RewardsControllerSet(rewardsController);
+    }
+
     /// @inheritdoc ILoopStrategy
     function getAssets() external view returns (StrategyAssets memory assets) {
         return Storage.layout().assets;
@@ -509,6 +514,11 @@ contract LoopStrategy is
         returns (uint256 maxslippage)
     {
         return Storage.layout().maxSlippageOnRebalance;
+    }
+
+    /// @inheritdoc ILoopStrategy
+    function getRewardsController() public view returns (address) {
+        return Storage.layout().rewardsController;
     }
 
     /// @inheritdoc ILoopStrategy
@@ -708,16 +718,15 @@ contract LoopStrategy is
         internal
         override
     {
+        IRewardsController rewardsController =
+            IRewardsController(Storage.layout().rewardsController);
+
         if (from != address(0)) {
-            IRewardsController(REWARDS_CONTROLLER).handleAction(
-                from, totalSupply(), balanceOf(from)
-            );
+            rewardsController.handleAction(from, totalSupply(), balanceOf(from));
         }
 
         if (to != address(0) && to != from) {
-            IRewardsController(REWARDS_CONTROLLER).handleAction(
-                to, totalSupply(), balanceOf(to)
-            );
+            rewardsController.handleAction(to, totalSupply(), balanceOf(to));
         }
 
         super._update(from, to, value);
