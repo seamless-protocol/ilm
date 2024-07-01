@@ -60,7 +60,7 @@ contract RewardsHandler is Test, TestConstants {
     {
         userIndex = bound(userIndex, 0, actors.length - 1);
         amount = bound(amount, 1 ether, 3 ether);
-        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
+        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
 
         address user = actors[userIndex];
 
@@ -71,7 +71,7 @@ contract RewardsHandler is Test, TestConstants {
 
         strategyUnderlying.approve(address(strategy), amount);
 
-        // add comment
+        // Sometimes deposit fails. In that case we just skip. This is required to make sure test does not revert
         try strategy.deposit(amount, user) returns (uint256 shares) {
             supplyToken.approve(address(pool), shares);
             pool.deposit(address(supplyToken), shares, user, 0);
@@ -81,17 +81,13 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.stopPrank();
 
-        _validateRewards();
-        // change wes
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
+        _moveTimeAndValidateRewards(timeToPass);
     }
 
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
         public
     {
-        // better bound
-        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
+        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
         userIndex = bound(userIndex, 0, actors.length - 1);
         address user = actors[userIndex];
 
@@ -103,6 +99,7 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.startPrank(user);
 
+        // Sometimes redeem fails because of small amounts. In that case we just skip
         try strategy.redeem(amount, user, user) {
             pool.withdraw(address(supplyToken), amount, user);
         } catch {
@@ -111,9 +108,7 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.stopPrank();
 
-        _validateRewards();
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
+        _moveTimeAndValidateRewards(timeToPass);
     }
 
     function transfer(
@@ -124,7 +119,7 @@ contract RewardsHandler is Test, TestConstants {
     ) public {
         fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
         toUserIndex = bound(toUserIndex, 0, actors.length - 1);
-        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
+        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
 
         address fromUser = actors[fromUserIndex];
         address toUser = actors[toUserIndex];
@@ -140,9 +135,7 @@ contract RewardsHandler is Test, TestConstants {
         IERC20(sSupplyTokenAddress).transfer(toUser, amount);
         vm.stopPrank();
 
-        _validateRewards();
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
+        _moveTimeAndValidateRewards(timeToPass);
     }
 
     function claimAllRewards(
@@ -152,7 +145,7 @@ contract RewardsHandler is Test, TestConstants {
     ) external {
         fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
         toUserIndex = bound(toUserIndex, 0, actors.length - 1);
-        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
+        timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000));
 
         address fromUser = actors[fromUserIndex];
         address toUser = actors[toUserIndex];
@@ -188,6 +181,10 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.stopPrank();
 
+        _moveTimeAndValidateRewards(timeToPass);
+    }
+
+    function _moveTimeAndValidateRewards(uint256 timeToPass) internal {
         _validateRewards();
         vm.warp(block.timestamp + timeToPass);
         _validateRewards();

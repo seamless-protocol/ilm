@@ -23,7 +23,7 @@ import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
 import { IPool } from "@aave/contracts/interfaces/IPool.sol";
 import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
-import { RewardsHandler } from "./helpers/RewardsHandler.sol";
+import { RewardsHandler } from "./helpers/RewardsHandler.t.sol";
 import "forge-std/console.sol";
 
 contract LoopStrategyDepositTest is LoopStrategyTest {
