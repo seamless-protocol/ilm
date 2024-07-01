@@ -2,6 +2,13 @@
 
 pragma solidity ^0.8.21;
 
+import { IAaveOracle } from "@aave/contracts/interfaces/IAaveOracle.sol";
+import { IPoolConfigurator } from
+    "@aave/contracts/interfaces/IPoolConfigurator.sol";
+import { IPool } from "@aave/contracts/interfaces/IPool.sol";
+import { IRewardsController } from
+    "@aave-periphery/contracts/rewards/interfaces/IRewardsController.sol";
+
 /// @title TestConstants
 /// @notice configuration and constants used in tests
 abstract contract TestConstants {
@@ -40,4 +47,17 @@ abstract contract TestConstants {
         0x982F3A0e3183896f9970b8A9Ea6B69Cd53AF1089;
     address public constant SEAMLESS_INCENTIVES_CONTROLLER =
         0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
+
+    address public constant SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS =
+        0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
+    IRewardsController public constant REWARDS_CONTROLLER =
+        IRewardsController(0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780);
+    IPoolConfigurator public constant POOL_CONFIGURATOR =
+        IPoolConfigurator(0x7B08A77539A50218c8fB4B706B87fb799d3505A0);
+    IAaveOracle public constant AAVE_ORACLE =
+        IAaveOracle(0xFDd4e83890BCcd1fbF9b10d71a5cc0a738753b01);
+    IPool public constant POOL =
+        IPool(0x8F44Fd754285aa6A2b8B9B97739B79746e0475a7);
+
+    uint256 public constant MAX_SUPPLY_CAP = 68719476735;
 }

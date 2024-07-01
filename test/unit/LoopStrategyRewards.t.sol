@@ -26,22 +26,12 @@ import { RewardsHandler } from "./helpers/RewardsHandler.sol";
 import "forge-std/console.sol";
 
 contract LoopStrategyDepositTest is LoopStrategyTest {
-    address public constant SEAMLESS_GOV_SHORT_TIMELOCK_ADDRESS =
-        0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
-    IRewardsController public constant REWARDS_CONTROLLER =
-        IRewardsController(0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780);
-    IPoolConfigurator public constant POOL_CONFIGURATOR =
-        IPoolConfigurator(0x7B08A77539A50218c8fB4B706B87fb799d3505A0);
-    IAaveOracle public constant AAVE_ORACLE =
-        IAaveOracle(0xFDd4e83890BCcd1fbF9b10d71a5cc0a738753b01);
-    IPool public constant POOL =
-        IPool(0x8F44Fd754285aa6A2b8B9B97739B79746e0475a7);
-
     MockERC20 public supplyToken = new MockERC20("Supply Token", "ST");
     MockERC20 public rewardToken = new MockERC20("Reward Token", "RT");
     MockAaveOracle public oracle;
     MockTransferStrategy public transferStrategy;
 
+    address public sSupplyTokenAddress;
     RewardsHandler public rewardsDepositor;
 
     function setUp() public override {
@@ -74,7 +64,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
             emissionPerSecond: 1 ether,
             totalSupply: 0,
             distributionEnd: type(uint32).max,
-            asset: _getSTokenAddress(address(supplyToken)),
+            asset: sSupplyTokenAddress,
             reward: address(rewardToken),
             transferStrategy: ITransferStrategyBase(address(transferStrategy)),
             rewardOracle: IEACAggregatorProxy(address(oracle))
@@ -94,7 +84,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         vm.allowCheatcodes(address(rewardsDepositor));
         rewardsDepositor.createUsers();
 
-        // This is neccessar so all deployed contracts in setUp are removed from the target contracts list
+        // This is necessary so all deployed contracts in setUp are removed from the target contracts list
         targetContract(address(rewardsDepositor));
 
         bytes4[] memory selectors = new bytes4[](4);
@@ -113,7 +103,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
 
     function test_Deposit_OneUser() public {
         uint256 depositAmount = 3 ether;
-        uint256 sharesReturned = _depositFor(alice, depositAmount);
+        _depositFor(alice, depositAmount);
 
         uint256 timeToPass = 1 days;
         uint256 totalDistributedRewards = timeToPass * 1 ether;
@@ -128,86 +118,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         assertEq(userRewards, totalDistributedRewards - 1);
     }
 
-    function test_Rewards_MultipleActions() public {
-        uint256 depositAmount = 1 ether;
-        _depositFor(alice, depositAmount);
-        _validateRewards();
-
-        uint256 timeToPass = 1 days;
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
-
-        depositAmount = 3 ether;
-        _depositFor(bob, depositAmount);
-        _validateRewards();
-
-        timeToPass = 998;
-        _transfer(bob, alice, 0.3 ether);
-        _validateRewards();
-
-        timeToPass = 2 days;
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
-
-        depositAmount = 2 ether;
-        _depositFor(charlie, depositAmount);
-        _validateRewards();
-
-        timeToPass = 0;
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
-
-        timeToPass = 99823418;
-        _transfer(alice, bob, 0.1 ether);
-        _validateRewards();
-
-        uint256 redeemAmount = 0.4 ether;
-        _redeemFrom(bob, redeemAmount);
-        _validateRewards();
-
-        timeToPass = 1 days;
-        vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
-
-        redeemAmount = 0.6 ether;
-        _redeemFrom(alice, redeemAmount);
-        _validateRewards();
-
-        timeToPass = 123491234;
-        _transfer(charlie, bob, 0.15 ether);
-        _validateRewards();
-    }
-
-    function invariant_MultipleActions() public {
-        console.log("counter", rewardsDepositor.counter());
-        address[] memory users = rewardsDepositor.getActors();
-        for (uint256 i = 0; i < users.length; i++) {
-            address user = users[i];
-
-            assertEq(
-                _getUserRewards(address(strategy), user),
-                _getUserRewards(_getSTokenAddress(address(supplyToken)), user)
-            );
-        }
-    }
-
-    function _getSTokenAddress(address reserve) internal returns (address) {
-        DataTypes.ReserveData memory reserveData = POOL.getReserveData(reserve);
-        return reserveData.aTokenAddress;
-    }
-
-    function _getUserRewards(address asset, address user)
-        internal
-        view
-        returns (uint256)
-    {
-        address[] memory assets = new address[](1);
-        assets[0] = asset;
-
-        return REWARDS_CONTROLLER.getUserRewards(
-            assets, user, address(rewardToken)
-        );
-    }
+    function invariant_MultipleActions() public { }
 
     function _depositFor(address user, uint256 amount)
         internal
@@ -236,31 +147,10 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     }
 
     function _transfer(address from, address to, uint256 amount) internal {
-        address sSupplyTokenAddress = _getSTokenAddress(address(supplyToken));
-
         vm.startPrank(from);
         IERC20(sSupplyTokenAddress).transfer(to, amount);
         strategy.transfer(to, amount);
         vm.stopPrank();
-    }
-
-    function _validateRewards() internal {
-        address sSupplyTokenAddress = _getSTokenAddress(address(supplyToken));
-
-        assertEq(
-            _getUserRewards(address(strategy), alice),
-            _getUserRewards(sSupplyTokenAddress, alice)
-        );
-
-        assertEq(
-            _getUserRewards(address(strategy), bob),
-            _getUserRewards(sSupplyTokenAddress, bob)
-        );
-
-        assertEq(
-            _getUserRewards(address(strategy), charlie),
-            _getUserRewards(sSupplyTokenAddress, charlie)
-        );
     }
 
     function _openLendingPoolMarket() internal {
@@ -275,14 +165,14 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         ConfiguratorInputTypes.InitReserveInput[] memory reserveConfig =
             new ConfiguratorInputTypes.InitReserveInput[](1);
         reserveConfig[0] = ConfiguratorInputTypes.InitReserveInput({
-            aTokenImpl: 0x27076A995387458da63b23d9AFe3df851727A8dB,
-            stableDebtTokenImpl: 0xb4D5e163738682A955404737f88FDCF15C1391bF,
-            variableDebtTokenImpl: 0x3800DA378e17A5B8D07D0144c321163591475977,
+            aTokenImpl: SEAMLESS_ATOKEN_IMPL,
+            stableDebtTokenImpl: SEAMLESS_STABLE_DEBT_TOKEN_IMPL,
+            variableDebtTokenImpl: SEAMLESS_VARIABLE_DEBT_TOKEN_IMPL,
             underlyingAssetDecimals: 18,
-            interestRateStrategyAddress: 0x0FFc5886D69cc3c432ed421515C2A3B831dB9210,
+            interestRateStrategyAddress: SEAMLESS_CBETH_INTEREST_RATE_STRATEGY_ADDRESS,
             underlyingAsset: address(supplyToken),
-            treasury: 0x982F3A0e3183896f9970b8A9Ea6B69Cd53AF1089,
-            incentivesController: 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780,
+            treasury: SEAMLESS_TREASURY,
+            incentivesController: SEAMLESS_INCENTIVES_CONTROLLER,
             aTokenName: "Token name",
             aTokenSymbol: "Symbol",
             variableDebtTokenName: "Token name",
@@ -293,8 +183,12 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         });
 
         POOL_CONFIGURATOR.initReserves(reserveConfig);
-        POOL_CONFIGURATOR.setSupplyCap(address(supplyToken), 68719476735);
+        POOL_CONFIGURATOR.setSupplyCap(address(supplyToken), MAX_SUPPLY_CAP);
         AAVE_ORACLE.setAssetSources(assets, sources);
+
+        DataTypes.ReserveData memory reserveData =
+            POOL.getReserveData(address(supplyToken));
+        sSupplyTokenAddress = reserveData.aTokenAddress;
 
         vm.stopPrank();
     }

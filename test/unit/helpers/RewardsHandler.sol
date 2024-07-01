@@ -10,12 +10,10 @@ import { StrategyAssets } from "../../../src/types/DataTypes.sol";
 import { DataTypes } from
     "@aave/contracts/protocol/libraries/types/DataTypes.sol";
 import { Test } from "forge-std/Test.sol";
+import { TestConstants } from "../../config/TestConstants.sol";
 import "forge-std/console.sol";
 
-contract RewardsHandler is Test {
-    IRewardsController public constant REWARDS_CONTROLLER =
-        IRewardsController(0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780);
-
+contract RewardsHandler is Test, TestConstants {
     ILoopStrategy public immutable strategy;
     IPool public immutable pool;
     IRewardsController public immutable rewardsController;
@@ -23,9 +21,8 @@ contract RewardsHandler is Test {
     IERC20 public immutable supplyToken;
     IERC20 public immutable strategyUnderlying;
 
+    address public sSupplyTokenAddress;
     address[] public actors;
-
-    uint256 public counter;
 
     constructor(
         address _strategy,
@@ -39,6 +36,10 @@ contract RewardsHandler is Test {
         rewardsController = IRewardsController(_rewardsController);
         rewardToken = IERC20(_rewardToken);
         supplyToken = IERC20(_supplyToken);
+
+        DataTypes.ReserveData memory reserveData =
+            pool.getReserveData(address(supplyToken));
+        sSupplyTokenAddress = reserveData.aTokenAddress;
 
         StrategyAssets memory strategyAssets = strategy.getAssets();
         strategyUnderlying = strategyAssets.underlying;
@@ -57,7 +58,6 @@ contract RewardsHandler is Test {
     function deposit(uint256 userIndex, uint256 amount, uint8 timeToPass)
         public
     {
-        counter += 1;
         userIndex = bound(userIndex, 0, actors.length - 1);
         amount = bound(amount, 1 ether, 3 ether);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
@@ -88,7 +88,6 @@ contract RewardsHandler is Test {
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
         public
     {
-        counter += 1;
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
         userIndex = bound(userIndex, 0, actors.length - 1);
         address user = actors[userIndex];
@@ -120,7 +119,6 @@ contract RewardsHandler is Test {
         uint256 amount,
         uint8 timeToPass
     ) public {
-        counter += 1;
         fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
         toUserIndex = bound(toUserIndex, 0, actors.length - 1);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
@@ -136,7 +134,7 @@ contract RewardsHandler is Test {
 
         vm.startPrank(fromUser);
         strategy.transfer(toUser, amount);
-        IERC20(_getSTokenAddress(address(supplyToken))).transfer(toUser, amount);
+        IERC20(sSupplyTokenAddress).transfer(toUser, amount);
         vm.stopPrank();
 
         _validateRewards();
@@ -149,7 +147,6 @@ contract RewardsHandler is Test {
         uint256 toUserIndex,
         uint8 timeToPass
     ) external {
-        counter += 1;
         fromUserIndex = bound(fromUserIndex, 0, actors.length - 1);
         toUserIndex = bound(toUserIndex, 0, actors.length - 1);
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
@@ -164,7 +161,7 @@ contract RewardsHandler is Test {
         (address[] memory rewardsList1, uint256[] memory claimedAmounts1) =
             REWARDS_CONTROLLER.claimAllRewards(assets, toUser);
 
-        assets[0] = _getSTokenAddress(address(supplyToken));
+        assets[0] = sSupplyTokenAddress;
         (address[] memory rewardsList2, uint256[] memory claimedAmounts2) =
             REWARDS_CONTROLLER.claimAllRewards(assets, toUser);
 
@@ -194,25 +191,15 @@ contract RewardsHandler is Test {
     }
 
     function _validateRewards() internal {
-        address sSupplyTokenAddress = _getSTokenAddress(address(supplyToken));
+        for (uint256 i = 0; i < actors.length; i++) {
+            address actor = actors[i];
 
-        assertEq(
-            _getUserRewards(address(strategy), actors[0]),
-            _getUserRewards(sSupplyTokenAddress, actors[0]),
-            "Alice rewards mismatch"
-        );
-
-        assertEq(
-            _getUserRewards(address(strategy), actors[1]),
-            _getUserRewards(sSupplyTokenAddress, actors[1]),
-            "Bob rewards mismatch"
-        );
-
-        assertEq(
-            _getUserRewards(address(strategy), actors[2]),
-            _getUserRewards(sSupplyTokenAddress, actors[2]),
-            "Charlie rewards mismatch"
-        );
+            assertEq(
+                _getUserRewards(address(strategy), actor),
+                _getUserRewards(sSupplyTokenAddress, actor),
+                "Rewards mismatch"
+            );
+        }
     }
 
     function _getUserRewards(address asset, address user)
@@ -226,10 +213,5 @@ contract RewardsHandler is Test {
         return REWARDS_CONTROLLER.getUserRewards(
             assets, user, address(rewardToken)
         );
-    }
-
-    function _getSTokenAddress(address reserve) internal returns (address) {
-        DataTypes.ReserveData memory reserveData = pool.getReserveData(reserve);
-        return reserveData.aTokenAddress;
     }
 }
