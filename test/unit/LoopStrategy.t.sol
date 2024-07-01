@@ -184,6 +184,7 @@ contract LoopStrategyTest is BaseForkTest {
     /// @param amount amount of minted and deposited assets
     function _depositFor(address user, uint256 amount)
         internal
+        virtual
         returns (uint256 shares)
     {
         vm.startPrank(user);
