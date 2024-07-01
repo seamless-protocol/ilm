@@ -2,6 +2,7 @@
 pragma solidity ^0.8.21;
 
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { ERC20Mock } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import { LoopStrategyTest } from "./LoopStrategy.t.sol";
 import { IRewardsController } from
     "@aave-periphery/contracts/rewards/interfaces/IRewardsController.sol";
@@ -26,8 +27,8 @@ import { RewardsHandler } from "./helpers/RewardsHandler.sol";
 import "forge-std/console.sol";
 
 contract LoopStrategyDepositTest is LoopStrategyTest {
-    MockERC20 public supplyToken = new MockERC20("Supply Token", "ST");
-    MockERC20 public rewardToken = new MockERC20("Reward Token", "RT");
+    ERC20Mock public supplyToken = new ERC20Mock();
+    ERC20Mock public rewardToken = new ERC20Mock();
     MockAaveOracle public oracle;
     MockTransferStrategy public transferStrategy;
 
@@ -40,8 +41,6 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         _openLendingPoolMarket();
 
         oracle = new MockAaveOracle();
-        oracle.setAssetPrice(address(strategy), 1e8);
-
         transferStrategy = new MockTransferStrategy();
 
         address emissionManager = REWARDS_CONTROLLER.getEmissionManager();
@@ -118,6 +117,9 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         assertEq(userRewards, totalDistributedRewards - 1);
     }
 
+    /// forge-config: default.invariant.runs = 1
+    /// forge-config: default.invariant.depth = 100
+    /// forge-config: default.invariant.fail-on-revert = true
     function invariant_MultipleActions() public { }
 
     function _depositFor(address user, uint256 amount)
@@ -173,12 +175,12 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
             underlyingAsset: address(supplyToken),
             treasury: SEAMLESS_TREASURY,
             incentivesController: SEAMLESS_INCENTIVES_CONTROLLER,
-            aTokenName: "Token name",
-            aTokenSymbol: "Symbol",
-            variableDebtTokenName: "Token name",
-            variableDebtTokenSymbol: "Symbol",
-            stableDebtTokenName: "Token name",
-            stableDebtTokenSymbol: "Symbol",
+            aTokenName: "A Token Name",
+            aTokenSymbol: "A Token Symbol",
+            variableDebtTokenName: "VD Token Name",
+            variableDebtTokenSymbol: "VD Token Symbol",
+            stableDebtTokenName: "SD Token Nname",
+            stableDebtTokenSymbol: "SD Token Symbol",
             params: new bytes(0x1)
         });
 

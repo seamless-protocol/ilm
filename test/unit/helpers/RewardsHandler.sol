@@ -71,6 +71,7 @@ contract RewardsHandler is Test, TestConstants {
 
         strategyUnderlying.approve(address(strategy), amount);
 
+        // add comment
         try strategy.deposit(amount, user) returns (uint256 shares) {
             supplyToken.approve(address(pool), shares);
             pool.deposit(address(supplyToken), shares, user, 0);
@@ -81,6 +82,7 @@ contract RewardsHandler is Test, TestConstants {
         vm.stopPrank();
 
         _validateRewards();
+        // change wes
         vm.warp(block.timestamp + timeToPass);
         _validateRewards();
     }
@@ -88,6 +90,7 @@ contract RewardsHandler is Test, TestConstants {
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
         public
     {
+        // better bound
         timeToPass = uint8(bound(uint256(timeToPass), 0, 100_000_000));
         userIndex = bound(userIndex, 0, actors.length - 1);
         address user = actors[userIndex];
