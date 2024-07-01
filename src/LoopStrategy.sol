@@ -708,21 +708,28 @@ contract LoopStrategy is
         internal
         override
     {
+        if (from != address(0)) {
+            _handleAction(from, totalSupply(), balanceOf(from));
+        }
+
+        if (to != address(0) && to != from) {
+            _handleAction(to, totalSupply(), balanceOf(to));
+        }
+
+        super._update(from, to, value);
+    }
+
+    function _handleAction(
+        address user,
+        uint256 totalSupply,
+        uint256 oldUserBalance
+    ) internal {
         IPoolAddressesProvider poolAddressProvider =
             Storage.layout().poolAddressProvider;
 
         IRewardsController rewardsController = IRewardsController(
             poolAddressProvider.getAddress(INCENTIVES_CONTROLLER)
         );
-
-        if (from != address(0)) {
-            rewardsController.handleAction(from, totalSupply(), balanceOf(from));
-        }
-
-        if (to != address(0) && to != from) {
-            rewardsController.handleAction(to, totalSupply(), balanceOf(to));
-        }
-
-        super._update(from, to, value);
+        rewardsController.handleAction(user, totalSupply, oldUserBalance);
     }
 }
