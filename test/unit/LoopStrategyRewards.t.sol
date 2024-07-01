@@ -33,7 +33,7 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     MockTransferStrategy public transferStrategy;
 
     address public sSupplyTokenAddress;
-    RewardsHandler public rewardsDepositor;
+    RewardsHandler public rewardsHandler;
 
     function setUp() public override {
         super.setUp();
@@ -50,27 +50,12 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         RewardsDataTypes.RewardsConfigInput[] memory config =
             new RewardsDataTypes.RewardsConfigInput[](2);
 
-        config[0] = RewardsDataTypes.RewardsConfigInput({
-            emissionPerSecond: 1 ether,
-            totalSupply: 0,
-            distributionEnd: type(uint32).max,
-            asset: address(strategy),
-            reward: address(rewardToken),
-            transferStrategy: ITransferStrategyBase(address(transferStrategy)),
-            rewardOracle: IEACAggregatorProxy(address(oracle))
-        });
-        config[1] = RewardsDataTypes.RewardsConfigInput({
-            emissionPerSecond: 1 ether,
-            totalSupply: 0,
-            distributionEnd: type(uint32).max,
-            asset: sSupplyTokenAddress,
-            reward: address(rewardToken),
-            transferStrategy: ITransferStrategyBase(address(transferStrategy)),
-            rewardOracle: IEACAggregatorProxy(address(oracle))
-        });
+        config[0] = _makeRewardsConfigInput(address(strategy));
+        config[1] = _makeRewardsConfigInput(sSupplyTokenAddress);
+
         REWARDS_CONTROLLER.configureAssets(config);
 
-        rewardsDepositor = new RewardsHandler(
+        rewardsHandler = new RewardsHandler(
             address(strategy),
             address(POOL),
             address(REWARDS_CONTROLLER),
@@ -80,20 +65,20 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
 
         vm.stopPrank();
 
-        vm.allowCheatcodes(address(rewardsDepositor));
-        rewardsDepositor.createUsers();
+        vm.allowCheatcodes(address(rewardsHandler));
+        rewardsHandler.createUsers();
 
         // This is necessary so all deployed contracts in setUp are removed from the target contracts list
-        targetContract(address(rewardsDepositor));
+        targetContract(address(rewardsHandler));
 
         bytes4[] memory selectors = new bytes4[](4);
-        selectors[0] = rewardsDepositor.deposit.selector;
-        selectors[1] = rewardsDepositor.withdraw.selector;
-        selectors[2] = rewardsDepositor.transfer.selector;
-        selectors[3] = rewardsDepositor.claimAllRewards.selector;
+        selectors[0] = rewardsHandler.deposit.selector;
+        selectors[1] = rewardsHandler.withdraw.selector;
+        selectors[2] = rewardsHandler.transfer.selector;
+        selectors[3] = rewardsHandler.claimAllRewards.selector;
 
         FuzzSelector memory selector = FuzzSelector({
-            addr: address(rewardsDepositor),
+            addr: address(rewardsHandler),
             selectors: selectors
         });
 
@@ -120,7 +105,19 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
     /// forge-config: default.invariant.runs = 1
     /// forge-config: default.invariant.depth = 100
     /// forge-config: default.invariant.fail-on-revert = true
-    function invariant_MultipleActions() public { }
+    function invariant_MultipleActions() public {
+        address[] memory actors = rewardsHandler.getActors();
+
+        for (uint256 i = 0; i < actors.length; i++) {
+            address actor = actors[i];
+
+            assertEq(
+                _getUserRewards(address(strategy), actor),
+                _getUserRewards(sSupplyTokenAddress, actor),
+                "Rewards mismatch"
+            );
+        }
+    }
 
     function _depositFor(address user, uint256 amount)
         internal
@@ -193,5 +190,34 @@ contract LoopStrategyDepositTest is LoopStrategyTest {
         sSupplyTokenAddress = reserveData.aTokenAddress;
 
         vm.stopPrank();
+    }
+
+    function _makeRewardsConfigInput(address asset)
+        internal
+        view
+        returns (RewardsDataTypes.RewardsConfigInput memory)
+    {
+        return RewardsDataTypes.RewardsConfigInput({
+            emissionPerSecond: 1 ether,
+            totalSupply: 0,
+            distributionEnd: type(uint32).max,
+            asset: asset,
+            reward: address(rewardToken),
+            transferStrategy: ITransferStrategyBase(address(transferStrategy)),
+            rewardOracle: IEACAggregatorProxy(address(oracle))
+        });
+    }
+
+    function _getUserRewards(address asset, address user)
+        internal
+        view
+        returns (uint256)
+    {
+        address[] memory assets = new address[](1);
+        assets[0] = asset;
+
+        return REWARDS_CONTROLLER.getUserRewards(
+            assets, user, address(rewardToken)
+        );
     }
 }

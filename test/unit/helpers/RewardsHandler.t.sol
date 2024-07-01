@@ -81,7 +81,7 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.stopPrank();
 
-        _moveTimeAndValidateRewards(timeToPass);
+        vm.warp(block.timestamp + timeToPass);
     }
 
     function withdraw(uint256 userIndex, uint256 amount, uint8 timeToPass)
@@ -108,7 +108,7 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.stopPrank();
 
-        _moveTimeAndValidateRewards(timeToPass);
+        vm.warp(block.timestamp + timeToPass);
     }
 
     function transfer(
@@ -135,7 +135,7 @@ contract RewardsHandler is Test, TestConstants {
         IERC20(sSupplyTokenAddress).transfer(toUser, amount);
         vm.stopPrank();
 
-        _moveTimeAndValidateRewards(timeToPass);
+        vm.warp(block.timestamp + timeToPass);
     }
 
     function claimAllRewards(
@@ -181,37 +181,6 @@ contract RewardsHandler is Test, TestConstants {
 
         vm.stopPrank();
 
-        _moveTimeAndValidateRewards(timeToPass);
-    }
-
-    function _moveTimeAndValidateRewards(uint256 timeToPass) internal {
-        _validateRewards();
         vm.warp(block.timestamp + timeToPass);
-        _validateRewards();
-    }
-
-    function _validateRewards() internal {
-        for (uint256 i = 0; i < actors.length; i++) {
-            address actor = actors[i];
-
-            assertEq(
-                _getUserRewards(address(strategy), actor),
-                _getUserRewards(sSupplyTokenAddress, actor),
-                "Rewards mismatch"
-            );
-        }
-    }
-
-    function _getUserRewards(address asset, address user)
-        internal
-        view
-        returns (uint256)
-    {
-        address[] memory assets = new address[](1);
-        assets[0] = asset;
-
-        return REWARDS_CONTROLLER.getUserRewards(
-            assets, user, address(rewardToken)
-        );
     }
 }
